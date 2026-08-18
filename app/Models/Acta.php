@@ -8,14 +8,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Acta extends Model
 {
+    protected $table = 'acta';
+    protected $primaryKey = 'id_acta';
+
     protected $fillable = [
-        'mesa_examen_id',
         'libro',
         'folio',
-        'fecha_generacion',
-        'secretario_id',
+        'id_mesa',
+        'id_tipo_acta',
         'estado',
         'observaciones',
+        'fecha_generacion',
+        'id_secretario_creador',
+        'id_director_firmante',
     ];
 
     protected $casts = [
@@ -24,16 +29,26 @@ class Acta extends Model
 
     public function mesaExamen(): BelongsTo
     {
-        return $this->belongsTo(MesaExamen::class);
+        return $this->belongsTo(MesaExamen::class, 'id_mesa', 'id_mesa');
     }
 
-    public function secretario(): BelongsTo
+    public function tipoActa(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'secretario_id');
+        return $this->belongsTo(TipoActa::class, 'id_tipo_acta', 'id_tipo_acta');
+    }
+
+    public function secretarioCreador(): BelongsTo
+    {
+        return $this->belongsTo(Persona::class, 'id_secretario_creador', 'id_persona');
+    }
+
+    public function directorFirmante(): BelongsTo
+    {
+        return $this->belongsTo(Persona::class, 'id_director_firmante', 'id_persona');
     }
 
     public function detalles(): HasMany
     {
-        return $this->hasMany(DetalleActa::class);
+        return $this->hasMany(DetalleActa::class, 'id_acta', 'id_acta');
     }
 }
