@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cuota;
+use App\Models\ConceptoCaja;
+use App\Models\CuotaAlumno;
+use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
-use App\Models\User;
+use App\Models\TipoMovimiento;
+use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,25 +24,33 @@ class CuotaController extends Controller
         $resultados = collect();
 
         if ($request->query('alumno')) {
-            $alumnoSeleccionado = User::where('rol', 'alumno')
-                ->with(['inscripcionesCarrera.carrera', 'cuotas' => fn ($q) => $q->orderBy('fecha_vencimiento')])
+            $alumnoSeleccionado = Usuario::alumnos()
+                ->with([
+                    'persona.inscripcionesCarrera.carrera',
+                    'persona.cuotas' => fn ($q) => $q->with('mes')->orderBy('id_anio_lectivo')->orderBy('id_mes'),
+                ])
                 ->find($request->query('alumno'));
         } elseif ($busqueda) {
-            $resultados = User::where('rol', 'alumno')
-                ->where(fn ($q) => $q->where('nombre', 'like', "%{$busqueda}%")
+            $resultados = Usuario::alumnos()
+                ->whereHas('persona', fn ($q) => $q->where('nombre', 'like', "%{$busqueda}%")
                     ->orWhere('apellido', 'like', "%{$busqueda}%")
                     ->orWhere('dni', 'like', "%{$busqueda}%"))
-                ->with('inscripcionesCarrera.carrera')
-                ->withCount(['cuotas as cuotas_pendientes_count' => fn ($q) => $q->where('estado', 'pendiente')])
-                ->orderBy('apellido')
-                ->limit(8)
-                ->get();
+                ->with('persona.inscripcionesCarrera.carrera')
+                ->get()
+                ->sortBy(fn ($u) => $u->persona->apellido)
+                ->take(8)
+                ->values()
+                ->map(function (Usuario $u) {
+                    $u->cuotas_pendientes_count = $u->persona->cuotas()->where('pagado', false)->count();
+
+                    return $u;
+                });
         }
 
-        $historial = Cuota::where('estado', 'pagado')
-            ->with('user')
-            ->when($request->query('h_alumno'), fn ($q, $v) => $q->whereHas('user', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
-            ->orderByDesc('fecha_pago')
+        $historial = CuotaAlumno::where('pagado', true)
+            ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
+            ->when($request->query('h_alumno'), fn ($q, $v) => $q->whereHas('personaAlumno', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
+            ->orderByDesc('id_cuota')
             ->paginate(8, ['*'], 'historial')
             ->withQueryString();
 
@@ -55,9 +66,9 @@ class CuotaController extends Controller
     public function cobrar(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'persona_id' => ['required', 'exists:persona,id_persona'],
             'fecha_pago' => ['required', 'date'],
-            'medio_pago' => ['required', 'in:efectivo,transferencia'],
+            'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
             'cuotas' => ['required', 'array', 'min:1'],
             'cuotas.*.pagar' => ['nullable'],
             'cuotas.*.monto' => ['nullable', 'numeric', 'min:0'],
@@ -74,9 +85,16 @@ class CuotaController extends Controller
         $cantidad = 0;
 
         DB::transaction(function () use ($seleccionadas, $data, &$totalCobrado, &$cantidad) {
+            $medioPago = MedioPago::where('nombre_medio', $data['medio_pago'])->firstOrFail();
+            $tipoIngreso = TipoMovimiento::where('nombre_tipo', 'Ingreso')->firstOrFail();
+            $conceptoCuota = ConceptoCaja::firstOrCreate(
+                ['nombre_concepto' => 'Cuota mensual'],
+                ['id_tipo_movimiento' => $tipoIngreso->id_tipo_movimiento]
+            );
+
             foreach ($seleccionadas as $cuotaId => $item) {
-                $cuota = Cuota::where('user_id', $data['user_id'])
-                    ->where('estado', 'pendiente')
+                $cuota = CuotaAlumno::where('id_persona_alumno', $data['persona_id'])
+                    ->where('pagado', false)
                     ->find($cuotaId);
 
                 if (! $cuota) {
@@ -85,27 +103,28 @@ class CuotaController extends Controller
 
                 $monto = round((float) ($item['monto'] ?? $cuota->monto), 2);
                 $recargo = round((float) ($item['recargo'] ?? 0), 2);
+                $conceptoTexto = $cuota->concepto ?: "Cuota {$cuota->mes->nombre_mes}";
+
+                $descripcion = "{$conceptoTexto} — {$cuota->personaAlumno->apellido}, {$cuota->personaAlumno->nombre}";
+                if ($recargo > 0) {
+                    $descripcion .= ' (incluye recargo $' . number_format($recargo, 0, ',', '.') . ')';
+                }
+
+                $movimiento = MovimientoCaja::create([
+                    'id_concepto' => $conceptoCuota->id_concepto,
+                    'monto' => $monto + $recargo,
+                    'fecha_movimiento' => $data['fecha_pago'],
+                    'descripcion_detalle' => $descripcion,
+                    'id_secretario_registra' => Auth::user()->id_persona,
+                    'id_medio_pago' => $medioPago->id_medio_pago,
+                ]);
 
                 $cuota->update([
                     'monto' => $monto,
                     'recargo' => $recargo,
-                    'estado' => 'pagado',
+                    'pagado' => true,
                     'fecha_pago' => $data['fecha_pago'],
-                    'medio_pago' => $data['medio_pago'],
-                ]);
-
-                $concepto = "Cobro {$cuota->concepto} — {$cuota->user->apellido}, {$cuota->user->nombre}";
-                if ($recargo > 0) {
-                    $concepto .= ' (incluye recargo $' . number_format($recargo, 0, ',', '.') . ')';
-                }
-
-                MovimientoCaja::create([
-                    'tipo' => 'ingreso',
-                    'concepto' => $concepto,
-                    'monto' => $monto + $recargo,
-                    'fecha_movimiento' => $data['fecha_pago'],
-                    'registrado_por_id' => Auth::id(),
-                    'cuota_id' => $cuota->id,
+                    'id_movimiento_caja' => $movimiento->id_movimiento,
                 ]);
 
                 $totalCobrado += $monto + $recargo;
