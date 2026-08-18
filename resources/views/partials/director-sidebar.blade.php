@@ -1,5 +1,5 @@
 @php
-    $cuotasPendientesBadge = \App\Models\Cuota::where('estado', 'pendiente')->count();
+    $cuotasPendientesBadge = \App\Models\CuotaAlumno::where('pagado', false)->count();
 
     $enlaces = [
         ['ruta' => 'director.panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
