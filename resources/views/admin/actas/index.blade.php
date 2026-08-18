@@ -20,7 +20,7 @@
                 <select name="carrera" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Todas</option>
                     @foreach ($carreras as $carrera)
-                        <option value="{{ $carrera->id }}" @selected($filtroCarrera == $carrera->id)>{{ $carrera->nombre }}</option>
+                        <option value="{{ $carrera->id_carrera }}" @selected($filtroCarrera == $carrera->id_carrera)>{{ $carrera->nombre_carrera }}</option>
                     @endforeach
                 </select>
             </div>
@@ -28,8 +28,8 @@
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MESA (MATERIA · LLAMADO / FECHA)</label>
                 <select name="mesa" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     @forelse ($mesas as $mesa)
-                        <option value="{{ $mesa->id }}" @selected($mesaSeleccionada?->id === $mesa->id)>
-                            {{ $mesa->materia->nombre }} — {{ $mesa->llamado === 'primer_llamado' ? '1er' : '2do' }} llamado · {{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}
+                        <option value="{{ $mesa->id_mesa }}" @selected($mesaSeleccionada?->id_mesa === $mesa->id_mesa)>
+                            {{ $mesa->materia->nombre }} — {{ $mesa->llamadoExamen->nombre_llamado }} · {{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}
                         </option>
                     @empty
                         <option>No hay mesas cargadas</option>
@@ -53,15 +53,22 @@
 
                 <div class="flex justify-between items-center mb-4 text-sm">
                     <div class="flex gap-6">
-                        <label class="flex items-center gap-2">L: <input type="text" name="libro" value="{{ old('libro', $acta->libro ?? '') }}" class="w-16 border-b border-slate-400 text-center focus:outline-none"></label>
-                        <label class="flex items-center gap-2">F: <input type="text" name="folio" value="{{ old('folio', $acta->folio ?? '') }}" class="w-16 border-b border-slate-400 text-center focus:outline-none"></label>
+                        <label class="flex items-center gap-2">L: <input type="text" maxlength="20" name="libro" value="{{ old('libro', $acta->libro ?? '') }}" class="w-16 border-b border-slate-400 text-center focus:outline-none"></label>
+                        <label class="flex items-center gap-2">F: <input type="text" maxlength="20" name="folio" value="{{ old('folio', $acta->folio ?? '') }}" class="w-16 border-b border-slate-400 text-center focus:outline-none"></label>
                     </div>
-                    <span class="border border-slate-300 rounded px-3 py-1 text-sm">{{ \App\Support\FechaEsp::corta($mesaSeleccionada->fecha_examen) }}</span>
+                    <div class="flex items-center gap-2">
+                        @if ($acta)
+                            <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $acta->estado === 'generada' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }}">
+                                {{ $acta->estado === 'generada' ? 'Definitiva' : 'Borrador' }}
+                            </span>
+                        @endif
+                        <span class="border border-slate-300 rounded px-3 py-1 text-sm">{{ \App\Support\FechaEsp::corta($mesaSeleccionada->fecha_examen) }}</span>
+                    </div>
                 </div>
 
-                <h3 class="text-center font-bold text-slate-800 mb-4">ACTA DE EXÁMENES {{ mb_strtoupper(str_replace('_', ' ', $mesaSeleccionada->turno)) }} {{ $mesaSeleccionada->anioLectivo->anio }}</h3>
+                <h3 class="text-center font-bold text-slate-800 mb-4">ACTA DE EXÁMENES {{ mb_strtoupper($mesaSeleccionada->turnoExamen->nombre_turno) }} {{ $mesaSeleccionada->anioLectivo->anio }}</h3>
 
-                <p class="text-sm mb-1"><strong>Carrera:</strong> {{ $mesaSeleccionada->materia->carrera->nombre }}.</p>
+                <p class="text-sm mb-1"><strong>Carrera:</strong> {{ $mesaSeleccionada->materia->carrera->nombre_carrera }}.</p>
                 <p class="text-sm mb-1"><strong>Asignatura:</strong> {{ mb_strtoupper($mesaSeleccionada->materia->nombre) }}</p>
                 <p class="text-sm mb-4"><strong>Examen de Alumnos:</strong> REGULAR</p>
 
@@ -79,25 +86,25 @@
                             <th class="border border-slate-300"></th>
                             <th class="border border-slate-300 px-2 py-1">Escrito</th>
                             <th class="border border-slate-300 px-2 py-1">Oral</th>
-                            <th class="border border-slate-300 px-2 py-1">Promedio</th>
+                            <th class="border border-slate-300 px-2 py-1">Final</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($inscripcionesAceptadas as $i => $inscripcion)
-                            @php $detalle = $acta?->detalles->firstWhere('user_id', $inscripcion->user_id); @endphp
+                            @php $detalle = $acta?->detalles->firstWhere('id_persona_alumno', $inscripcion->id_persona_alumno); @endphp
                             <tr>
                                 <td class="border border-slate-300 text-center py-1">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</td>
-                                <td class="border border-slate-300 text-center">DNI {{ $inscripcion->user->dni }}</td>
-                                <td class="border border-slate-300 px-3">{{ mb_strtoupper($inscripcion->user->apellido) }}, {{ mb_strtoupper($inscripcion->user->nombre) }}</td>
+                                <td class="border border-slate-300 text-center">DNI {{ $inscripcion->personaAlumno->dni }}</td>
+                                <td class="border border-slate-300 px-3">{{ mb_strtoupper($inscripcion->personaAlumno->apellido) }}, {{ mb_strtoupper($inscripcion->personaAlumno->nombre) }}</td>
                                 <td class="border border-slate-300 p-1">
-                                    <input type="number" step="0.01" min="0" max="10" name="notas[{{ $inscripcion->user_id }}][nota_escrito]" value="{{ $detalle->nota_escrito ?? '' }}" class="w-full text-center focus:outline-none">
+                                    <input type="text" inputmode="numeric" data-nota name="notas[{{ $inscripcion->id_persona_alumno }}][nota_escrito]" value="{{ $detalle->nota_escrito ?? '' }}" class="w-full text-center focus:outline-none">
                                 </td>
                                 <td class="border border-slate-300 p-1">
-                                    <input type="number" step="0.01" min="0" max="10" name="notas[{{ $inscripcion->user_id }}][nota_oral]" value="{{ $detalle->nota_oral ?? '' }}" class="w-full text-center focus:outline-none">
+                                    <input type="text" inputmode="numeric" data-nota name="notas[{{ $inscripcion->id_persona_alumno }}][nota_oral]" value="{{ $detalle->nota_oral ?? '' }}" class="w-full text-center focus:outline-none">
                                 </td>
                                 <td class="border border-slate-300 p-1">
-                                    <input type="number" step="0.01" min="0" max="10" name="notas[{{ $inscripcion->user_id }}][nota_promedio]" value="{{ $detalle->nota_promedio ?? '' }}" class="w-full text-center font-bold focus:outline-none">
-                                    <select name="notas[{{ $inscripcion->user_id }}][resultado]" class="w-full text-[10px] border-t border-slate-200 focus:outline-none">
+                                    <input type="text" inputmode="numeric" data-nota name="notas[{{ $inscripcion->id_persona_alumno }}][nota_final]" value="{{ $detalle->nota_final ?? '' }}" class="w-full text-center font-bold focus:outline-none">
+                                    <select name="notas[{{ $inscripcion->id_persona_alumno }}][resultado]" class="w-full text-[10px] border-t border-slate-200 focus:outline-none">
                                         <option value="">—</option>
                                         <option value="aprobado" @selected(($detalle->resultado ?? null) === 'aprobado')>Aprobado</option>
                                         <option value="desaprobado" @selected(($detalle->resultado ?? null) === 'desaprobado')>Desaprobado</option>
@@ -119,7 +126,7 @@
                 </table>
 
                 <label class="block text-xs font-semibold text-slate-500 mb-1">OBSERVACIONES:</label>
-                <textarea name="observaciones" rows="2" class="w-full border-b border-slate-300 text-sm mb-6 focus:outline-none">{{ $acta->observaciones ?? '' }}</textarea>
+                <textarea name="observaciones" rows="2" maxlength="2000" class="w-full border-b border-slate-300 text-sm mb-6 focus:outline-none">{{ $acta->observaciones ?? '' }}</textarea>
 
                 <div class="flex justify-end gap-8 text-sm mb-8">
                     <p>TOTAL DE ALUMNOS: <strong>{{ $inscripcionesAceptadas->count() }}</strong></p>
