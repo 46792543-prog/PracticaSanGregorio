@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,28 +23,36 @@ class PasswordResetController extends Controller
 
     public function solicitar(Request $request): RedirectResponse
     {
-        $request->validate(['email' => ['required', 'email']]);
+        $request->validate(['email' => ['required', 'email', 'max:100']]);
 
-        $usuario = User::where('email', $request->email)->first();
+        // No revelamos si el email existe o no: siempre se avanza al mismo paso
+        // siguiente, y solo se genera/registra un código si la cuenta es real.
+        $usuario = Usuario::where('email', $request->email)->first();
+        $codigo = null;
 
-        if (! $usuario) {
-            return back()->withErrors(['email' => 'No encontramos ninguna cuenta con ese email institucional.']);
+        if ($usuario) {
+            $codigo = (string) random_int(100000, 999999);
+
+            DB::table('password_resets')->updateOrInsert(
+                ['email' => $usuario->email],
+                ['token' => Hash::make($codigo), 'created_at' => now()]
+            );
+
+            // No hay servidor de correo configurado en este proyecto de práctica:
+            // el código se registra en el log en vez de enviarse por email real.
+            Log::info("Código de recuperación para {$usuario->email}: {$codigo}");
         }
 
-        $codigo = (string) random_int(100000, 999999);
-
-        DB::table('password_resets')->updateOrInsert(
-            ['email' => $usuario->email],
-            ['token' => Hash::make($codigo), 'created_at' => now()]
-        );
-
-        // No hay servidor de correo configurado en este proyecto de práctica:
-        // el código se registra en el log en vez de enviarse por email real.
-        Log::info("Código de recuperación para {$usuario->email}: {$codigo}");
+        // El código solo se muestra en pantalla (modo demo sin servidor de correo)
+        // cuando el entorno es local Y la petición viene de la propia máquina,
+        // para que no quede expuesto ante quien adivine un email ajeno en producción.
+        $mostrarCodigoEnPantalla = $usuario
+            && app()->environment('local')
+            && in_array($request->ip(), ['127.0.0.1', '::1'], true);
 
         session([
-            'password_reset_email' => $usuario->email,
-            'password_reset_codigo_demo' => $codigo,
+            'password_reset_email' => $request->email,
+            'password_reset_codigo_demo' => $mostrarCodigoEnPantalla ? $codigo : null,
         ]);
 
         return redirect()->route('password.verificar');
@@ -96,11 +104,11 @@ class PasswordResetController extends Controller
         abort_unless(session('password_reset_verificado'), 419);
 
         $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
         ]);
 
         $email = session('password_reset_email');
-        $usuario = User::where('email', $email)->firstOrFail();
+        $usuario = Usuario::where('email', $email)->firstOrFail();
         $usuario->update(['password' => Hash::make($request->password)]);
 
         DB::table('password_resets')->where('email', $email)->delete();
