@@ -11,12 +11,12 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">SELECCIONAR MATERIA *</label>
-                <select name="materia_id" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                <select name="id_materia" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
                     <option value="">Ej: Fundamentos de Enfermería Básica y Comunitaria</option>
                     @foreach ($carreras as $carrera)
-                        <optgroup label="{{ $carrera->nombre }}">
+                        <optgroup label="{{ $carrera->nombre_carrera }}">
                             @foreach ($carrera->materias as $materia)
-                                <option value="{{ $materia->id }}">{{ $materia->nombre }}</option>
+                                <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
                             @endforeach
                         </optgroup>
                     @endforeach
@@ -30,9 +30,9 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">TURNO EXAMEN *</label>
-                    <select name="turno" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
-                        @foreach ($turnos as $valor => $texto)
-                            <option value="{{ $valor }}">{{ $texto }}</option>
+                    <select name="id_turno" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                        @foreach ($turnos as $turno)
+                            <option value="{{ $turno->id_turno }}">{{ $turno->nombre_turno }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -49,12 +49,19 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">LLAMADO *</label>
-                <select name="llamado" required class="w-full sm:w-64 rounded-xl border border-slate-300 px-4 py-3 text-sm">
-                    <option value="primer_llamado">1er llamado</option>
-                    <option value="segundo_llamado">2do llamado</option>
-                </select>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">LLAMADO *</label>
+                    <select name="id_llamado" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                        @foreach ($llamados as $llamado)
+                            <option value="{{ $llamado->id_llamado }}">{{ $llamado->nombre_llamado }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">CUPO MÁXIMO (OPCIONAL)</label>
+                    <input type="number" name="cupo_maximo" min="1" placeholder="Sin límite" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                </div>
             </div>
 
             <div>
@@ -63,19 +70,19 @@
                     <select name="presidente_id" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Presidente...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                     <select name="vocal1_id" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Vocal 1...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                     <select name="vocal2_id" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Vocal 2...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
