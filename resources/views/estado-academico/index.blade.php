@@ -26,7 +26,7 @@
             </p>
         @endif
         <form method="GET" class="flex flex-col sm:flex-row gap-3">
-            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar materia..."
+            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar materia..." maxlength="50"
                    class="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             <select name="condicion" onchange="this.form.submit()"
                     class="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
@@ -44,7 +44,7 @@
             <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span class="inline-block h-4 w-1 bg-[#16305a] rounded"></span>
                 {{ $nombresAnio[$anio] ?? "{$anio}° Año" }} — {{ $materias->count() }} materias
-                @if ($inscripcionCarrera && (int) $inscripcionCarrera->anio_actual === (int) $anio)
+                @if ($inscripcionCarrera && $inscripcionCarrera->anioCursada && (int) $inscripcionCarrera->anioCursada->id_anio_cursada === (int) $anio)
                     <span class="text-xs font-normal text-amber-500">(año en curso)</span>
                 @endif
             </h3>
@@ -55,12 +55,8 @@
                         <div>
                             <p class="font-semibold text-slate-700 text-sm">{{ $materia->nombre }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">
-                                {{ \Illuminate\Support\Str::of($materia->cuatrimestre)->replace('_', ' ')->ucfirst() }}
-                                · {{ match ($materia->regimen) {
-                                    'solo_promocion' => 'Promoción',
-                                    'solo_examen_final' => 'Examen Final',
-                                    default => 'Promoción / Examen Final',
-                                } }}
+                                {{ $materia->periodo->nombre_periodo }}
+                                · {{ $materia->regimen->nombre_regimen }}
                                 @if ($materia->nota_alumno)
                                     · Nota: {{ number_format($materia->nota_alumno, 2) }}
                                 @elseif ($materia->condicion_alumno === 'cursando' || $materia->condicion_alumno === 'regular')
