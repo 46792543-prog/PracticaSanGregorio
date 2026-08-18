@@ -34,7 +34,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
         <div class="flex flex-wrap items-center gap-3 p-4 border-b border-slate-100">
             <form method="GET" class="flex-1 min-w-[200px]">
-                <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar alumno..." onchange="this.form.submit()"
+                <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar alumno..." onchange="this.form.submit()" maxlength="50"
                        class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm">
                 <input type="hidden" name="filtro" value="{{ $filtro }}">
             </form>
@@ -61,21 +61,22 @@
                 @forelse ($alumnos as $alumno)
                     @php
                         $inscripcion = $alumno->inscripcionesCarrera->first();
-                        $badges = ['pendiente' => 'bg-red-50 text-red-500', 'entregado' => 'bg-amber-50 text-amber-600', 'aprobado' => 'bg-green-50 text-green-600', 'rechazado' => 'bg-red-50 text-red-500'];
+                        $badges = ['Pendiente' => 'bg-red-50 text-red-500', 'Entregado' => 'bg-amber-50 text-amber-600', 'Aprobado' => 'bg-green-50 text-green-600', 'Rechazado' => 'bg-red-50 text-red-500'];
                         $estadoTexto = ['pendiente' => 'Pendiente', 'revision' => 'En revisión', 'sin_enviar' => 'Sin enviar', 'completo' => 'Completo'];
                         $estadoBadge = ['pendiente' => 'bg-amber-100 text-amber-700', 'revision' => 'bg-blue-100 text-blue-700', 'sin_enviar' => 'bg-red-100 text-red-600', 'completo' => 'bg-green-100 text-green-700'];
                     @endphp
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4">
                             <p class="font-semibold text-slate-700">{{ $alumno->nombre }} {{ $alumno->apellido }}</p>
-                            <p class="text-xs text-slate-400">{{ $inscripcion?->anio_actual }}° Año · {{ $inscripcion?->carrera?->nombre }}</p>
+                            <p class="text-xs text-slate-400">{{ $inscripcion?->anioCursada?->nombre_anio }} · {{ $inscripcion?->carrera?->nombre }}</p>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex gap-1 flex-wrap">
-                                @foreach ($alumno->documentosAlumno as $doc)
-                                    <span class="text-xs px-2 py-0.5 rounded {{ $badges[$doc->estado] }}">
+                                @foreach ($alumno->documentacion as $doc)
+                                    @php $nombreEstado = $doc->estadoDocumento->nombre_estado ?? 'Pendiente'; @endphp
+                                    <span class="text-xs px-2 py-0.5 rounded {{ $badges[$nombreEstado] ?? 'bg-slate-50 text-slate-500' }}">
                                         {{ \Illuminate\Support\Str::limit($doc->documentoRequisito->nombre, 8, '') }}
-                                        {{ in_array($doc->estado, ['aprobado']) ? '✓' : (in_array($doc->estado, ['pendiente', 'rechazado']) ? '✗' : '⏳') }}
+                                        {{ $nombreEstado === 'Aprobado' ? '✓' : (in_array($nombreEstado, ['Pendiente', 'Rechazado']) ? '✗' : '⏳') }}
                                     </span>
                                 @endforeach
                             </div>
