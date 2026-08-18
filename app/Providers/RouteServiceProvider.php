@@ -48,5 +48,16 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Máximo 5 intentos de login por minuto, combinando email + IP para no
+        // bloquear a toda una red compartida por los intentos fallidos de otra persona.
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip());
+        });
+
+        // Máximo 5 intentos por minuto para pedir/verificar el código de recuperación de clave.
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }
