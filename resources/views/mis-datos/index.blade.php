@@ -37,17 +37,17 @@
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE</label>
-                        <input type="text" name="nombre" value="{{ old('nombre', $alumno->nombre) }}" required
+                        <input type="text" data-solo="letras" maxlength="100" name="nombre" value="{{ old('nombre', $alumno->nombre) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">APELLIDO</label>
-                        <input type="text" name="apellido" value="{{ old('apellido', $alumno->apellido) }}" required
+                        <input type="text" data-solo="letras" maxlength="100" name="apellido" value="{{ old('apellido', $alumno->apellido) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">DNI</label>
-                        <input type="text" name="dni" value="{{ old('dni', $alumno->dni) }}" required
+                        <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" value="{{ old('dni', $alumno->dni) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
@@ -57,17 +57,17 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">TELÉFONO</label>
-                        <input type="text" name="telefono" value="{{ old('telefono', $alumno->telefono) }}"
+                        <input type="text" data-solo="telefono" maxlength="20" name="telefono" value="{{ old('telefono', $alumno->telefono) }}"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">DIRECCIÓN</label>
-                        <input type="text" name="direccion" value="{{ old('direccion', $alumno->direccion) }}" placeholder="Calle, número, localidad"
+                        <input type="text" maxlength="250" name="direccion" value="{{ old('direccion', $alumno->direccion) }}" placeholder="Calle, número, localidad"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">EMAIL DE CONTACTO</label>
-                        <input type="email" name="email" value="{{ old('email', $alumno->email) }}" required
+                        <input type="email" maxlength="100" name="email" value="{{ old('email', $alumno->usuario->email) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                 </div>
@@ -92,14 +92,34 @@
             <h3 class="font-bold text-slate-800 mb-5">📎 Documentación requerida</h3>
             <div class="space-y-4">
                 @foreach ($documentos as $documento)
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-700">{{ $documento->nombre }}</p>
-                            <p class="text-xs text-slate-400">{{ $documento->obligatorio ? 'Obligatorio' : 'Opcional' }}</p>
+                    <div>
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-700">{{ $documento->nombre }}</p>
+                                <p class="text-xs text-slate-400">{{ $documento->obligatorio ? 'Obligatorio' : 'Opcional' }}</p>
+                            </div>
+                            <span class="shrink-0 text-xs font-semibold rounded-full px-3 py-1 {{ $badgesDoc[$documento->estado_alumno] }}">
+                                {{ $etiquetasDoc[$documento->estado_alumno] }}
+                            </span>
                         </div>
-                        <span class="shrink-0 text-xs font-semibold rounded-full px-3 py-1 {{ $badgesDoc[$documento->estado_alumno] }}">
-                            {{ $etiquetasDoc[$documento->estado_alumno] }}
-                        </span>
+
+                        @if ($documento->miEntrega?->archivo_path)
+                            <a href="{{ route('documentacion.descarga', $documento->miEntrega) }}" class="text-xs text-[#1E4D8C] font-semibold hover:underline mt-1 inline-block">
+                                📄 {{ $documento->miEntrega->archivo_nombre_original }}
+                            </a>
+                        @endif
+
+                        @if (in_array($documento->estado_alumno, ['pendiente', 'rechazado']))
+                            @if ($documento->estado_alumno === 'rechazado' && $documento->miEntrega?->observaciones)
+                                <p class="text-xs text-red-500 mt-1">Motivo: {{ $documento->miEntrega->observaciones }}</p>
+                            @endif
+                            <form method="POST" action="{{ route('documentacion.store', $documento) }}" enctype="multipart/form-data" class="mt-2 flex items-center gap-2">
+                                @csrf
+                                <input type="file" name="archivo" accept=".pdf,.jpg,.jpeg,.png" required class="text-xs flex-1">
+                                <button type="submit" class="shrink-0 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5">Subir</button>
+                            </form>
+                            @error('archivo')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        @endif
                     </div>
                 @endforeach
             </div>
