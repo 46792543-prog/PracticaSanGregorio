@@ -18,8 +18,8 @@ class LoginController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+            'email' => ['required', 'email', 'max:100'],
+            'password' => ['required', 'string', 'max:100'],
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -27,6 +27,11 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
+
+        // Bandera de un solo uso: le avisa a la primera página autenticada que
+        // se acaba de iniciar sesión en ESTA pestaña, para que el guard de
+        // sesión (ver partials.session-guard) no la cierre por error.
+        $request->session()->flash('recien_logueado', true);
 
         $destino = match (true) {
             Auth::user()->esDirector() => route('director.panel.index'),
