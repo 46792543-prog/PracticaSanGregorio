@@ -45,11 +45,11 @@
         <div class="bg-[#1E4D8C] px-6 py-3.5">
             <h2 class="text-white font-bold text-sm flex items-center gap-2">🧾 Registrar gasto</h2>
         </div>
-        <form method="POST" action="{{ route('director.caja.gastos.store') }}" class="p-6 grid sm:grid-cols-4 gap-4 items-end">
+        <form method="POST" action="{{ route('director.caja.gastos.store') }}" class="p-6 grid sm:grid-cols-3 gap-4 items-end">
             @csrf
-            <div class="sm:col-span-2">
+            <div class="sm:col-span-1">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">CONCEPTO *</label>
-                <input type="text" name="concepto" required placeholder="Ej: Compra material de librería"
+                <input type="text" maxlength="100" name="concepto" required placeholder="Ej: Compra material de librería"
                        class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
             </div>
             <div>
@@ -61,19 +61,11 @@
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">TURNO</label>
-                <select name="turno" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
-                    <option value="">—</option>
-                    <option value="Mañana">Mañana</option>
-                    <option value="Tarde">Tarde</option>
-                </select>
-            </div>
-            <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA *</label>
                 <input type="date" name="fecha_movimiento" value="{{ now()->toDateString() }}" required
                        class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
             </div>
-            <div class="sm:col-span-4 flex justify-end">
+            <div class="sm:col-span-3 flex justify-end">
                 <button type="submit" class="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm px-6 py-2.5 shadow-sm hover:shadow-md transition">
                     − Registrar gasto
                 </button>
@@ -86,11 +78,6 @@
             <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">📖 Planilla de Control de Gastos — {{ \App\Support\FechaEsp::mesAnio($mes) }}</h3>
             <form method="GET" class="flex items-center gap-2">
                 <input type="month" name="mes" value="{{ $mes->format('Y-m') }}" onchange="this.form.submit()" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
-                <select name="turno" onchange="this.form.submit()" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
-                    <option value="">Todos los turnos</option>
-                    <option value="Mañana" @selected($turno === 'Mañana')>Mañana</option>
-                    <option value="Tarde" @selected($turno === 'Tarde')>Tarde</option>
-                </select>
             </form>
         </div>
 
@@ -100,7 +87,6 @@
                     <tr class="text-left text-[11px] text-slate-400 uppercase tracking-wide bg-slate-50/80">
                         <th class="px-6 py-3 font-semibold">N°</th>
                         <th class="px-6 py-3 font-semibold">Fecha y hora</th>
-                        <th class="px-6 py-3 font-semibold">Turno</th>
                         <th class="px-6 py-3 font-semibold">Concepto</th>
                         <th class="px-6 py-3 font-semibold">Tipo</th>
                         <th class="px-6 py-3 font-semibold">Registrado por</th>
@@ -110,36 +96,41 @@
                 </thead>
                 <tbody class="divide-y divide-slate-50">
                     @forelse ($movimientos as $i => $mov)
+                        @php $esIngreso = $mov->tipo === 'Ingreso'; @endphp
                         <tr class="hover:bg-slate-50/70">
                             <td class="px-6 py-3 text-slate-400">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</td>
                             <td class="px-6 py-3 text-slate-500">{{ $mov->fecha_movimiento->format('d/m') }} · {{ $mov->fecha_movimiento->format('H:i') }}</td>
-                            <td class="px-6 py-3 text-slate-500">{{ $mov->turno ?? '—' }}</td>
-                            <td class="px-6 py-3 text-slate-700">{{ $mov->concepto }}</td>
+                            <td class="px-6 py-3 text-slate-700">
+                                {{ $mov->concepto->nombre_concepto }}
+                                @if ($mov->descripcion_detalle)
+                                    <p class="text-xs text-slate-400">{{ $mov->descripcion_detalle }}</p>
+                                @endif
+                            </td>
                             <td class="px-6 py-3">
-                                <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $mov->tipo === 'ingreso' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600' }}">
-                                    {{ ucfirst($mov->tipo) }}
+                                <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $esIngreso ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600' }}">
+                                    {{ $mov->tipo }}
                                 </span>
                             </td>
                             <td class="px-6 py-3">
                                 <span class="inline-flex items-center gap-1.5">
-                                    <span class="h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold grid place-items-center">{{ mb_substr($mov->registradoPor->nombre, 0, 1) }}{{ mb_substr($mov->registradoPor->apellido, 0, 1) }}</span>
-                                    <span class="text-slate-600 text-xs">{{ $mov->registradoPor->nombre }} {{ $mov->registradoPor->apellido }}</span>
-                                    <span class="text-[10px] font-semibold rounded px-1.5 py-0.5 {{ $mov->registradoPor->esDirector() ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' }}">
-                                        {{ $mov->registradoPor->esDirector() ? 'Dir.' : 'Sec.' }}
+                                    <span class="h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold grid place-items-center">{{ mb_substr($mov->secretarioRegistra->nombre, 0, 1) }}{{ mb_substr($mov->secretarioRegistra->apellido, 0, 1) }}</span>
+                                    <span class="text-slate-600 text-xs">{{ $mov->secretarioRegistra->nombre }} {{ $mov->secretarioRegistra->apellido }}</span>
+                                    <span class="text-[10px] font-semibold rounded px-1.5 py-0.5 {{ $mov->secretarioRegistra->usuario?->esDirector() ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' }}">
+                                        {{ $mov->secretarioRegistra->usuario?->esDirector() ? 'Dir.' : 'Sec.' }}
                                     </span>
                                 </span>
                             </td>
-                            <td class="px-6 py-3 text-right font-semibold text-emerald-600">{{ $mov->tipo === 'ingreso' ? '$ ' . number_format($mov->monto, 0, ',', '.') : '—' }}</td>
-                            <td class="px-6 py-3 text-right font-semibold text-rose-500">{{ $mov->tipo === 'gasto' ? '$ ' . number_format($mov->monto, 0, ',', '.') : '—' }}</td>
+                            <td class="px-6 py-3 text-right font-semibold text-emerald-600">{{ $esIngreso ? '$ ' . number_format($mov->monto, 0, ',', '.') : '—' }}</td>
+                            <td class="px-6 py-3 text-right font-semibold text-rose-500">{{ ! $esIngreso ? '$ ' . number_format($mov->monto, 0, ',', '.') : '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-6 py-10 text-center text-slate-400">No hay movimientos registrados en este período.</td></tr>
+                        <tr><td colspan="7" class="px-6 py-10 text-center text-slate-400">No hay movimientos registrados en este período.</td></tr>
                     @endforelse
                 </tbody>
                 @if ($movimientos->isNotEmpty())
                     <tfoot>
                         <tr class="bg-slate-50 font-bold text-slate-700">
-                            <td colspan="6" class="px-6 py-3 text-right">TOTALES DEL MES:</td>
+                            <td colspan="5" class="px-6 py-3 text-right">TOTALES DEL MES:</td>
                             <td class="px-6 py-3 text-right text-emerald-600">$ {{ number_format($resumenMes['ingresos'], 0, ',', '.') }}</td>
                             <td class="px-6 py-3 text-right text-rose-500">$ {{ number_format($resumenMes['gastos'], 0, ',', '.') }}</td>
                         </tr>
