@@ -16,7 +16,7 @@
     </div>
 
     <form method="GET" class="mb-6">
-        <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar por nombre de carrera o código de plan..." onchange="this.form.submit()"
+        <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar por nombre de carrera o código de plan..." onchange="this.form.submit()" maxlength="50"
                class="w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm">
     </form>
 
@@ -34,26 +34,29 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($carreras as $carrera)
+                    @php $estadoNombre = $carrera->estadoCarrera->nombre_estado ?? null; @endphp
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4">
                             <p class="font-bold text-slate-700">Res. N° {{ $carrera->resolucion_ministerial ?? '—' }}</p>
                         </td>
                         <td class="px-6 py-4">
-                            <p class="font-semibold text-slate-700">{{ $carrera->nombre }}</p>
-                            <p class="text-xs text-slate-400">{{ $carrera->familia_profesional ? "Familia Profesional: {$carrera->familia_profesional}" : '' }}</p>
+                            <p class="font-semibold text-slate-700">{{ $carrera->nombre_carrera }}</p>
+                            @if ($carrera->familia_profesional)
+                                <p class="text-xs text-slate-400">Familia Profesional: {{ $carrera->familia_profesional }}</p>
+                            @endif
                         </td>
-                        <td class="px-6 py-4 text-slate-500">{{ $carrera->duracion_anios }} Años</td>
+                        <td class="px-6 py-4 text-slate-500">{{ $carrera->duracion_anos }} Años</td>
                         <td class="px-6 py-4">
                             <a href="{{ route('admin.carreras.plan', $carrera) }}" class="text-blue-600 font-semibold hover:underline">{{ $carrera->materias_count }} asignaturas</a>
                         </td>
                         <td class="px-6 py-4">
                             <span @class([
                                     'text-xs font-semibold rounded-full px-3 py-1',
-                                    'bg-green-100 text-green-700' => $carrera->estado === 'activa',
-                                    'bg-slate-100 text-slate-500' => $carrera->estado === 'en_espera',
-                                    'bg-red-100 text-red-600' => $carrera->estado === 'inactiva',
+                                    'bg-green-100 text-green-700' => $estadoNombre === 'Activa',
+                                    'bg-slate-100 text-slate-500' => $estadoNombre === 'En espera',
+                                    'bg-red-100 text-red-600' => $estadoNombre === 'Inactiva',
                                 ])>
-                                {{ ['activa' => 'Activa', 'en_espera' => 'En espera', 'inactiva' => 'Inactiva'][$carrera->estado] }}
+                                {{ $estadoNombre ?? '—' }}
                             </span>
                         </td>
                         <td class="px-6 py-4 flex gap-3 text-xs font-semibold">
