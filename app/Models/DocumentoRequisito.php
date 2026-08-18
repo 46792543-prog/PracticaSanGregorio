@@ -8,24 +8,38 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DocumentoRequisito extends Model
 {
+    protected $table = 'documento_requisito';
+    protected $primaryKey = 'id_requisito';
+
     protected $fillable = [
-        'nombre',
+        'nombre_documento',
+        'es_obligatorio',
         'descripcion',
-        'obligatorio',
-        'carrera_id',
+        'id_carrera',
     ];
 
     protected $casts = [
-        'obligatorio' => 'boolean',
+        'es_obligatorio' => 'boolean',
     ];
 
     public function carrera(): BelongsTo
     {
-        return $this->belongsTo(Carrera::class);
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
 
-    public function documentosAlumno(): HasMany
+    public function controlDocumentacion(): HasMany
     {
-        return $this->hasMany(DocumentoAlumno::class);
+        return $this->hasMany(ControlDocumentacion::class, 'id_requisito', 'id_requisito');
+    }
+
+    // Alias de compatibilidad: el código existente usaba nombre/obligatorio.
+    public function getNombreAttribute()
+    {
+        return $this->nombre_documento;
+    }
+
+    public function getObligatorioAttribute()
+    {
+        return $this->es_obligatorio;
     }
 }
