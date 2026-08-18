@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.session-guard')
     <title>@yield('titulo', 'Portal del Alumno') · Instituto Superior San Gregorio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,6 +11,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    @include('partials.validacion-inputs')
 </head>
 <body class="bg-slate-100 text-slate-800">
     <div class="flex min-h-screen">
