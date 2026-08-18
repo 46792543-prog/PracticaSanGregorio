@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.session-guard')
     <title>@yield('titulo', 'Panel de Dirección') · Instituto Superior San Gregorio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +15,7 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
+    @include('partials.validacion-inputs')
 </head>
 <body class="bg-[#f4f6fb] text-slate-800">
     <div class="flex min-h-screen">
