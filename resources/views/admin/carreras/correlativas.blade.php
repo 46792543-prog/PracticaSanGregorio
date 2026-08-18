@@ -5,7 +5,7 @@
 @section('contenido')
     <p class="text-sm text-slate-400 mb-4">
         <a href="{{ route('admin.carreras.index') }}" class="hover:underline">Carreras y planes</a> /
-        <span class="text-blue-600 font-semibold">{{ $carrera->nombre }}</span> / Régimen de Correlatividades
+        <span class="text-blue-600 font-semibold">{{ $carrera->nombre_carrera }}</span> / Régimen de Correlatividades
     </p>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
@@ -16,18 +16,18 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CURSANTE / DESTINO</label>
-                <select name="materia_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                <select name="id_materia_principal" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
                     @foreach ($materias as $materia)
-                        <option value="{{ $materia->id }}">{{ $materia->numero_orden }}. {{ $materia->nombre }}</option>
+                        <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CORRELATIVA / REQUERIDA</label>
-                <select name="materia_requisito_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                <select name="id_materia_requisito" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
                     <option value="">Seleccione la materia previa...</option>
                     @foreach ($materias as $materia)
-                        <option value="{{ $materia->id }}">{{ $materia->numero_orden }}. {{ $materia->nombre }}</option>
+                        <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
                     @endforeach
                 </select>
             </div>
@@ -57,7 +57,7 @@
             <tbody class="divide-y divide-slate-100">
                 @forelse ($correlativas as $correlativa)
                     <tr>
-                        <td class="py-3 pr-4 font-semibold text-slate-700">{{ $correlativa->materia->nombre }}</td>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">{{ $correlativa->materiaPrincipal->nombre }}</td>
                         <td class="py-3 pr-4 text-slate-600">{{ $correlativa->materiaRequisito->nombre }}</td>
                         <td class="py-3 pr-4">
                             @if ($correlativa->requiere_regularizada)
@@ -74,7 +74,7 @@
                             @endif
                         </td>
                         <td class="py-3 pr-4">
-                            <form method="POST" action="{{ route('admin.carreras.correlativas.destroy', $correlativa) }}" onsubmit="return confirm('¿Quitar esta correlativa?');">
+                            <form method="POST" action="{{ route('admin.carreras.correlativas.destroy', [$correlativa->id_materia_principal, $correlativa->id_materia_requisito]) }}" onsubmit="return confirm('¿Quitar esta correlativa?');">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="h-7 w-7 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">✕</button>
                             </form>
