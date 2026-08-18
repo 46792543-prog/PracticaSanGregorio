@@ -3,10 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnioCursada;
 use App\Models\AnioLectivo;
 use App\Models\Carrera;
+use App\Models\CondicionAlumno;
+use App\Models\EstadoInscripcion;
+use App\Models\EstadoUsuario;
 use App\Models\InscripcionCarrera;
-use App\Models\User;
+use App\Models\Persona;
+use App\Models\Rol;
+use App\Models\TurnoCursada;
+use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,8 +32,11 @@ class AlumnoController extends Controller
         $estado = $request->query('estado');
         $busqueda = trim((string) $request->query('q'));
 
-        $query = User::where('rol', 'alumno')
-            ->with(['inscripcionesCarrera' => fn ($q) => $q->with('carrera')->latest()]);
+        $query = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
+            ->with([
+                'inscripcionesCarrera' => fn ($q) => $q->with('carrera', 'estadoInscripcion', 'anioCursada')->latest('id_inscripcion_carrera'),
+                'cuotas',
+            ]);
 
         if ($busqueda) {
             $query->where(fn ($q) => $q->where('nombre', 'like', "%{$busqueda}%")
@@ -35,18 +45,22 @@ class AlumnoController extends Controller
         }
 
         if ($carreraId) {
-            $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('carrera_id', $carreraId));
+            $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('id_carrera', $carreraId));
         }
 
         $alumnos = $query->orderBy('apellido')->paginate(8)->withQueryString();
 
-        $carreras = Carrera::orderBy('nombre')->get();
+        $carreras = Carrera::orderBy('nombre_carrera')->get();
 
-        $inscripcionesCarrera = InscripcionCarrera::when($carreraId, fn ($q) => $q->where('carrera_id', $carreraId));
+        $inscripcionesCarrera = InscripcionCarrera::when($carreraId, fn ($q) => $q->where('id_carrera', $carreraId));
         $totalEnCarrera = (clone $inscripcionesCarrera)->count();
-        $activos = (clone $inscripcionesCarrera)->where('estado', 'activo')->count();
-        $docPendiente = User::where('rol', 'alumno')->whereHas('documentosAlumno', fn ($q) => $q->whereIn('estado', ['pendiente', 'rechazado']))->count();
-        $conDeuda = User::where('rol', 'alumno')->whereHas('cuotas', fn ($q) => $q->where('estado', 'vencido'))->count();
+        $activos = (clone $inscripcionesCarrera)->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))->count();
+        $docPendiente = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
+            ->whereHas('documentacion.estadoDocumento', fn ($q) => $q->whereIn('nombre_estado', ['Pendiente', 'Rechazado']))
+            ->count();
+        $conDeuda = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
+            ->whereHas('cuotas', fn ($q) => $q->where('pagado', false))
+            ->count();
 
         return view('admin.alumnos.index', [
             'alumnos' => $alumnos,
@@ -61,16 +75,22 @@ class AlumnoController extends Controller
         ]);
     }
 
-    public function show(User $user): View
+    public function show(Persona $persona): View
     {
-        $user->load([
+        $persona->load([
+            'usuario',
             'inscripcionesCarrera.carrera',
-            'historialMaterias.materia',
-            'cuotas',
-            'documentosAlumno.documentoRequisito',
+            'inscripcionesCarrera.anioCursada',
+            'inscripcionesCarrera.turnoCursada',
+            'inscripcionesCarrera.condicion',
+            'inscripcionesCarrera.estadoInscripcion',
+            'historialAlumno.materia.nombreMateria',
+            'historialAlumno.condicion',
+            'cuotas.mes',
+            'documentacion.documentoRequisito',
         ]);
 
-        return view('admin.alumnos.show', ['alumno' => $user]);
+        return view('admin.alumnos.show', ['alumno' => $persona]);
     }
 
     public function create(): View
@@ -81,14 +101,14 @@ class AlumnoController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'dni' => ['required', 'string', 'max:20', Rule::unique('users', 'dni')],
-            'apellido' => ['required', 'string', 'max:100'],
-            'nombre' => ['required', 'string', 'max:100'],
+            'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
+            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
-            'telefono' => ['nullable', 'string', 'max:20'],
-            'direccion' => ['nullable', 'string', 'max:250'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')],
-            'localidad' => ['nullable', 'string', 'max:100'],
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
+            'direccion' => ['nullable', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')],
+            'localidad' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\'-]+$/u'],
         ]);
 
         session([self::SESSION_KEY . '.personales' => $datos]);
@@ -105,8 +125,11 @@ class AlumnoController extends Controller
         return view('admin.alumnos.academico', [
             'personales' => session(self::SESSION_KEY . '.personales'),
             'academicos' => session(self::SESSION_KEY . '.academicos', []),
-            'carreras' => Carrera::where('estado', 'activa')->orderBy('nombre')->get(),
+            'carreras' => Carrera::whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))->orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
+            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
+            'condiciones' => CondicionAlumno::whereIn('nombre_condicion', ['Regular', 'Promoción', 'Libre'])->orderBy('id_condicion')->get(),
+            'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
         ]);
     }
 
@@ -115,11 +138,11 @@ class AlumnoController extends Controller
         abort_unless(session(self::SESSION_KEY . '.personales'), 419);
 
         $datos = $request->validate([
-            'carrera_id' => ['required', 'exists:carreras,id'],
-            'anio_lectivo_id' => ['required', 'exists:anios_lectivos,id'],
-            'anio_actual' => ['required', 'integer', 'min:1', 'max:5'],
-            'turno' => ['required', Rule::in(['mañana', 'tarde', 'noche'])],
-            'condicion' => ['required', Rule::in(['regular', 'promocion', 'libre'])],
+            'carrera_id' => ['required', 'exists:carrera,id_carrera'],
+            'anio_cursada_id' => ['required', 'exists:anio_cursada,id_anio_cursada'],
+            'anio_lectivo_id' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
+            'condicion_id' => ['required', 'exists:condicion_alumno,id_condicion'],
         ]);
 
         session([self::SESSION_KEY . '.academicos' => $datos]);
@@ -153,7 +176,7 @@ class AlumnoController extends Controller
 
         abort_unless($personales && $academicos && $clave, 419);
 
-        $alumno = User::create([
+        $persona = Persona::create([
             'dni' => $personales['dni'],
             'nombre' => $personales['nombre'],
             'apellido' => $personales['apellido'],
@@ -161,47 +184,56 @@ class AlumnoController extends Controller
             'telefono' => $personales['telefono'] ?? null,
             'direccion' => $personales['direccion'] ?? null,
             'localidad' => $personales['localidad'] ?? null,
+        ]);
+
+        Usuario::create([
+            'id_persona' => $persona->id_persona,
             'email' => $personales['email'],
             'password' => Hash::make($clave),
-            'rol' => 'alumno',
+            'id_rol' => Rol::where('nombre_rol', 'Alumno')->value('id_rol'),
+            'id_estado' => EstadoUsuario::where('nombre_estado', 'Activo')->value('id_estado'),
         ]);
 
         InscripcionCarrera::create([
-            'user_id' => $alumno->id,
-            'carrera_id' => $academicos['carrera_id'],
-            'anio_lectivo_id' => $academicos['anio_lectivo_id'],
-            'anio_actual' => $academicos['anio_actual'],
-            'turno' => $academicos['turno'],
-            'condicion' => $academicos['condicion'],
-            'estado' => 'activo',
-            'secretario_registra_id' => Auth::id(),
+            'id_persona_alumno' => $persona->id_persona,
+            'id_carrera' => $academicos['carrera_id'],
+            'id_anio_cursada' => $academicos['anio_cursada_id'],
+            'id_anio_lectivo' => $academicos['anio_lectivo_id'],
+            'id_turno_cursada' => $academicos['turno_cursada_id'],
+            'id_condicion' => $academicos['condicion_id'],
+            'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
+            'id_secretario_registra' => Auth::user()->id_persona,
         ]);
 
         session()->forget(self::SESSION_KEY);
 
-        return redirect()->route('admin.alumnos.show', $alumno)
+        return redirect()->route('admin.alumnos.show', $persona)
             ->with('status', "Alumno registrado correctamente. Clave inicial: {$clave}");
     }
 
-    public function baja(Request $request, User $user): RedirectResponse
+    public function baja(Request $request, Persona $persona): RedirectResponse
     {
-        $inscripcion = $user->inscripcionesCarrera()->where('estado', 'activo')->first();
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->first();
 
         abort_unless($inscripcion, 404);
 
         $inscripcion->update([
-            'estado' => 'baja',
+            'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Baja')->value('id_estado_inscripcion'),
             'fecha_baja' => now(),
-            'secretario_baja_id' => Auth::id(),
+            'id_secretario_baja' => Auth::user()->id_persona,
         ]);
 
-        return back()->with('status', "Se dio de baja a {$user->nombre} {$user->apellido}.");
+        return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
     }
 
     private function generarClave(string $dni): string
     {
         $ultimosCuatro = substr($dni, -4);
-        $codigo = strtoupper(Str::random(3));
+        // 8 caracteres alfanuméricos random (~2×10^12 combinaciones) en vez de 3,
+        // para que la clave inicial no sea fuerza-bruteable en combinación con el DNI.
+        $codigo = strtoupper(Str::random(8));
 
         return "ISG-{$ultimosCuatro}-{$codigo}";
     }
