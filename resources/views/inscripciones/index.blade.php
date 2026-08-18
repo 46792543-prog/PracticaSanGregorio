@@ -6,11 +6,11 @@
 @section('contenido')
     @php
         $badges = [
-            'en_proceso' => 'bg-amber-100 text-amber-700',
-            'aceptada' => 'bg-green-100 text-green-700',
-            'rechazada' => 'bg-red-100 text-red-600',
+            'En proceso' => 'bg-amber-100 text-amber-700',
+            'Aceptado' => 'bg-green-100 text-green-700',
+            'Rechazado' => 'bg-red-100 text-red-600',
         ];
-        $etiquetas = ['en_proceso' => 'En proceso', 'aceptada' => 'Aceptada', 'rechazada' => 'Rechazada'];
+        $etiquetas = ['En proceso' => 'En proceso', 'Aceptado' => 'Aceptada', 'Rechazado' => 'Rechazada'];
     @endphp
 
     <div class="bg-white rounded-xl shadow-sm mb-6">
@@ -32,18 +32,18 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($inscripciones as $inscripcion)
-                        <tr class="cursor-pointer hover:bg-slate-50 {{ $seleccionada?->id === $inscripcion->id ? 'bg-slate-50' : '' }}"
-                            onclick="window.location.href='{{ route('inscripciones.index', ['ver' => $inscripcion->id]) }}'">
+                        <tr class="cursor-pointer hover:bg-slate-50 {{ $seleccionada?->id_inscripcion === $inscripcion->id_inscripcion ? 'bg-slate-50' : '' }}"
+                            onclick="window.location.href='{{ route('inscripciones.index', ['ver' => $inscripcion->id_inscripcion]) }}'">
                             <td class="px-6 py-4 font-semibold text-slate-700">{{ $inscripcion->mesaExamen->materia->nombre }}</td>
                             <td class="px-6 py-4 text-slate-500">{{ \App\Support\FechaEsp::corta($inscripcion->mesaExamen->fecha_examen) }}</td>
                             <td class="px-6 py-4 text-slate-500">
                                 {{ \App\Support\FechaEsp::corta($inscripcion->fecha_inscripcion) }} ·
-                                {{ ucwords(str_replace('_', '/', $inscripcion->mesaExamen->turno), ' /') }}
-                                - {{ $inscripcion->mesaExamen->llamado === 'primer_llamado' ? '1er' : '2do' }}
+                                {{ $inscripcion->mesaExamen->turnoExamen->nombre_turno }}
+                                - {{ $inscripcion->mesaExamen->llamadoExamen->nombre_llamado }}
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $badges[$inscripcion->estado] }}">
-                                    {{ $etiquetas[$inscripcion->estado] }}
+                                <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $badges[$inscripcion->estadoInscripcion->nombre_estado] ?? 'bg-slate-100 text-slate-500' }}">
+                                    {{ $etiquetas[$inscripcion->estadoInscripcion->nombre_estado] ?? $inscripcion->estadoInscripcion->nombre_estado }}
                                 </span>
                             </td>
                         </tr>
@@ -58,17 +58,18 @@
     </div>
 
     @if ($seleccionada)
+        @php $estadoNombre = $seleccionada->estadoInscripcion->nombre_estado; @endphp
         <div class="bg-white rounded-xl shadow-sm p-6">
             <h3 class="font-bold text-slate-800 mb-6">🔍 Detalle — {{ $seleccionada->mesaExamen->materia->nombre }}</h3>
 
             @php
-                $paso = match ($seleccionada->estado) {
-                    'en_proceso' => 2,
-                    'aceptada' => 3,
-                    'rechazada' => 2,
+                $paso = match ($estadoNombre) {
+                    'En proceso' => 2,
+                    'Aceptado' => 3,
+                    'Rechazado' => 2,
                     default => 1,
                 };
-                $rechazada = $seleccionada->estado === 'rechazada';
+                $rechazada = $estadoNombre === 'Rechazado';
             @endphp
 
             <div class="flex items-center mb-6">
@@ -76,12 +77,12 @@
                     <div class="flex-1 flex flex-col items-center text-center">
                         <div @class([
                                 'h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white',
-                                'bg-green-500' => $numero < $paso || ($numero === $paso && $seleccionada->estado === 'aceptada'),
+                                'bg-green-500' => $numero < $paso || ($numero === $paso && $estadoNombre === 'Aceptado'),
                                 'bg-red-500' => $rechazada && $numero === 2,
-                                'bg-amber-500' => $numero === $paso && ! $rechazada && $seleccionada->estado !== 'aceptada',
+                                'bg-amber-500' => $numero === $paso && ! $rechazada && $estadoNombre !== 'Aceptado',
                                 'bg-slate-200 text-slate-400' => $numero > $paso,
                             ])>
-                            {{ $numero < $paso || ($numero === $paso && $seleccionada->estado === 'aceptada') ? '✓' : ($rechazada && $numero === 2 ? '✕' : $numero) }}
+                            {{ $numero < $paso || ($numero === $paso && $estadoNombre === 'Aceptado') ? '✓' : ($rechazada && $numero === 2 ? '✕' : $numero) }}
                         </div>
                         <p class="text-xs mt-2 {{ $numero <= $paso ? 'text-slate-700 font-medium' : 'text-slate-400' }}">{{ $texto }}</p>
                     </div>
@@ -93,18 +94,35 @@
 
             <div @class([
                     'text-sm rounded-lg px-4 py-3',
-                    'bg-amber-50 text-amber-700' => $seleccionada->estado === 'en_proceso',
-                    'bg-green-50 text-green-700' => $seleccionada->estado === 'aceptada',
-                    'bg-red-50 text-red-700' => $seleccionada->estado === 'rechazada',
+                    'bg-amber-50 text-amber-700' => $estadoNombre === 'En proceso',
+                    'bg-green-50 text-green-700' => $estadoNombre === 'Aceptado',
+                    'bg-red-50 text-red-700' => $estadoNombre === 'Rechazado',
                 ])>
-                @if ($seleccionada->estado === 'en_proceso')
+                @if ($estadoNombre === 'En proceso')
                     ⏱ Tu inscripción está siendo revisada por el secretario académico. Te avisaremos por este medio cuando haya una novedad.
-                @elseif ($seleccionada->estado === 'aceptada')
+                @elseif ($estadoNombre === 'Aceptado')
                     ✓ Tu inscripción fue aprobada. ¡Éxitos en tu examen!
                 @else
                     ✕ Tu inscripción fue rechazada. Comunicate con secretaría para más información.
                 @endif
             </div>
+
+            @if ($seleccionada->resultado)
+                <div class="mt-4 flex items-center gap-3 text-sm">
+                    <span class="font-semibold text-slate-600">Resultado del examen:</span>
+                    <span @class([
+                            'text-xs font-semibold rounded-full px-3 py-1',
+                            'bg-green-100 text-green-700' => $seleccionada->resultado === 'aprobado',
+                            'bg-red-100 text-red-600' => $seleccionada->resultado === 'desaprobado',
+                            'bg-slate-100 text-slate-500' => $seleccionada->resultado === 'ausente',
+                        ])>
+                        {{ ucfirst($seleccionada->resultado) }}
+                    </span>
+                    @if ($seleccionada->nota_examen)
+                        <span class="text-slate-500">Nota: {{ $seleccionada->nota_examen }}</span>
+                    @endif
+                </div>
+            @endif
         </div>
     @endif
 @endsection
