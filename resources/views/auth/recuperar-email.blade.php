@@ -40,7 +40,7 @@
                         <label class="block text-xs font-semibold text-slate-700 mb-2">EMAIL INSTITUCIONAL</label>
                         <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                             <span>✉️</span>
-                            <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="usuario@sangregorio.edu.ar"
+                            <input type="email" maxlength="100" name="email" value="{{ old('email') }}" required autofocus placeholder="usuario@sangregorio.edu.ar"
                                    class="flex-1 bg-transparent text-sm focus:outline-none">
                         </div>
                     </div>
