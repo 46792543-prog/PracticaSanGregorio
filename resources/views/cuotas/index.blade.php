@@ -16,12 +16,16 @@
                 <p class="text-xs text-slate-400 mt-1">{{ $tieneVencidas ? 'Tenés cuotas vencidas' : 'Sin deudas pendientes' }}</p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4">
-                <p class="text-xs font-semibold text-slate-400 uppercase">📅 Próximo vencimiento</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase">📅 Próxima cuota pendiente</p>
                 <p class="text-xl font-bold text-slate-800 mt-1">
-                    {{ $proximaCuota ? \Carbon\Carbon::parse($proximaCuota->fecha_vencimiento)->format('d/m') : '—' }}
+                    {{ $proximaCuota ? ($proximaCuota->concepto ?: $proximaCuota->mes->nombre_mes) : '—' }}
                 </p>
                 <p class="text-xs text-slate-400 mt-1">
-                    {{ $proximaCuota ? $proximaCuota->concepto . ' · $' . number_format($proximaCuota->monto, 0, ',', '.') : 'No tenés cuotas pendientes' }}
+                    @if ($proximaCuota)
+                        {{ $proximaCuota->fecha_vencimiento ? 'Vence ' . \App\Support\FechaEsp::corta($proximaCuota->fecha_vencimiento) . ' · ' : '' }}$ {{ number_format($proximaCuota->monto, 0, ',', '.') }}
+                    @else
+                        No tenés cuotas pendientes
+                    @endif
                 </p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4">
@@ -34,29 +38,30 @@
         <h3 class="font-bold text-slate-800 mb-3">🧾 Cuotas del año lectivo</h3>
         <div class="divide-y divide-slate-100">
             @foreach ($cuotas as $cuota)
-                @php $pagada = $cuota->estado === 'pagado'; @endphp
-                <div class="flex items-center justify-between py-4 {{ $pagada ? '' : ($cuota->estado === 'vencido' ? 'bg-red-50/50' : 'bg-blue-50/50') }} px-2 rounded-lg">
+                <div class="flex items-center justify-between py-4 {{ $cuota->pagado ? '' : ($cuota->vencida ? 'bg-red-50/50' : 'bg-blue-50/50') }} px-2 rounded-lg">
                     <div class="flex items-center gap-3">
                         <span @class([
                                 'h-8 w-8 rounded-full flex items-center justify-center text-white text-sm shrink-0',
-                                'bg-green-500' => $pagada,
-                                'bg-red-500' => $cuota->estado === 'vencido',
-                                'bg-blue-400' => $cuota->estado === 'pendiente',
+                                'bg-green-500' => $cuota->pagado,
+                                'bg-red-500' => $cuota->vencida,
+                                'bg-blue-400' => ! $cuota->pagado && ! $cuota->vencida,
                             ])>
-                            {{ $pagada ? '✓' : '—' }}
+                            {{ $cuota->pagado ? '✓' : '—' }}
                         </span>
                         <div>
-                            <p class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto }}</p>
+                            <p class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</p>
                             <p class="text-xs text-slate-400">
-                                @if ($pagada)
-                                    Pagada el {{ \Carbon\Carbon::parse($cuota->fecha_pago)->format('d/m/Y') }} · {{ ucfirst($cuota->medio_pago) }}
+                                @if ($cuota->pagado)
+                                    Pagada{{ $cuota->fecha_pago ? ' el ' . \App\Support\FechaEsp::corta($cuota->fecha_pago) : '' }}
+                                @elseif ($cuota->fecha_vencimiento)
+                                    {{ $cuota->vencida ? 'Venció' : 'Vence' }} el {{ \App\Support\FechaEsp::corta($cuota->fecha_vencimiento) }}
                                 @else
-                                    Vence el {{ \Carbon\Carbon::parse($cuota->fecha_vencimiento)->format('d/m/Y') }}
+                                    Pendiente de pago
                                 @endif
                             </p>
                         </div>
                     </div>
-                    <span class="font-bold text-sm {{ $pagada ? 'text-green-600' : 'text-slate-700' }}">
+                    <span class="font-bold text-sm {{ $cuota->pagado ? 'text-green-600' : 'text-slate-700' }}">
                         $ {{ number_format($cuota->monto, 0, ',', '.') }}
                     </span>
                 </div>
