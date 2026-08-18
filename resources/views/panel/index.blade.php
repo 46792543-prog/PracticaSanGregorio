@@ -9,8 +9,8 @@
             <div>
                 <h2 class="text-lg font-bold">{{ $inscripcionCarrera->carrera->nombre }}</h2>
                 <p class="text-blue-200 text-sm mt-1">
-                    {{ $inscripcionCarrera->anio_actual }}° Año · Plan {{ $inscripcionCarrera->carrera->materias->first()?->version_plan ?? '2024' }}
-                    · Condición: <span class="capitalize">{{ $inscripcionCarrera->condicion }}</span>
+                    {{ $inscripcionCarrera->anioCursada?->nombre_anio }} · Plan {{ $inscripcionCarrera->carrera->materias->first()?->version_plan ?? '2024' }}
+                    · Condición: {{ $inscripcionCarrera->condicion->nombre_condicion }}
                 </p>
             </div>
             <div class="flex items-center gap-4 shrink-0">
@@ -51,7 +51,7 @@
             </p>
             <p class="text-xs text-slate-400 mt-1">
                 @if ($proximaCuota)
-                    {{ $proximaCuota->concepto }} pendiente
+                    Cuota {{ $proximaCuota->mes->nombre_mes }} pendiente
                 @else
                     Sin cuotas pendientes
                 @endif
@@ -67,7 +67,7 @@
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">
                         <div>
                             <p class="text-sm font-semibold text-slate-700">{{ $item['materia']->nombre }}</p>
-                            <p class="text-xs text-slate-400">{{ \App\Support\FechaEsp::corta($item['mesa']->fecha_examen) }} · Turno {{ ucwords(str_replace('_', '/', $item['mesa']->turno), ' /') }}</p>
+                            <p class="text-xs text-slate-400">{{ \App\Support\FechaEsp::corta($item['mesa']->fecha_examen) }} · {{ $item['mesa']->turnoExamen->nombre_turno }}</p>
                         </div>
                         @if ($item['bloqueo'])
                             <span class="text-xs font-semibold text-red-600 bg-red-50 rounded-full px-3 py-1">✕ Falta correlativa</span>
