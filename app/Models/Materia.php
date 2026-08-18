@@ -12,34 +12,62 @@ class Materia extends Model
 {
     use HasFactory;
 
+    protected $table = 'materia';
+    protected $primaryKey = 'id_materia';
+
     protected $fillable = [
-        'carrera_id',
-        'nombre',
+        'id_carrera',
         'numero_orden',
-        'anio_cursada',
-        'cuatrimestre',
-        'regimen',
+        'id_anio_cursada',
+        'id_periodo',
+        'id_regimen',
+        'id_nombre_materia',
         'version_plan',
     ];
 
     public function carrera(): BelongsTo
     {
-        return $this->belongsTo(Carrera::class);
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function anioCursada(): BelongsTo
+    {
+        return $this->belongsTo(AnioCursada::class, 'id_anio_cursada', 'id_anio_cursada');
+    }
+
+    public function periodo(): BelongsTo
+    {
+        return $this->belongsTo(PeriodoDictado::class, 'id_periodo', 'id_periodo');
+    }
+
+    public function regimen(): BelongsTo
+    {
+        return $this->belongsTo(RegimenAprobacion::class, 'id_regimen', 'id_regimen');
+    }
+
+    public function nombreMateria(): BelongsTo
+    {
+        return $this->belongsTo(NombreMateria::class, 'id_nombre_materia', 'id_nombre_materia');
+    }
+
+    public function getNombreAttribute()
+    {
+        return $this->nombreMateria->nombre ?? null;
     }
 
     public function historial(): HasMany
     {
-        return $this->hasMany(HistorialMateria::class);
+        return $this->hasMany(HistorialAlumno::class, 'id_materia', 'id_materia');
     }
 
     public function mesasExamen(): HasMany
     {
-        return $this->hasMany(MesaExamen::class);
+        return $this->hasMany(MesaExamen::class, 'id_materia', 'id_materia');
     }
 
     public function asignaciones(): HasMany
     {
-        return $this->hasMany(AsignacionProfesorMateria::class);
+        return $this->hasMany(AsignacionProfesorMateria::class, 'id_materia', 'id_materia');
     }
 
     /**
@@ -49,10 +77,10 @@ class Materia extends Model
     {
         return $this->belongsToMany(
             Materia::class,
-            'correlativas',
-            'materia_id',
-            'materia_requisito_id'
-        )->withPivot('requiere_regularizada', 'requiere_aprobada');
+            'correlativa',
+            'id_materia_principal',
+            'id_materia_requisito'
+        )->withPivot('id_tipo_correlativa', 'requiere_regularizada', 'requiere_aprobada');
     }
 
     /**
@@ -62,27 +90,29 @@ class Materia extends Model
     {
         return $this->belongsToMany(
             Materia::class,
-            'correlativas',
-            'materia_requisito_id',
-            'materia_id'
-        )->withPivot('requiere_regularizada', 'requiere_aprobada');
+            'correlativa',
+            'id_materia_requisito',
+            'id_materia_principal'
+        )->withPivot('id_tipo_correlativa', 'requiere_regularizada', 'requiere_aprobada');
     }
 
     /**
      * Devuelve la primera correlativa que el alumno todavía no cumple para
      * cursar/rendir esta materia, o null si tiene todas cumplidas.
      */
-    public function correlativaFaltante(User $alumno): ?Materia
+    public function correlativaFaltante(Persona $alumno): ?Materia
     {
-        $condiciones = $alumno->historialMaterias()
-            ->whereIn('materia_id', $this->requisitos->pluck('id'))
-            ->pluck('condicion', 'materia_id');
+        $historialPorMateria = $alumno->historialAlumno()
+            ->whereIn('id_materia', $this->requisitos->pluck('id_materia'))
+            ->get()
+            ->keyBy('id_materia');
 
         foreach ($this->requisitos as $requisito) {
-            $condicion = $condiciones->get($requisito->id);
+            $condicionNombre = $historialPorMateria->get($requisito->id_materia)?->condicion?->nombre_condicion;
+
             $cumplida = $requisito->pivot->requiere_aprobada
-                ? $condicion === 'aprobada'
-                : (! $requisito->pivot->requiere_regularizada || in_array($condicion, ['regular', 'aprobada']));
+                ? $condicionNombre === 'Aprobada'
+                : (! $requisito->pivot->requiere_regularizada || in_array($condicionNombre, ['Regular', 'Aprobada'], true));
 
             if (! $cumplida) {
                 return $requisito;
