@@ -33,7 +33,11 @@ return [
 
     'lifetime' => env('SESSION_LIFETIME', 120),
 
-    'expire_on_close' => false,
+    // En false, Laravel emite la cookie de sesión con una expiración fija
+    // (SESSION_LIFETIME), así que sobrevive a cerrar el navegador. La ponemos
+    // en true para que la sesión termine al cerrar el navegador, tal como se
+    // espera para un sistema institucional con datos de alumnos.
+    'expire_on_close' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -168,7 +172,10 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Por defecto sigue al entorno: se exige HTTPS para la cookie de sesión en
+    // producción, pero se mantiene deshabilitado en local para no romper el
+    // desarrollo por HTTP. SESSION_SECURE_COOKIE en .env sigue pudiendo forzarlo.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
