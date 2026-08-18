@@ -7,19 +7,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InscripcionCarrera extends Model
 {
-    protected $table = 'inscripciones_carrera';
+    protected $table = 'inscripcion_carrera';
+    protected $primaryKey = 'id_inscripcion_carrera';
 
     protected $fillable = [
-        'user_id',
-        'carrera_id',
-        'anio_lectivo_id',
-        'anio_actual',
-        'turno',
-        'condicion',
-        'estado',
+        'id_persona_alumno',
+        'id_carrera',
+        'id_anio_cursada',
+        'id_anio_lectivo',
+        'id_turno_cursada',
+        'id_condicion',
         'fecha_inscripcion',
-        'secretario_registra_id',
-        'secretario_baja_id',
+        'id_secretario_registra',
+        'id_estado_inscripcion',
+        'id_secretario_baja',
         'fecha_baja',
     ];
 
@@ -28,28 +29,48 @@ class InscripcionCarrera extends Model
         'fecha_baja' => 'datetime',
     ];
 
-    public function user(): BelongsTo
+    public function personaAlumno(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Persona::class, 'id_persona_alumno', 'id_persona');
     }
 
     public function carrera(): BelongsTo
     {
-        return $this->belongsTo(Carrera::class);
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function anioCursada(): BelongsTo
+    {
+        return $this->belongsTo(AnioCursada::class, 'id_anio_cursada', 'id_anio_cursada');
     }
 
     public function anioLectivo(): BelongsTo
     {
-        return $this->belongsTo(AnioLectivo::class);
+        return $this->belongsTo(AnioLectivo::class, 'id_anio_lectivo', 'id_anio_lectivo');
+    }
+
+    public function turnoCursada(): BelongsTo
+    {
+        return $this->belongsTo(TurnoCursada::class, 'id_turno_cursada', 'id_turno_cursada');
+    }
+
+    public function condicion(): BelongsTo
+    {
+        return $this->belongsTo(CondicionAlumno::class, 'id_condicion', 'id_condicion');
     }
 
     public function secretarioRegistra(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'secretario_registra_id');
+        return $this->belongsTo(Persona::class, 'id_secretario_registra', 'id_persona');
+    }
+
+    public function estadoInscripcion(): BelongsTo
+    {
+        return $this->belongsTo(EstadoInscripcion::class, 'id_estado_inscripcion', 'id_estado_inscripcion');
     }
 
     public function secretarioBaja(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'secretario_baja_id');
+        return $this->belongsTo(Persona::class, 'id_secretario_baja', 'id_persona');
     }
 }
