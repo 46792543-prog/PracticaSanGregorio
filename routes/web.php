@@ -3,7 +3,7 @@
 use App\Http\Controllers\Admin\ActaController;
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarreraController;
-use App\Http\Controllers\Admin\DocumentacionController;
+use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
 use App\Http\Controllers\Admin\PanelController as AdminPanelController;
@@ -14,6 +14,7 @@ use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
+use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\MesaExamenController;
@@ -31,14 +32,17 @@ Route::redirect('/', '/login');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 
     Route::get('/recuperar-contrasena', [PasswordResetController::class, 'solicitarForm'])->name('password.solicitar');
-    Route::post('/recuperar-contrasena', [PasswordResetController::class, 'solicitar']);
     Route::get('/recuperar-contrasena/verificar', [PasswordResetController::class, 'verificarForm'])->name('password.verificar');
-    Route::post('/recuperar-contrasena/verificar', [PasswordResetController::class, 'verificar']);
     Route::get('/recuperar-contrasena/nueva-clave', [PasswordResetController::class, 'nuevaForm'])->name('password.nueva');
-    Route::post('/recuperar-contrasena/nueva-clave', [PasswordResetController::class, 'nueva']);
+
+    Route::middleware('throttle:password-reset')->group(function () {
+        Route::post('/recuperar-contrasena', [PasswordResetController::class, 'solicitar']);
+        Route::post('/recuperar-contrasena/verificar', [PasswordResetController::class, 'verificar']);
+        Route::post('/recuperar-contrasena/nueva-clave', [PasswordResetController::class, 'nueva']);
+    });
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
@@ -48,7 +52,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->
 | Portal del Alumno
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'alumno'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
@@ -57,6 +61,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/mis-inscripciones', [InscripcionController::class, 'index'])->name('inscripciones.index');
     Route::get('/mis-cuotas', [CuotaController::class, 'index'])->name('cuotas.index');
+
+    Route::post('/mis-documentos/{documentoRequisito}', [DocumentacionController::class, 'store'])->name('documentacion.store');
+    Route::get('/mis-documentos/{controlDocumentacion}/descarga', [DocumentacionController::class, 'descargar'])->name('documentacion.descarga');
 
     Route::get('/mis-datos', [PerfilController::class, 'edit'])->name('mis-datos.edit');
     Route::put('/mis-datos', [PerfilController::class, 'update'])->name('mis-datos.update');
@@ -77,15 +84,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/academico', [AlumnoController::class, 'academicoStore'])->name('alumnos.academico.store');
     Route::get('/alumnos/nuevo/acceso', [AlumnoController::class, 'acceso'])->name('alumnos.acceso');
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
-    Route::get('/alumnos/{user}', [AlumnoController::class, 'show'])->name('alumnos.show');
-    Route::put('/alumnos/{user}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
+    Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
+    Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
 
-    Route::get('/documentacion', [DocumentacionController::class, 'index'])->name('documentacion.index');
-    Route::get('/documentacion/requisitos', [DocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
-    Route::post('/documentacion/requisitos', [DocumentacionController::class, 'storeRequisito'])->name('documentacion.requisitos.store');
-    Route::delete('/documentacion/requisitos/{documentoRequisito}', [DocumentacionController::class, 'destroyRequisito'])->name('documentacion.requisitos.destroy');
-    Route::get('/documentacion/{user}', [DocumentacionController::class, 'show'])->name('documentacion.show');
-    Route::put('/documentacion/{documentoAlumno}', [DocumentacionController::class, 'actualizar'])->name('documentacion.actualizar');
+    Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
+    Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
+    Route::post('/documentacion/requisitos', [AdminDocumentacionController::class, 'storeRequisito'])->name('documentacion.requisitos.store');
+    Route::delete('/documentacion/requisitos/{documentoRequisito}', [AdminDocumentacionController::class, 'destroyRequisito'])->name('documentacion.requisitos.destroy');
+    Route::get('/documentacion/{persona}', [AdminDocumentacionController::class, 'show'])->name('documentacion.show');
+    Route::put('/documentacion/{controlDocumentacion}', [AdminDocumentacionController::class, 'actualizar'])->name('documentacion.actualizar');
+    Route::get('/documentacion/archivo/{controlDocumentacion}', [AdminDocumentacionController::class, 'descargar'])->name('documentacion.descarga');
 
     Route::get('/carreras', [CarreraController::class, 'index'])->name('carreras.index');
     Route::get('/carreras/nueva', [CarreraController::class, 'create'])->name('carreras.create');
@@ -95,7 +103,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/carreras/{carrera}/materias', [CarreraController::class, 'storeMateria'])->name('carreras.materias.store');
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
-    Route::delete('/correlativas/{correlativa}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
+    Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
