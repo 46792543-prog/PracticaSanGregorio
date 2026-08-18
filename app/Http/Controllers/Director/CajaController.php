@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConceptoCaja;
 use App\Models\MovimientoCaja;
+use App\Models\TipoMovimiento;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +21,8 @@ class CajaController extends Controller
         $resumenSemana = $this->resumen(now()->startOfWeek(), now()->endOfWeek());
         $resumenMes = $this->resumen($mes->copy()->startOfMonth(), $mes->copy()->endOfMonth());
 
-        $movimientos = MovimientoCaja::with('registradoPor')
+        $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
             ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
-            ->when($request->query('turno'), fn ($q, $turno) => $q->where('turno', $turno))
             ->orderByDesc('fecha_movimiento')
             ->get();
 
@@ -31,22 +32,29 @@ class CajaController extends Controller
             'resumenSemana' => $resumenSemana,
             'resumenMes' => $resumenMes,
             'movimientos' => $movimientos,
-            'turno' => $request->query('turno'),
         ]);
     }
 
     public function storeGasto(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'concepto' => ['required', 'string', 'max:150'],
+            'concepto' => ['required', 'string', 'max:100'],
             'monto' => ['required', 'numeric', 'min:0.01'],
             'fecha_movimiento' => ['required', 'date'],
-            'turno' => ['nullable', 'string', 'max:20'],
         ]);
 
-        MovimientoCaja::create($data + [
-            'tipo' => 'gasto',
-            'registrado_por_id' => Auth::id(),
+        $tipoEgreso = TipoMovimiento::where('nombre_tipo', 'Egreso')->firstOrFail();
+
+        $concepto = ConceptoCaja::firstOrCreate(
+            ['nombre_concepto' => $data['concepto']],
+            ['id_tipo_movimiento' => $tipoEgreso->id_tipo_movimiento]
+        );
+
+        MovimientoCaja::create([
+            'id_concepto' => $concepto->id_concepto,
+            'monto' => $data['monto'],
+            'fecha_movimiento' => $data['fecha_movimiento'],
+            'id_secretario_registra' => Auth::user()->id_persona,
         ]);
 
         return back()->with('status', 'Gasto registrado correctamente en el Libro de Caja.');
@@ -54,8 +62,10 @@ class CajaController extends Controller
 
     private function resumen($desde, $hasta): array
     {
-        $ingresos = MovimientoCaja::where('tipo', 'ingreso')->whereBetween('fecha_movimiento', [$desde, $hasta])->sum('monto');
-        $gastos = MovimientoCaja::where('tipo', 'gasto')->whereBetween('fecha_movimiento', [$desde, $hasta])->sum('monto');
+        $ingresos = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Ingreso'))
+            ->whereBetween('fecha_movimiento', [$desde, $hasta])->sum('monto');
+        $gastos = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Egreso'))
+            ->whereBetween('fecha_movimiento', [$desde, $hasta])->sum('monto');
         $cantidad = MovimientoCaja::whereBetween('fecha_movimiento', [$desde, $hasta])->count();
 
         return [
