@@ -15,8 +15,8 @@
         <form method="GET">
             <select name="turno" onchange="this.form.submit()"
                     class="rounded-lg border border-slate-300 px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400">
-                @foreach ($turnos as $valor => $texto)
-                    <option value="{{ $valor }}" @selected($turno === $valor)>{{ $texto }}</option>
+                @foreach ($turnos as $t)
+                    <option value="{{ $t->id_turno }}" @selected($turno == $t->id_turno)>{{ $t->nombre_turno }}</option>
                 @endforeach
             </select>
         </form>
@@ -32,7 +32,7 @@
                         <span class="text-[10px] uppercase">{{ \App\Support\FechaEsp::mesAbrev($mesa->fecha_examen) }}</span>
                     </div>
                     <span class="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-3 py-1">
-                        {{ $mesa->llamado === 'primer_llamado' ? '1er llamado' : '2do llamado' }}
+                        {{ $mesa->llamadoExamen->nombre_llamado }}
                     </span>
                 </div>
 
@@ -51,7 +51,7 @@
                         <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar {{ $mesa->bloqueo->nombre }}</p>
                     @else
                         <button type="button"
-                                onclick="abrirModalInscripcion('{{ $mesa->materia->nombre }}', '{{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}', '{{ $turnos[$mesa->turno] }}', '{{ $mesa->llamado === 'primer_llamado' ? '1er llamado' : '2do llamado' }}', '{{ route('mesas-examen.inscribir', $mesa) }}')"
+                                onclick="abrirModalInscripcion('{{ $mesa->materia->nombre }}', '{{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}', '{{ $mesa->turnoExamen->nombre_turno }}', '{{ $mesa->llamadoExamen->nombre_llamado }}', '{{ route('mesas-examen.inscribir', $mesa) }}')"
                                 class="w-full rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold py-2 transition">
                             Inscribirme
                         </button>
