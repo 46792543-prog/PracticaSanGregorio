@@ -119,7 +119,7 @@
             </span>
             <div class="min-w-0">
                 <p class="text-sm font-semibold truncate">{{ auth()->user()->nombre }} {{ auth()->user()->apellido }}</p>
-                <p class="text-[11px] text-blue-300/70 capitalize">{{ auth()->user()->rol }}</p>
+                <p class="text-[11px] text-blue-300/70 capitalize">{{ auth()->user()->rol->nombre_rol }}</p>
             </div>
         </div>
         <form method="POST" action="{{ route('logout') }}">
