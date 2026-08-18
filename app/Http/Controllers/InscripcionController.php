@@ -10,15 +10,19 @@ class InscripcionController extends Controller
 {
     public function index(Request $request): View
     {
-        $alumno = Auth::user();
+        $alumno = Auth::user()->persona;
 
         $inscripciones = $alumno->inscripcionesMesa()
-            ->with('mesaExamen.materia')
+            ->with('mesaExamen.materia.nombreMateria', 'mesaExamen.turnoExamen', 'mesaExamen.llamadoExamen', 'estadoInscripcion')
             ->orderByDesc('fecha_inscripcion')
             ->get();
 
-        $seleccionadaId = $request->query('ver', $inscripciones->firstWhere('estado', 'en_proceso')?->id ?? $inscripciones->first()?->id);
-        $seleccionada = $inscripciones->firstWhere('id', (int) $seleccionadaId);
+        $seleccionadaId = $request->query(
+            'ver',
+            $inscripciones->first(fn ($i) => $i->estadoInscripcion->nombre_estado === 'En proceso')?->id_inscripcion
+                ?? $inscripciones->first()?->id_inscripcion
+        );
+        $seleccionada = $inscripciones->firstWhere('id_inscripcion', (int) $seleccionadaId);
 
         return view('inscripciones.index', [
             'inscripciones' => $inscripciones,
