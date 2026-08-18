@@ -31,7 +31,7 @@
                     ✉️ Código enviado a <strong>{{ $email }}</strong>
                 </div>
 
-                @if (config('app.debug') && $codigoDemo)
+                @if ($codigoDemo)
                     <div class="rounded-xl bg-amber-50 text-amber-700 text-xs px-4 py-3 mb-6">
                         Modo demo (no hay servidor de correo configurado): tu código es <strong class="text-base">{{ $codigoDemo }}</strong>
                     </div>
