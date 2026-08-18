@@ -10,7 +10,7 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6 overflow-hidden">
         <form method="GET" class="p-4 border-b border-slate-100">
-            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar requisito..." onchange="this.form.submit()"
+            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar requisito..." onchange="this.form.submit()" maxlength="50"
                    class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm">
         </form>
 
@@ -54,27 +54,27 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre del documento</label>
-                <input type="text" name="nombre" required placeholder="Ej: Partida de nacimiento"
+                <input type="text" maxlength="150" name="nombre_documento" required placeholder="Ej: Partida de nacimiento"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Descripción breve</label>
-                <input type="text" name="descripcion" placeholder="Aclaración para el alumno"
+                <input type="text" maxlength="255" name="descripcion" placeholder="Aclaración para el alumno"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo</label>
-                <select name="obligatorio" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="es_obligatorio" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="1">Obligatorio</option>
                     <option value="0">Opcional</option>
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Aplica a carrera</label>
-                <select name="carrera_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="id_carrera" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Todas las carreras</option>
                     @foreach ($carreras as $carrera)
-                        <option value="{{ $carrera->id }}">{{ $carrera->nombre }}</option>
+                        <option value="{{ $carrera->id_carrera }}">{{ $carrera->nombre_carrera }}</option>
                     @endforeach
                 </select>
             </div>
