@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Carrera;
-use App\Models\DocumentoAlumno;
+use App\Models\ControlDocumentacion;
 use App\Models\DocumentoRequisito;
-use App\Models\User;
+use App\Models\EstadoDocumento;
+use App\Models\Persona;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentacionController extends Controller
 {
@@ -19,19 +22,21 @@ class DocumentacionController extends Controller
         $filtro = $request->query('filtro', 'todos');
         $busqueda = trim((string) $request->query('q'));
 
-        $alumnos = User::where('rol', 'alumno')
-            ->with(['documentosAlumno.documentoRequisito', 'inscripcionesCarrera.carrera'])
+        $alumnos = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
+            ->with(['documentacion.documentoRequisito', 'documentacion.estadoDocumento', 'inscripcionesCarrera.carrera', 'inscripcionesCarrera.anioCursada'])
             ->when($busqueda, fn ($q) => $q->where(fn ($w) => $w->where('nombre', 'like', "%{$busqueda}%")
                 ->orWhere('apellido', 'like', "%{$busqueda}%")))
             ->orderBy('apellido')
             ->get()
-            ->map(function (User $alumno) {
-                $obligatorios = $alumno->documentosAlumno->filter(fn ($d) => $d->documentoRequisito->obligatorio);
+            ->map(function (Persona $alumno) {
+                $obligatorios = $alumno->documentacion->filter(fn ($d) => $d->documentoRequisito->es_obligatorio);
+                $estados = $obligatorios->map(fn ($d) => $d->estadoDocumento->nombre_estado ?? null);
+
                 $alumno->estado_documentacion = match (true) {
                     $obligatorios->isEmpty() => 'sin_enviar',
-                    $obligatorios->contains(fn ($d) => $d->estado === 'rechazado') => 'pendiente',
-                    $obligatorios->contains(fn ($d) => $d->estado === 'pendiente') => 'sin_enviar',
-                    $obligatorios->contains(fn ($d) => $d->estado === 'entregado') => 'revision',
+                    $estados->contains('Rechazado') => 'pendiente',
+                    $estados->contains('Pendiente') => 'sin_enviar',
+                    $estados->contains('Entregado') => 'revision',
                     default => 'completo',
                 };
 
@@ -49,56 +54,68 @@ class DocumentacionController extends Controller
             'filtro' => $filtro,
             'busqueda' => $busqueda,
             'totales' => [
-                'total' => User::where('rol', 'alumno')->count(),
-                'en_revision' => DocumentoAlumno::where('estado', 'entregado')->distinct('user_id')->count('user_id'),
-                'completos' => User::where('rol', 'alumno')->whereDoesntHave('documentosAlumno', fn ($q) => $q->whereIn('estado', ['pendiente', 'entregado', 'rechazado']))->count(),
+                'total' => Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))->count(),
+                'en_revision' => ControlDocumentacion::whereHas('estadoDocumento', fn ($q) => $q->where('nombre_estado', 'Entregado'))
+                    ->distinct('id_persona_alumno')->count('id_persona_alumno'),
+                'completos' => Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
+                    ->whereDoesntHave('documentacion.estadoDocumento', fn ($q) => $q->whereIn('nombre_estado', ['Pendiente', 'Entregado', 'Rechazado']))
+                    ->count(),
             ],
         ]);
     }
 
-    public function show(User $user): View
+    public function show(Persona $persona): View
     {
-        $carreraId = $user->inscripcionesCarrera()->value('carrera_id');
+        $carreraId = $persona->inscripcionesCarrera()->value('id_carrera');
 
-        $documentos = DocumentoRequisito::orderBy('nombre')
-            ->where(fn ($q) => $q->whereNull('carrera_id')->orWhere('carrera_id', $carreraId))
-            ->with(['documentosAlumno' => fn ($q) => $q->where('user_id', $user->id)])
+        $documentos = DocumentoRequisito::orderBy('nombre_documento')
+            ->where(fn ($q) => $q->whereNull('id_carrera')->orWhere('id_carrera', $carreraId))
+            ->with(['controlDocumentacion' => fn ($q) => $q->where('id_persona_alumno', $persona->id_persona)->with('estadoDocumento')])
             ->get();
 
         return view('admin.documentacion.show', [
-            'alumno' => $user,
+            'alumno' => $persona,
             'documentos' => $documentos,
             'carrera' => Carrera::find($carreraId),
         ]);
     }
 
-    public function actualizar(Request $request, DocumentoAlumno $documentoAlumno): RedirectResponse
+    public function actualizar(Request $request, ControlDocumentacion $controlDocumentacion): RedirectResponse
     {
         $data = $request->validate([
-            'estado' => ['required', 'in:entregado,aprobado,rechazado'],
+            'estado' => ['required', 'in:Entregado,Aprobado,Rechazado'],
             'observaciones' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $documentoAlumno->update([
-            'estado' => $data['estado'],
+        $estado = EstadoDocumento::where('nombre_estado', $data['estado'])->firstOrFail();
+
+        $controlDocumentacion->update([
+            'id_estado_documento' => $estado->id_estado_documento,
             'observaciones' => $data['observaciones'] ?? null,
-            'fecha_aprobacion' => $data['estado'] === 'aprobado' ? now() : null,
-            'secretario_revisa_id' => Auth::id(),
+            'fecha_aprobacion' => $data['estado'] === 'Aprobado' ? now() : null,
+            'id_secretario_recibe' => Auth::user()->id_persona,
         ]);
 
         return back()->with('status', 'Documento actualizado correctamente.');
     }
 
+    public function descargar(ControlDocumentacion $controlDocumentacion): StreamedResponse
+    {
+        abort_unless($controlDocumentacion->archivo_path, 404);
+
+        return Storage::disk('local')->download($controlDocumentacion->archivo_path, $controlDocumentacion->archivo_nombre_original);
+    }
+
     public function requisitos(Request $request): View
     {
         $requisitos = DocumentoRequisito::with('carrera')
-            ->when($request->query('q'), fn ($q, $busqueda) => $q->where('nombre', 'like', "%{$busqueda}%"))
-            ->orderBy('nombre')
+            ->when($request->query('q'), fn ($q, $busqueda) => $q->where('nombre_documento', 'like', "%{$busqueda}%"))
+            ->orderBy('nombre_documento')
             ->get();
 
         return view('admin.documentacion.requisitos', [
             'requisitos' => $requisitos,
-            'carreras' => Carrera::orderBy('nombre')->get(),
+            'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'busqueda' => $request->query('q'),
         ]);
     }
@@ -106,10 +123,10 @@ class DocumentacionController extends Controller
     public function storeRequisito(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'nombre' => ['required', 'string', 'max:150', 'unique:documento_requisitos,nombre'],
+            'nombre_documento' => ['required', 'string', 'max:150', 'unique:documento_requisito,nombre_documento'],
             'descripcion' => ['nullable', 'string', 'max:255'],
-            'obligatorio' => ['required', 'in:1,0'],
-            'carrera_id' => ['nullable', 'exists:carreras,id'],
+            'es_obligatorio' => ['required', 'in:1,0'],
+            'id_carrera' => ['nullable', 'exists:carrera,id_carrera'],
         ]);
 
         DocumentoRequisito::create($data);
