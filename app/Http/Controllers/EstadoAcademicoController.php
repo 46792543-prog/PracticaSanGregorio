@@ -10,24 +10,24 @@ class EstadoAcademicoController extends Controller
 {
     public function index(Request $request): View
     {
-        $alumno = Auth::user();
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()->with('carrera')->latest()->first();
+        $alumno = Auth::user()->persona;
+        $inscripcionCarrera = $alumno->inscripcionesCarrera()->with('carrera', 'anioCursada')->latest('id_inscripcion_carrera')->first();
 
         $busqueda = trim((string) $request->query('q'));
         $condicionFiltro = $request->query('condicion');
 
         $materias = $inscripcionCarrera
             ? $inscripcionCarrera->carrera->materias()
-                ->with(['requisitos', 'historial' => fn ($q) => $q->where('user_id', $alumno->id)])
-                ->when($busqueda, fn ($q) => $q->where('nombre', 'like', "%{$busqueda}%"))
-                ->orderBy('anio_cursada')
-                ->orderBy('nombre')
+                ->with(['requisitos', 'nombreMateria', 'anioCursada', 'periodo', 'regimen', 'historial' => fn ($q) => $q->where('id_persona_alumno', $alumno->id_persona)])
+                ->when($busqueda, fn ($q) => $q->whereHas('nombreMateria', fn ($n) => $n->where('nombre', 'like', "%{$busqueda}%")))
+                ->orderBy('id_anio_cursada')
                 ->get()
+                ->sortBy('nombre')
             : collect();
 
         $materias = $materias->map(function ($materia) use ($alumno) {
             $historial = $materia->historial->first();
-            $condicion = $historial->condicion ?? 'pendiente';
+            $condicion = strtolower($historial?->condicion?->nombre_condicion ?? 'pendiente');
             $estadoVisual = $condicion;
 
             if ($condicion === 'pendiente' && $materia->correlativaFaltante($alumno)) {
@@ -37,6 +37,7 @@ class EstadoAcademicoController extends Controller
             $materia->condicion_alumno = $condicion;
             $materia->estado_visual = $estadoVisual;
             $materia->nota_alumno = $historial->nota_cursada ?? null;
+            $materia->anio_cursada_num = $materia->anioCursada->id_anio_cursada ?? null;
 
             return $materia;
         });
@@ -45,7 +46,7 @@ class EstadoAcademicoController extends Controller
             $materias = $materias->where('estado_visual', $condicionFiltro);
         }
 
-        $materiasPorAnio = $materias->groupBy('anio_cursada')->sortKeys();
+        $materiasPorAnio = $materias->groupBy('anio_cursada_num')->sortKeys();
         $nombresAnio = [1 => '1er Año', 2 => '2do Año', 3 => '3er Año'];
 
         return view('estado-academico.index', [
