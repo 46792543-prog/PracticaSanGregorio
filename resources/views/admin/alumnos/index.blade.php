@@ -58,7 +58,7 @@
             <select name="carrera" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                 <option value="">Todas las carreras</option>
                 @foreach ($carreras as $carrera)
-                    <option value="{{ $carrera->id }}" @selected($carreraId == $carrera->id)>{{ $carrera->nombre }}</option>
+                    <option value="{{ $carrera->id_carrera }}" @selected($carreraId == $carrera->id_carrera)>{{ $carrera->nombre_carrera }}</option>
                 @endforeach
             </select>
         </div>
@@ -72,7 +72,7 @@
         </div>
         <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">BUSCAR</label>
-            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..."
+            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..." data-busqueda maxlength="50"
                    class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
         </div>
     </form>
@@ -94,7 +94,7 @@
                 @forelse ($alumnos as $alumno)
                     @php
                         $inscripcion = $alumno->inscripcionesCarrera->first();
-                        $vencidas = $alumno->cuotas()->where('estado', 'vencido')->count();
+                        $vencidas = $alumno->cuotas->filter(fn ($c) => $c->vencida)->count();
                         $iniciales = mb_substr($alumno->nombre, 0, 1) . mb_substr($alumno->apellido, 0, 1);
                     @endphp
                     <tr class="hover:bg-slate-50/70 transition-colors">
@@ -107,12 +107,12 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-3.5 text-slate-500">{{ $inscripcion?->carrera?->nombre ?? '—' }}</td>
-                        <td class="px-6 py-3.5 text-slate-500">{{ $inscripcion?->anio_actual ?? '—' }}°</td>
+                        <td class="px-6 py-3.5 text-slate-500">{{ $inscripcion?->carrera?->nombre_carrera ?? '—' }}</td>
+                        <td class="px-6 py-3.5 text-slate-500">{{ $inscripcion?->anioCursada?->nombre_anio ?? '—' }}</td>
                         <td class="px-6 py-3.5">
                             @if (! $inscripcion)
                                 <span class="text-xs font-semibold rounded-full px-3 py-1 bg-slate-100 text-slate-500">Sin carrera</span>
-                            @elseif ($inscripcion->estado === 'baja')
+                            @elseif ($inscripcion->estadoInscripcion->nombre_estado === 'Baja')
                                 <span class="text-xs font-semibold rounded-full px-3 py-1 bg-red-50 text-red-600">Baja</span>
                             @else
                                 <span class="text-xs font-semibold rounded-full px-3 py-1 bg-emerald-50 text-emerald-700">Activo</span>
