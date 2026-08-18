@@ -13,20 +13,23 @@ class PerfilController extends Controller
 {
     public function edit(): View
     {
-        $alumno = Auth::user();
-        $carreraId = $alumno->inscripcionesCarrera()->value('carrera_id');
+        $usuario = Auth::user();
+        $alumno = $usuario->persona;
+        $alumno->setRelation('usuario', $usuario);
+        $carreraId = $alumno->inscripcionesCarrera()->value('id_carrera');
 
-        $documentos = DocumentoRequisito::orderBy('nombre')
-            ->where(fn ($q) => $q->whereNull('carrera_id')->orWhere('carrera_id', $carreraId))
-            ->with(['documentosAlumno' => fn ($q) => $q->where('user_id', $alumno->id)])
+        $documentos = DocumentoRequisito::orderBy('nombre_documento')
+            ->where(fn ($q) => $q->whereNull('id_carrera')->orWhere('id_carrera', $carreraId))
+            ->with(['controlDocumentacion' => fn ($q) => $q->where('id_persona_alumno', $alumno->id_persona)])
             ->get()
             ->map(function (DocumentoRequisito $documento) {
-                $documento->estado_alumno = $documento->documentosAlumno->first()->estado ?? 'pendiente';
+                $documento->miEntrega = $documento->controlDocumentacion->first();
+                $documento->estado_alumno = strtolower($documento->miEntrega?->estadoDocumento?->nombre_estado ?? 'pendiente');
 
                 return $documento;
             });
 
-        $primerIngreso = $documentos->where('obligatorio', true)
+        $primerIngreso = $documentos->where('es_obligatorio', true)
             ->contains(fn ($d) => in_array($d->estado_alumno, ['pendiente', 'rechazado']));
 
         return view('mis-datos.index', [
@@ -38,19 +41,24 @@ class PerfilController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $alumno = Auth::user();
+        $usuario = Auth::user();
+        $alumno = $usuario->persona;
 
         $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:100'],
-            'apellido' => ['required', 'string', 'max:100'],
-            'dni' => ['required', 'string', 'max:20', Rule::unique('users', 'dni')->ignore($alumno->id)],
+            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')->ignore($alumno->id_persona, 'id_persona')],
             'fecha_nacimiento' => ['nullable', 'date'],
-            'telefono' => ['nullable', 'string', 'max:20'],
-            'direccion' => ['nullable', 'string', 'max:250'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($alumno->id)],
+            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
+            'direccion' => ['nullable', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')->ignore($usuario->id_usuario, 'id_usuario')],
         ]);
 
+        $email = $datos['email'];
+        unset($datos['email']);
+
         $alumno->update($datos);
+        $usuario->update(['email' => $email]);
 
         return redirect()->route('mis-datos.edit')->with('status', 'Tus datos se guardaron correctamente.');
     }
