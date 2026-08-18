@@ -10,7 +10,7 @@
 
     @php
         $obligatorios = $documentos->where('obligatorio', true);
-        $estadoGeneral = $obligatorios->contains(fn ($d) => ($d->documentosAlumno->first()->estado ?? 'pendiente') !== 'aprobado') ? 'Pendiente de aprobación' : 'Documentación completa';
+        $estadoGeneral = $obligatorios->contains(fn ($d) => ($d->controlDocumentacion->first()->estadoDocumento->nombre_estado ?? 'Pendiente') !== 'Aprobado') ? 'Pendiente de aprobación' : 'Documentación completa';
     @endphp
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -32,12 +32,12 @@
 
     <div class="space-y-3">
         @foreach ($documentos as $documento)
-            @php $docAlumno = $documento->documentosAlumno->first(); $estado = $docAlumno->estado ?? 'pendiente'; @endphp
+            @php $docAlumno = $documento->controlDocumentacion->first(); $estado = $docAlumno->estadoDocumento->nombre_estado ?? 'Pendiente'; @endphp
             <div @class([
                     'bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center justify-between gap-4 border-l-4',
-                    'border-amber-400' => $estado === 'entregado',
-                    'border-green-500' => $estado === 'aprobado',
-                    'border-red-400' => in_array($estado, ['pendiente', 'rechazado']),
+                    'border-amber-400' => $estado === 'Entregado',
+                    'border-green-500' => $estado === 'Aprobado',
+                    'border-red-400' => in_array($estado, ['Pendiente', 'Rechazado']),
                 ])>
                 <div>
                     <p class="font-semibold text-slate-700">{{ $documento->nombre }}</p>
@@ -45,28 +45,33 @@
                         {{ $documento->obligatorio ? 'Obligatorio' : 'Opcional' }}
                         @if ($docAlumno?->fecha_aprobacion) · Aprobado el {{ \App\Support\FechaEsp::corta($docAlumno->fecha_aprobacion) }} @endif
                     </p>
+                    @if ($docAlumno?->archivo_path)
+                        <a href="{{ route('admin.documentacion.descarga', $docAlumno) }}" class="text-xs text-[#1E4D8C] font-semibold hover:underline">
+                            📄 Descargar {{ $docAlumno->archivo_nombre_original }}
+                        </a>
+                    @endif
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
                     <span @class([
                             'text-xs font-semibold rounded-full px-3 py-1.5',
-                            'bg-slate-100 text-slate-400' => $estado === 'pendiente',
-                            'bg-amber-100 text-amber-700' => $estado === 'entregado',
-                            'bg-green-100 text-green-700' => $estado === 'aprobado',
-                            'bg-red-100 text-red-600' => $estado === 'rechazado',
+                            'bg-slate-100 text-slate-400' => $estado === 'Pendiente',
+                            'bg-amber-100 text-amber-700' => $estado === 'Entregado',
+                            'bg-green-100 text-green-700' => $estado === 'Aprobado',
+                            'bg-red-100 text-red-600' => $estado === 'Rechazado',
                         ])>
-                        {{ match($estado) { 'pendiente' => 'Sin entregar', 'entregado' => 'Entregado', 'aprobado' => 'Aprobado', 'rechazado' => 'Rechazado' } }}
+                        {{ $estado === 'Pendiente' ? 'Sin entregar' : $estado }}
                     </span>
 
-                    @if ($docAlumno && $estado === 'entregado')
+                    @if ($docAlumno && $estado === 'Entregado')
                         <form method="POST" action="{{ route('admin.documentacion.actualizar', $docAlumno) }}">
                             @csrf @method('PUT')
-                            <input type="hidden" name="estado" value="aprobado">
+                            <input type="hidden" name="estado" value="Aprobado">
                             <button type="submit" class="text-xs font-semibold rounded-lg bg-green-600 text-white px-3 py-1.5">Aprobar</button>
                         </form>
                         <form method="POST" action="{{ route('admin.documentacion.actualizar', $docAlumno) }}">
                             @csrf @method('PUT')
-                            <input type="hidden" name="estado" value="rechazado">
+                            <input type="hidden" name="estado" value="Rechazado">
                             <button type="submit" class="text-xs font-semibold rounded-lg bg-red-500 text-white px-3 py-1.5">Rechazar</button>
                         </form>
                     @endif
