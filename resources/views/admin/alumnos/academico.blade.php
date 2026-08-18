@@ -18,7 +18,7 @@
                         <select name="carrera_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                             <option value="">Seleccioná carrera...</option>
                             @foreach ($carreras as $carrera)
-                                <option value="{{ $carrera->id }}" @selected(($academicos['carrera_id'] ?? null) == $carrera->id)>{{ $carrera->nombre }}</option>
+                                <option value="{{ $carrera->id_carrera }}" @selected(($academicos['carrera_id'] ?? null) == $carrera->id_carrera)>{{ $carrera->nombre_carrera }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -26,7 +26,7 @@
                         <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO LECTIVO *</label>
                         <select name="anio_lectivo_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                             @foreach ($aniosLectivos as $anio)
-                                <option value="{{ $anio->id }}" @selected(($academicos['anio_lectivo_id'] ?? null) == $anio->id)>{{ $anio->anio }}</option>
+                                <option value="{{ $anio->id_anio_lectivo }}" @selected(($academicos['anio_lectivo_id'] ?? null) == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -34,25 +34,25 @@
                 <div class="grid sm:grid-cols-3 gap-4 mb-6">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO QUE CURSA *</label>
-                        <select name="anio_actual" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                            @foreach ([1, 2, 3] as $anio)
-                                <option value="{{ $anio }}" @selected(($academicos['anio_actual'] ?? 1) == $anio)>{{ $anio }}° Año</option>
+                        <select name="anio_cursada_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                            @foreach ($aniosCursada as $anioCursada)
+                                <option value="{{ $anioCursada->id_anio_cursada }}" @selected(($academicos['anio_cursada_id'] ?? null) == $anioCursada->id_anio_cursada)>{{ $anioCursada->nombre_anio }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">TURNO *</label>
-                        <select name="turno" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                            @foreach (['mañana' => 'Mañana', 'tarde' => 'Tarde', 'noche' => 'Noche'] as $valor => $texto)
-                                <option value="{{ $valor }}" @selected(($academicos['turno'] ?? 'mañana') === $valor)>{{ $texto }}</option>
+                        <select name="turno_cursada_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                            @foreach ($turnos as $turno)
+                                <option value="{{ $turno->id_turno_cursada }}" @selected(($academicos['turno_cursada_id'] ?? null) == $turno->id_turno_cursada)>{{ $turno->nombre_turno }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">CONDICIÓN DE INGRESO *</label>
-                        <select name="condicion" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                            @foreach (['regular' => 'Regular', 'promocion' => 'Promoción', 'libre' => 'Libre'] as $valor => $texto)
-                                <option value="{{ $valor }}" @selected(($academicos['condicion'] ?? 'regular') === $valor)>{{ $texto }}</option>
+                        <select name="condicion_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                            @foreach ($condiciones as $condicion)
+                                <option value="{{ $condicion->id_condicion }}" @selected(($academicos['condicion_id'] ?? null) == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
                             @endforeach
                         </select>
                     </div>
