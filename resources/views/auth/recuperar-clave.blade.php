@@ -36,12 +36,12 @@
                     @csrf
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-2">CONTRASEÑA NUEVA</label>
-                        <input type="password" name="password" minlength="8" required autofocus
+                        <input type="password" name="password" minlength="8" maxlength="100" required autofocus
                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-2">CONFIRMAR CONTRASEÑA</label>
-                        <input type="password" name="password_confirmation" minlength="8" required placeholder="Repetí tu nueva contraseña"
+                        <input type="password" name="password_confirmation" minlength="8" maxlength="100" required placeholder="Repetí tu nueva contraseña"
                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
 
