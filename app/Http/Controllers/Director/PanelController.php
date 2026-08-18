@@ -11,13 +11,16 @@ class PanelController extends Controller
 {
     public function index(): View
     {
-        $alumnosActivos = InscripcionCarrera::where('estado', 'activo')->distinct('user_id')->count('user_id');
-        $alumnosActivosMesPasado = InscripcionCarrera::where('estado', 'activo')
-            ->where('created_at', '<', now()->startOfMonth())
-            ->distinct('user_id')->count('user_id');
+        $alumnosActivos = InscripcionCarrera::whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->distinct('id_persona_alumno')->count('id_persona_alumno');
+        $alumnosActivosMesPasado = InscripcionCarrera::whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->where('fecha_inscripcion', '<', now()->startOfMonth())
+            ->distinct('id_persona_alumno')->count('id_persona_alumno');
 
-        $ingresosMes = MovimientoCaja::where('tipo', 'ingreso')->whereBetween('fecha_movimiento', [now()->startOfMonth(), now()->endOfMonth()])->sum('monto');
-        $ingresosMesPasado = MovimientoCaja::where('tipo', 'ingreso')->whereBetween('fecha_movimiento', [now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->endOfMonth()])->sum('monto');
+        $ingresosMes = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Ingreso'))
+            ->whereBetween('fecha_movimiento', [now()->startOfMonth(), now()->endOfMonth()])->sum('monto');
+        $ingresosMesPasado = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Ingreso'))
+            ->whereBetween('fecha_movimiento', [now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->endOfMonth()])->sum('monto');
         $variacionIngresos = $ingresosMesPasado > 0 ? round((($ingresosMes - $ingresosMesPasado) / $ingresosMesPasado) * 100) : null;
 
         return view('director.panel.index', [
