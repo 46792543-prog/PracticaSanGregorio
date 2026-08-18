@@ -9,14 +9,18 @@ class CuotaController extends Controller
 {
     public function index(): View
     {
-        $alumno = Auth::user();
+        $alumno = Auth::user()->persona;
 
-        $cuotas = $alumno->cuotas()->orderBy('fecha_vencimiento')->get();
+        $cuotas = $alumno->cuotas()->with(['anioLectivo', 'mes'])
+            ->orderBy('id_anio_lectivo')
+            ->orderBy('id_mes')
+            ->get();
 
         $anioLectivo = $cuotas->first()?->anioLectivo?->anio ?? now()->year;
-        $proximaCuota = $cuotas->where('estado', 'pendiente')->sortBy('fecha_vencimiento')->first();
-        $tieneVencidas = $cuotas->contains('estado', 'vencido');
-        $pagadas = $cuotas->where('estado', 'pagado');
+        $pendientes = $cuotas->where('pagado', false);
+        $pagadas = $cuotas->where('pagado', true);
+        $proximaCuota = $pendientes->sortBy('fecha_vencimiento')->first();
+        $tieneVencidas = $pendientes->contains(fn ($c) => $c->vencida);
         $totalPagado = $pagadas->sum('monto');
 
         return view('cuotas.index', [
