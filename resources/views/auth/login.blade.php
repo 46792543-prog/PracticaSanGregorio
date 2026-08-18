@@ -56,12 +56,12 @@
                     @csrf
                     <div>
                         <label class="block text-sm text-slate-700 mb-2">CORREO ELECTRONICO</label>
-                        <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                        <input type="email" maxlength="100" name="email" value="{{ old('email') }}" required autofocus
                                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div>
                         <label class="block text-sm text-slate-700 mb-2">CONTRASEÑA</label>
-                        <input type="password" name="password" required
+                        <input type="password" maxlength="100" name="password" required
                                class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
 
@@ -75,10 +75,7 @@
                     </p>
                 </form>
 
-                <p class="text-xs text-slate-400 text-center mt-10">
-                    Alumna de prueba: lucia.fernandez@gmail.com / alumna123<br>
-                    Secretaría de prueba: secretaria@sangregorio.edu.ar / secretaria123
-                </p>
+                
             </div>
         </div>
     </div>
