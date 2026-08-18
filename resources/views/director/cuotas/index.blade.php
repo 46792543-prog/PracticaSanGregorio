@@ -13,7 +13,7 @@
             <form method="GET" class="grid sm:grid-cols-[1fr_auto] gap-4 mb-2">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">BUSCAR ALUMNO *</label>
-                    <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..." autofocus
+                    <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..." autofocus data-busqueda maxlength="50"
                            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                 </div>
                 <div class="flex items-end">
@@ -24,7 +24,7 @@
             @if ($resultados->isNotEmpty())
                 <div class="space-y-2 mt-4">
                     @foreach ($resultados as $alumno)
-                        <a href="{{ route('director.cuotas.index', ['alumno' => $alumno->id]) }}"
+                        <a href="{{ route('director.cuotas.index', ['alumno' => $alumno->id_usuario]) }}"
                            class="flex items-center justify-between rounded-xl border border-slate-100 hover:border-[#1E4D8C]/30 hover:bg-blue-50/40 px-4 py-3 transition">
                             <div class="flex items-center gap-3">
                                 <span class="h-9 w-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold grid place-items-center">
@@ -32,7 +32,7 @@
                                 </span>
                                 <div>
                                     <p class="font-semibold text-slate-700 text-sm">{{ $alumno->apellido }}, {{ $alumno->nombre }}</p>
-                                    <p class="text-xs text-slate-400">DNI {{ $alumno->dni }} · {{ $alumno->inscripcionesCarrera->first()?->carrera?->nombre }}</p>
+                                    <p class="text-xs text-slate-400">DNI {{ $alumno->dni }} · {{ $alumno->persona->inscripcionesCarrera->first()?->carrera?->nombre_carrera }}</p>
                                 </div>
                             </div>
                             @if ($alumno->cuotas_pendientes_count > 0)
@@ -48,12 +48,12 @@
             @endif
 
             @if ($alumnoSeleccionado)
-                @php $cuotasPendientes = $alumnoSeleccionado->cuotas->where('estado', 'pendiente'); @endphp
+                @php $cuotasPendientes = $alumnoSeleccionado->persona->cuotas->where('pagado', false); @endphp
                 <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
                     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <div>
                             <p class="font-bold text-slate-800">{{ $alumnoSeleccionado->apellido }}, {{ $alumnoSeleccionado->nombre }}</p>
-                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $alumnoSeleccionado->inscripcionesCarrera->first()?->carrera?->nombre }}</p>
+                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $alumnoSeleccionado->persona->inscripcionesCarrera->first()?->carrera?->nombre_carrera }}</p>
                         </div>
                         <a href="{{ route('director.cuotas.index') }}" class="text-xs font-semibold text-[#1E4D8C] hover:underline">✕ Cambiar alumno</a>
                     </div>
@@ -63,39 +63,38 @@
                     @else
                         <form method="POST" action="{{ route('director.cuotas.cobrar') }}">
                             @csrf
-                            <input type="hidden" name="user_id" value="{{ $alumnoSeleccionado->id }}">
+                            <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
 
-                            <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Cuotas pendientes — Seleccioná las que se están pagando y ajustá monto o recargo si corresponde:</p>
+                            <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
                             <div class="space-y-2 mb-4">
                                 @foreach ($cuotasPendientes as $cuota)
                                     <div class="rounded-xl bg-white border border-slate-200 px-4 py-3 has-[:checked]:border-[#1E4D8C] has-[:checked]:bg-blue-50/60">
                                         <label class="flex items-center justify-between gap-3 cursor-pointer">
                                             <span class="flex items-center gap-3">
-                                                <input type="checkbox" name="cuotas[{{ $cuota->id }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id }}" checked>
-                                                <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto }}</span>
+                                                <input type="checkbox" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" checked>
+                                                <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</span>
                                             </span>
-                                            <span class="text-xs text-slate-400">Vence: {{ \App\Support\FechaEsp::corta($cuota->fecha_vencimiento) }}</span>
                                         </label>
                                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
                                             <div>
                                                 <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Monto</label>
                                                 <div class="flex items-center gap-1">
                                                     <span class="text-slate-400 text-sm">$</span>
-                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id }}][monto]" value="{{ $cuota->monto }}"
-                                                           class="cuota-monto w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30" data-id="{{ $cuota->id }}">
+                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
+                                                           class="cuota-monto w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30" data-id="{{ $cuota->id_cuota }}">
                                                 </div>
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-semibold text-amber-600 uppercase mb-1">Recargo por mora</label>
                                                 <div class="flex items-center gap-1">
                                                     <span class="text-slate-400 text-sm">$</span>
-                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id }}][recargo]" value="0"
-                                                           class="cuota-recargo w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" data-id="{{ $cuota->id }}">
+                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="0"
+                                                           class="cuota-recargo w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" data-id="{{ $cuota->id_cuota }}">
                                                 </div>
                                             </div>
                                             <div class="col-span-2 sm:col-span-1">
                                                 <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Subtotal</label>
-                                                <p class="cuota-subtotal font-bold text-slate-700 text-sm py-1.5" data-id="{{ $cuota->id }}">
+                                                <p class="cuota-subtotal font-bold text-slate-700 text-sm py-1.5" data-id="{{ $cuota->id_cuota }}">
                                                     $ {{ number_format($cuota->monto, 0, ',', '.') }}
                                                 </p>
                                             </div>
@@ -113,8 +112,8 @@
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">MEDIO DE PAGO *</label>
                                     <select name="medio_pago" required class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
-                                        <option value="efectivo">Efectivo</option>
-                                        <option value="transferencia">Transferencia</option>
+                                        <option value="Efectivo">Efectivo</option>
+                                        <option value="Transferencia">Transferencia</option>
                                     </select>
                                 </div>
                             </div>
@@ -186,9 +185,9 @@
             <tbody class="divide-y divide-slate-50">
                 @forelse ($historial as $cuota)
                     <tr class="hover:bg-slate-50/70">
-                        <td class="px-6 py-3 font-semibold text-slate-700">{{ $cuota->user->apellido }}, {{ $cuota->user->nombre }}</td>
-                        <td class="px-6 py-3 text-slate-500">{{ $cuota->concepto }}</td>
-                        <td class="px-6 py-3 text-slate-500">{{ \App\Support\FechaEsp::corta($cuota->fecha_pago) }}</td>
+                        <td class="px-6 py-3 font-semibold text-slate-700">{{ $cuota->personaAlumno->apellido }}, {{ $cuota->personaAlumno->nombre }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ $cuota->fecha_pago ? \App\Support\FechaEsp::corta($cuota->fecha_pago) : '—' }}</td>
                         <td class="px-6 py-3 font-semibold text-emerald-600">$ {{ number_format($cuota->monto, 0, ',', '.') }}</td>
                         <td class="px-6 py-3">
                             @if ($cuota->recargo > 0)
@@ -197,7 +196,7 @@
                                 <span class="text-slate-300">—</span>
                             @endif
                         </td>
-                        <td class="px-6 py-3 text-slate-500 capitalize">{{ $cuota->medio_pago }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ $cuota->movimientoCaja?->medioPago?->nombre_medio ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Todavía no hay pagos registrados.</td></tr>
