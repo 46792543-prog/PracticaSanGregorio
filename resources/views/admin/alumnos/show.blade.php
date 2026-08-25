@@ -65,17 +65,40 @@
         <div class="divide-y divide-slate-100">
             @forelse ($alumno->historialAlumno->sortBy('materia.nombre') as $historial)
                 @php $condicionNombre = $historial->condicion->nombre_condicion ?? '—'; @endphp
-                <div class="flex items-center justify-between py-2 text-sm">
+                <div class="flex items-center justify-between py-2 text-sm gap-3">
                     <span class="text-slate-600">{{ $historial->materia->nombre }}</span>
-                    <span @class([
-                            'text-xs font-semibold rounded-full px-3 py-1',
-                            'bg-green-100 text-green-700' => $condicionNombre === 'Aprobada',
-                            'bg-amber-100 text-amber-700' => $condicionNombre === 'Regular',
-                            'bg-slate-100 text-slate-500' => $condicionNombre === 'Pendiente',
-                            'bg-blue-100 text-blue-700' => $condicionNombre === 'Cursando',
-                        ])>
-                        {{ $condicionNombre }} @if($historial->nota_cursada) · {{ $historial->nota_cursada }} @endif
-                    </span>
+                    <div class="flex items-center gap-3">
+                        @if ($condicionNombre === 'Regular')
+                            <form method="POST" action="{{ route('admin.alumnos.historial.plazo', [$alumno, $historial]) }}" class="flex items-center gap-1.5">
+                                @csrf @method('PUT')
+                                <label class="text-[11px] text-slate-400">Plazo para rendir:</label>
+                                <select name="anios_plazo_regularidad" class="text-xs rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30">
+                                    <option value="" @selected(! $historial->anios_plazo_regularidad)>Sin límite</option>
+                                    @foreach ([1, 2, 3] as $anios)
+                                        <option value="{{ $anios }}" @selected($historial->anios_plazo_regularidad == $anios)>{{ $anios }} {{ $anios === 1 ? 'año' : 'años' }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="text-xs font-semibold text-[#1E4D8C] hover:underline">Guardar</button>
+                                @if ($historial->fecha_limite_calculada)
+                                    <span class="text-[11px] text-slate-400">(vence {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }})</span>
+                                @endif
+                            </form>
+                        @endif
+                        <span @class([
+                                'text-xs font-semibold rounded-full px-3 py-1 whitespace-nowrap',
+                                'bg-green-100 text-green-700' => $condicionNombre === 'Aprobada',
+                                'bg-amber-100 text-amber-700' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
+                                'bg-red-100 text-red-600' => $historial->regularidad_vencida,
+                                'bg-slate-100 text-slate-500' => $condicionNombre === 'Pendiente',
+                                'bg-blue-100 text-blue-700' => $condicionNombre === 'Cursando',
+                            ])>
+                            @if ($historial->regularidad_vencida)
+                                Venció el {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }}
+                            @else
+                                {{ $condicionNombre }} @if($historial->nota_cursada) · {{ $historial->nota_cursada }} @endif
+                            @endif
+                        </span>
+                    </div>
                 </div>
             @empty
                 <p class="text-sm text-slate-400">Sin historial académico cargado.</p>

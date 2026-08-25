@@ -10,12 +10,14 @@
             'regular' => 'bg-amber-100 text-amber-700',
             'pendiente' => 'bg-slate-100 text-slate-500',
             'no_disponible' => 'bg-red-100 text-red-600',
+            'vencida' => 'bg-red-100 text-red-600',
         ];
         $etiquetas = [
             'aprobada' => 'Aprobada',
             'regular' => 'Regular',
             'pendiente' => 'Pendiente',
             'no_disponible' => 'No disponible',
+            'vencida' => 'Venció el plazo',
         ];
     @endphp
 
@@ -59,8 +61,11 @@
                                 · {{ $materia->regimen->nombre_regimen }}
                                 @if ($materia->nota_alumno)
                                     · Nota: {{ number_format($materia->nota_alumno, 2) }}
-                                @elseif ($materia->condicion_alumno === 'cursando' || $materia->condicion_alumno === 'regular')
+                                @elseif ($materia->condicion_alumno === 'cursando')
                                     · Cursando
+                                @endif
+                                @if ($materia->estado_visual === 'regular' && $materia->fecha_limite)
+                                    · Tenés hasta el {{ \App\Support\FechaEsp::corta($materia->fecha_limite) }} para rendirla
                                 @endif
                             </p>
                         </div>

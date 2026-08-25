@@ -108,11 +108,13 @@ class Materia extends Model
             ->keyBy('id_materia');
 
         foreach ($this->requisitos as $requisito) {
-            $condicionNombre = $historialPorMateria->get($requisito->id_materia)?->condicion?->nombre_condicion;
+            $historial = $historialPorMateria->get($requisito->id_materia);
+            $condicionNombre = $historial?->condicion?->nombre_condicion;
+            $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
 
             $cumplida = $requisito->pivot->requiere_aprobada
                 ? $condicionNombre === 'Aprobada'
-                : (! $requisito->pivot->requiere_regularizada || in_array($condicionNombre, ['Regular', 'Aprobada'], true));
+                : (! $requisito->pivot->requiere_regularizada || $condicionNombre === 'Aprobada' || $regularVigente);
 
             if (! $cumplida) {
                 return $requisito;

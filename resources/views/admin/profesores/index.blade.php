@@ -82,17 +82,55 @@
                 <input type="text" data-solo="letras" maxlength="100" name="apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input type="text" data-solo="letras" maxlength="100" name="nombre" placeholder="Nombre" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input type="email" maxlength="100" name="email" placeholder="Email (opcional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <div class="flex gap-2">
-                    <select name="id_especialidad" required class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <div class="flex gap-2 min-w-0">
+                    <select name="id_especialidad" required class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="">Especialidad...</option>
                         @foreach ($especialidades as $especialidad)
                             <option value="{{ $especialidad->id_especialidad }}">{{ $especialidad->nombre_especialidad }}</option>
                         @endforeach
                     </select>
-                    <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-4">+</button>
+                    <button type="button" onclick="abrirModalEspecialidad()" title="Agregar nueva especialidad"
+                            class="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-lg font-bold leading-none hover:bg-blue-50">+</button>
+                </div>
+                <div class="sm:col-span-5 flex justify-end">
+                    <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-6 py-2">Guardar docente</button>
                 </div>
             </form>
         </details>
     </div>
+
+    {{-- Modal: nueva especialidad --}}
+    <div id="modal-especialidad" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="font-bold text-slate-800">➕ Nueva especialidad</h3>
+                <button type="button" onclick="cerrarModalEspecialidad()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form method="POST" action="{{ route('admin.profesores.especialidades.store') }}">
+                @csrf
+                <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE DE LA ESPECIALIDAD</label>
+                <input type="text" name="nombre_especialidad" required autofocus maxlength="45" placeholder="Ej: Enfermería Pediátrica"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm mb-4">
+                <div class="flex gap-3">
+                    <button type="button" onclick="cerrarModalEspecialidad()" class="flex-1 rounded-lg border border-slate-300 text-slate-600 text-sm font-semibold py-2">Cancelar</button>
+                    <button type="submit" class="flex-1 rounded-lg bg-[#1E4D8C] hover:bg-[#173d70] transition text-white text-sm font-semibold py-2">Guardar especialidad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalEspecialidad() {
+            const modal = document.getElementById('modal-especialidad');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function cerrarModalEspecialidad() {
+            const modal = document.getElementById('modal-especialidad');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    </script>
 
     <p class="text-xs font-semibold text-slate-400 uppercase mb-2">Asignaciones ya cargadas</p>
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100">

@@ -30,13 +30,16 @@ class EstadoAcademicoController extends Controller
             $condicion = strtolower($historial?->condicion?->nombre_condicion ?? 'pendiente');
             $estadoVisual = $condicion;
 
-            if ($condicion === 'pendiente' && $materia->correlativaFaltante($alumno)) {
+            if ($condicion === 'regular' && $historial?->regularidad_vencida) {
+                $estadoVisual = 'vencida';
+            } elseif ($condicion === 'pendiente' && $materia->correlativaFaltante($alumno)) {
                 $estadoVisual = 'no_disponible';
             }
 
             $materia->condicion_alumno = $condicion;
             $materia->estado_visual = $estadoVisual;
             $materia->nota_alumno = $historial->nota_cursada ?? null;
+            $materia->fecha_limite = $historial?->fecha_limite_calculada;
             $materia->anio_cursada_num = $materia->anioCursada->id_anio_cursada ?? null;
 
             return $materia;

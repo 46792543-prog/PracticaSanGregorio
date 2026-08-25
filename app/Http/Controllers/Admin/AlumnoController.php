@@ -9,6 +9,7 @@ use App\Models\Carrera;
 use App\Models\CondicionAlumno;
 use App\Models\EstadoInscripcion;
 use App\Models\EstadoUsuario;
+use App\Models\HistorialAlumno;
 use App\Models\InscripcionCarrera;
 use App\Models\Persona;
 use App\Models\Rol;
@@ -226,6 +227,19 @@ class AlumnoController extends Controller
         ]);
 
         return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
+    }
+
+    public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
+    {
+        abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
+
+        $data = $request->validate([
+            'anios_plazo_regularidad' => ['nullable', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $historial->update($data);
+
+        return back()->with('status', 'Plazo de regularidad actualizado correctamente.');
     }
 
     private function generarClave(string $dni): string

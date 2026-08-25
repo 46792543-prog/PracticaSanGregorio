@@ -63,6 +63,17 @@ class ProfesorController extends Controller
         return back()->with('status', 'Profesor agregado correctamente.');
     }
 
+    public function storeEspecialidad(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad'],
+        ]);
+
+        EspecialidadProfesor::create($data);
+
+        return back()->with('status', 'Especialidad agregada correctamente.');
+    }
+
     public function storeAsignacion(Request $request): RedirectResponse
     {
         $data = $request->validate([
