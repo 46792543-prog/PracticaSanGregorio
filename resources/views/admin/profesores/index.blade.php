@@ -79,9 +79,9 @@
             <form method="POST" action="{{ route('admin.profesores.store') }}" class="grid sm:grid-cols-5 gap-3 mt-3">
                 @csrf
                 <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" placeholder="DNI" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="text" data-solo="letras" maxlength="100" name="apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="text" data-solo="letras" maxlength="100" name="nombre" placeholder="Nombre" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="email" maxlength="100" name="email" placeholder="Email (opcional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" placeholder="Nombre" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="email" maxlength="25" name="email" placeholder="Email (opcional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <div class="flex gap-2 min-w-0">
                     <select name="id_especialidad" required class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Especialidad...</option>
