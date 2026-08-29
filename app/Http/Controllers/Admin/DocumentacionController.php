@@ -123,8 +123,8 @@ class DocumentacionController extends Controller
     public function storeRequisito(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'nombre_documento' => ['required', 'string', 'max:150', 'unique:documento_requisito,nombre_documento'],
-            'descripcion' => ['nullable', 'string', 'max:255'],
+            'nombre_documento' => ['required', 'string', 'max:25', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/', 'unique:documento_requisito,nombre_documento'],
+            'descripcion' => ['nullable', 'string', 'max:25', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'es_obligatorio' => ['required', 'in:1,0'],
             'id_carrera' => ['nullable', 'exists:carrera,id_carrera'],
         ]);

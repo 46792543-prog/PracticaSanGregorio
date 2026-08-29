@@ -10,7 +10,8 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6 overflow-hidden">
         <form method="GET" class="p-4 border-b border-slate-100">
-            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar requisito..." onchange="this.form.submit()" maxlength="50"
+            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar requisito..." onchange="this.form.submit()" maxlength="25"
+                   oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                    class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm">
         </form>
 
@@ -54,12 +55,14 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre del documento</label>
-                <input type="text" maxlength="150" name="nombre_documento" required placeholder="Ej: Partida de nacimiento"
+                <input type="text" maxlength="25" name="nombre_documento" required placeholder="Ej: Partida de nacimiento"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Descripción breve</label>
-                <input type="text" maxlength="255" name="descripcion" placeholder="Aclaración para el alumno"
+                <input type="text" maxlength="25" name="descripcion" placeholder="Aclaración para el alumno"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
