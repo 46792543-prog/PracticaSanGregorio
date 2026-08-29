@@ -140,5 +140,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
 
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
+    Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
     Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
 });

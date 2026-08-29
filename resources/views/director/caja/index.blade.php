@@ -78,9 +78,15 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="flex items-center justify-between gap-4 flex-wrap px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-transparent">
             <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">📖 Planilla de Control de Gastos — {{ \App\Support\FechaEsp::mesAnio($mes) }}</h3>
-            <form method="GET" class="flex items-center gap-2">
-                <input type="month" name="mes" value="{{ $mes->format('Y-m') }}" onchange="this.form.submit()" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
-            </form>
+            <div class="flex items-center gap-2">
+                <form method="GET" class="flex items-center gap-2">
+                    <input type="month" name="mes" value="{{ $mes->format('Y-m') }}" onchange="this.form.submit()" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
+                </form>
+                <a href="{{ route('director.caja.pdf', ['mes' => $mes->format('Y-m')]) }}" target="_blank"
+                   class="rounded-lg bg-[#1E4D8C] text-white text-xs font-semibold px-3 py-1.5 hover:shadow-md transition">
+                    📄 Exportar PDF
+                </a>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
