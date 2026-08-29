@@ -12,20 +12,20 @@
         <h2 class="text-white font-bold text-sm">📌 Asignar Materia y Horario a Profesor</h2>
     </div>
     <div class="bg-white rounded-b-xl shadow-sm p-6 mb-4">
-        <form method="POST" action="{{ route('admin.profesores.asignaciones.store') }}" class="grid sm:grid-cols-2 gap-4 mb-4">
+        <form id="form-asignacion" method="POST" action="{{ route('admin.profesores.asignaciones.store') }}" class="grid sm:grid-cols-2 gap-4 mb-4">
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">PROFESOR *</label>
-                <select name="id_profesor" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="id_profesor" id="input-id-profesor" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Seleccioná profesor...</option>
                     @foreach ($profesores as $profesor)
-                        <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }} — {{ $profesor->especialidad->nombre_especialidad }}</option>
+                        <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }} — {{ $profesor->especialidad->nombre_especialidad }} ({{ $profesor->condicion }})</option>
                     @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA *</label>
-                <select name="id_materia" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="id_materia" id="input-id-materia" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Ej: Organización y Gestión en Enfermería</option>
                     @foreach ($carreras as $carrera)
                         <optgroup label="{{ $carrera->nombre_carrera }}">
@@ -38,7 +38,7 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO LECTIVO *</label>
-                <select name="id_anio_lectivo" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="id_anio_lectivo" id="input-id-anio-lectivo" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     @foreach ($aniosLectivos as $anio)
                         <option value="{{ $anio->id_anio_lectivo }}">{{ $anio->anio }}</option>
                     @endforeach
@@ -47,36 +47,37 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">HORA INICIO *</label>
-                    <input type="time" name="hora_inicio" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input type="time" name="hora_inicio" id="input-hora-inicio" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">HORA FIN *</label>
-                    <input type="time" name="hora_fin" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input type="time" name="hora_fin" id="input-hora-fin" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">AULA</label>
-                <input type="text" maxlength="20" name="aula" placeholder="Ej: Aula 3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" maxlength="20" name="aula" id="input-aula" placeholder="Ej: Aula 3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-xs font-semibold text-slate-500 mb-2">DÍAS DE CURSADA *</label>
                 <div class="flex flex-wrap gap-2">
                     @foreach (['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'] as $dia)
                         <label class="flex items-center gap-1.5 text-sm bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 cursor-pointer has-[:checked]:bg-blue-100 has-[:checked]:border-[#1E4D8C]">
-                            <input type="checkbox" name="dias[]" value="{{ $dia }}" class="h-3.5 w-3.5"> {{ $dia }}
+                            <input type="checkbox" name="dias[]" value="{{ $dia }}" class="dia-checkbox h-3.5 w-3.5"> {{ $dia }}
                         </label>
                     @endforeach
                 </div>
             </div>
             <div class="sm:col-span-2 flex justify-end gap-3">
-                <button type="reset" class="rounded-lg border border-slate-300 text-slate-600 text-sm font-semibold px-5 py-2">Limpiar</button>
+                <span id="editando-aviso" class="hidden text-xs text-amber-600 font-semibold self-center mr-auto">✏️ Editando una asignación existente — al guardar se actualizará.</span>
+                <button type="reset" onclick="cancelarEdicionAsignacion()" class="rounded-lg border border-slate-300 text-slate-600 text-sm font-semibold px-5 py-2">Limpiar</button>
                 <button type="submit" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow transition text-white text-sm font-semibold px-5 py-2">Guardar asignación</button>
             </div>
         </form>
 
         <details class="text-sm">
             <summary class="cursor-pointer text-[#1E4D8C] font-semibold">+ Agregar nuevo profesor al padrón</summary>
-            <form method="POST" action="{{ route('admin.profesores.store') }}" class="grid sm:grid-cols-5 gap-3 mt-3">
+            <form method="POST" action="{{ route('admin.profesores.store') }}" class="grid sm:grid-cols-3 gap-3 mt-3">
                 @csrf
                 <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" placeholder="DNI" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input type="text" data-solo="letras" maxlength="100" name="apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -92,7 +93,12 @@
                     <button type="button" onclick="abrirModalEspecialidad()" title="Agregar nueva especialidad"
                             class="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-lg font-bold leading-none hover:bg-blue-50">+</button>
                 </div>
-                <div class="sm:col-span-5 flex justify-end">
+                <select name="condicion" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Condición...</option>
+                    <option value="Titular">Titular</option>
+                    <option value="Suplente">Suplente</option>
+                </select>
+                <div class="sm:col-span-3 flex justify-end">
                     <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-6 py-2">Guardar docente</button>
                 </div>
             </form>
@@ -129,6 +135,26 @@
             const modal = document.getElementById('modal-especialidad');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+        }
+
+        function editarAsignacion(asignacion) {
+            document.getElementById('input-id-profesor').value = asignacion.id_profesor;
+            document.getElementById('input-id-materia').value = asignacion.id_materia;
+            document.getElementById('input-id-anio-lectivo').value = asignacion.id_anio_lectivo;
+            document.getElementById('input-aula').value = asignacion.aula ?? '';
+            document.getElementById('input-hora-inicio').value = asignacion.hora_inicio ?? '';
+            document.getElementById('input-hora-fin').value = asignacion.hora_fin ?? '';
+
+            document.querySelectorAll('.dia-checkbox').forEach(function (checkbox) {
+                checkbox.checked = asignacion.dias.includes(checkbox.value);
+            });
+
+            document.getElementById('editando-aviso').classList.remove('hidden');
+            document.getElementById('form-asignacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelarEdicionAsignacion() {
+            document.getElementById('editando-aviso').classList.add('hidden');
         }
     </script>
 
@@ -169,7 +195,10 @@
                     <tr>
                         <td class="px-6 py-3">
                             <p class="font-semibold text-slate-700">{{ $asignacion->profesor->apellido }}, {{ $asignacion->profesor->nombre }}</p>
-                            <p class="text-xs text-slate-400">{{ $asignacion->profesor->especialidad->nombre_especialidad }}</p>
+                            <p class="text-xs text-slate-400">
+                                {{ $asignacion->profesor->especialidad->nombre_especialidad }}
+                                <span class="ml-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $asignacion->profesor->condicion === 'Titular' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }}">{{ $asignacion->profesor->condicion }}</span>
+                            </p>
                         </td>
                         <td class="px-6 py-3">
                             <p class="text-slate-700">{{ $asignacion->materia->nombre }}</p>
@@ -179,11 +208,26 @@
                         <td class="px-6 py-3 text-slate-500">{{ $primerHorario ? substr($primerHorario->hora_desde, 0, 5) . ' – ' . substr($primerHorario->hora_fin, 0, 5) : '—' }}</td>
                         <td class="px-6 py-3 text-slate-500">{{ $asignacion->aula ?? '—' }}</td>
                         <td class="px-6 py-3 text-slate-500">{{ $asignacion->materia->anioCursada->nombre_anio }}</td>
+                        @php
+                            $edicionPayload = [
+                                'id_profesor' => $asignacion->id_profesor,
+                                'id_materia' => $asignacion->id_materia,
+                                'id_anio_lectivo' => $asignacion->id_anio_lectivo,
+                                'aula' => $asignacion->aula,
+                                'hora_inicio' => $primerHorario ? substr($primerHorario->hora_desde, 0, 5) : '',
+                                'hora_fin' => $primerHorario ? substr($primerHorario->hora_fin, 0, 5) : '',
+                                'dias' => $asignacion->horarios->pluck('dia_semana'),
+                            ];
+                        @endphp
                         <td class="px-6 py-3">
-                            <form method="POST" action="{{ route('admin.profesores.asignaciones.destroy', $asignacion) }}" onsubmit="return confirm('¿Eliminar esta asignación?');">
-                                @csrf @method('DELETE')
-                                <button class="text-red-500 text-xs font-semibold hover:underline">Eliminar</button>
-                            </form>
+                            <div class="flex items-center gap-3">
+                                <button type="button" class="text-[#1E4D8C] text-xs font-semibold hover:underline"
+                                        onclick='editarAsignacion(@json($edicionPayload))'>Editar</button>
+                                <form method="POST" action="{{ route('admin.profesores.asignaciones.destroy', $asignacion) }}" onsubmit="return confirm('¿Eliminar esta asignación?');">
+                                    @csrf @method('DELETE')
+                                    <button class="text-red-500 text-xs font-semibold hover:underline">Eliminar</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty
