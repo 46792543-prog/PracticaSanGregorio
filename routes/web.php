@@ -118,6 +118,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::delete('/mesas/{mesa}', [MesaController::class, 'destroy'])->name('mesas.destroy');
 
     Route::get('/actas', [ActaController::class, 'index'])->name('actas.index');
+    Route::get('/mesas/{mesa}/acta', [ActaController::class, 'show'])->name('mesas.acta');
+    Route::get('/mesas/{mesa}/acta/pdf', [ActaController::class, 'pdf'])->name('mesas.acta.pdf');
     Route::post('/actas/{mesa}/guardar', [ActaController::class, 'guardar'])->name('actas.guardar');
     Route::post('/actas/{mesa}/generar', [ActaController::class, 'generar'])->name('actas.generar');
 

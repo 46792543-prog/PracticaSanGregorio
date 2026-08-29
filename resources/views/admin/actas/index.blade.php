@@ -147,6 +147,9 @@
 
             <div class="flex justify-end gap-3">
                 <a href="{{ route('admin.mesas.index') }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">Ver Historial de Acta</a>
+                @if ($acta)
+                    <a href="{{ route('admin.mesas.acta', $mesaSeleccionada) }}" target="_blank" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">📄 Ver / descargar PDF</a>
+                @endif
                 <button type="submit" formaction="{{ route('admin.actas.guardar', $mesaSeleccionada) }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">Guardar borrador</button>
                 <button type="submit" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow-md hover:brightness-105 transition text-white font-bold text-sm px-6 py-2.5">📄 Generar e imprimir acta</button>
             </div>
