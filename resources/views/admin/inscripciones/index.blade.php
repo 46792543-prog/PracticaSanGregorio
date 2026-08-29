@@ -68,8 +68,8 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            @if ($estadoNombre === 'En proceso')
-                                <div class="flex gap-2">
+                            <div class="flex flex-wrap gap-2">
+                                @if ($estadoNombre === 'En proceso')
                                     <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}">
                                         @csrf @method('PUT')
                                         <input type="hidden" name="estado" value="Aceptado">
@@ -80,8 +80,40 @@
                                         <input type="hidden" name="estado" value="Rechazado">
                                         <button class="rounded-lg bg-red-500 text-white text-xs font-semibold px-3 py-1.5">Rechazar</button>
                                     </form>
-                                </div>
-                            @endif
+                                @endif
+
+                                @if ($estadoNombre === 'Aceptado')
+                                    <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}">
+                                        @csrf @method('PUT')
+                                        <input type="hidden" name="estado" value="Rechazado">
+                                        <button class="rounded-lg bg-red-500 text-white text-xs font-semibold px-3 py-1.5">Rechazar</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}">
+                                        @csrf @method('PUT')
+                                        <input type="hidden" name="estado" value="En proceso">
+                                        <button class="rounded-lg bg-amber-500 text-white text-xs font-semibold px-3 py-1.5">Revertir a pendiente</button>
+                                    </form>
+                                @endif
+
+                                @if ($estadoNombre === 'Rechazado')
+                                    <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}">
+                                        @csrf @method('PUT')
+                                        <input type="hidden" name="estado" value="Aceptado">
+                                        <button class="rounded-lg bg-green-600 text-white text-xs font-semibold px-3 py-1.5">Aceptar</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}">
+                                        @csrf @method('PUT')
+                                        <input type="hidden" name="estado" value="En proceso">
+                                        <button class="rounded-lg bg-amber-500 text-white text-xs font-semibold px-3 py-1.5">Revertir a pendiente</button>
+                                    </form>
+                                @endif
+
+                                <form method="POST" action="{{ route('admin.inscripciones.destroy', $inscripcion) }}"
+                                      onsubmit="return confirm('¿Eliminar esta inscripción? Esta acción no se puede deshacer.');">
+                                    @csrf @method('DELETE')
+                                    <button class="rounded-lg border border-slate-300 text-slate-500 text-xs font-semibold px-3 py-1.5 hover:bg-slate-50">Eliminar</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

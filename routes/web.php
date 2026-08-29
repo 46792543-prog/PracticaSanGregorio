@@ -125,6 +125,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('/inscripciones', [InscripcionAdminController::class, 'index'])->name('inscripciones.index');
     Route::put('/inscripciones/{inscripcionMesa}', [InscripcionAdminController::class, 'actualizar'])->name('inscripciones.actualizar');
+    Route::delete('/inscripciones/{inscripcionMesa}', [InscripcionAdminController::class, 'destroy'])->name('inscripciones.destroy');
 });
 
 /*
