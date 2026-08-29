@@ -1,18 +1,15 @@
 @extends('layouts.admin')
 
-@section('titulo', 'Nueva mesa de examen')
+@section('titulo', 'Editar mesa de examen')
 @section('subtitulo', 'Gestión académica / Configurar mesa')
 
 @section('contenido')
-    @php
-        $meses = [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'];
-    @endphp
-
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-3xl">
-        <h2 class="font-bold text-slate-800 flex items-center gap-2 mb-6">📋 Completar datos de la mesa</h2>
+        <h2 class="font-bold text-slate-800 flex items-center gap-2 mb-6">✏️ Editar mesa de examen</h2>
 
-        <form method="POST" action="{{ route('admin.mesas.store') }}" class="space-y-5" id="form-mesa">
+        <form method="POST" action="{{ route('admin.mesas.update', $mesa) }}" class="space-y-5" id="form-mesa">
             @csrf
+            @method('PUT')
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">SELECCIONAR MATERIA *</label>
                 <select name="id_materia" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
@@ -20,7 +17,7 @@
                     @foreach ($carreras as $carrera)
                         <optgroup label="{{ $carrera->nombre_carrera }}">
                             @foreach ($carrera->materias as $materia)
-                                <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
+                                <option value="{{ $materia->id_materia }}" @selected(old('id_materia', $mesa->id_materia) == $materia->id_materia)>{{ $materia->nombre }}</option>
                             @endforeach
                         </optgroup>
                     @endforeach
@@ -30,17 +27,23 @@
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">APERTURA DE INSCRIPCIÓN *</label>
-                    <input type="date" name="fecha_inicio_inscripcion" id="fecha_inicio_inscripcion" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                    <input type="date" name="fecha_inicio_inscripcion" id="fecha_inicio_inscripcion" required
+                           value="{{ old('fecha_inicio_inscripcion', $mesa->fecha_inicio_inscripcion->format('Y-m-d')) }}"
+                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">CIERRE DE INSCRIPCIÓN *</label>
-                    <input type="date" name="fecha_fin_inscripcion" id="fecha_fin_inscripcion" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                    <input type="date" name="fecha_fin_inscripcion" id="fecha_fin_inscripcion" required
+                           value="{{ old('fecha_fin_inscripcion', $mesa->fecha_fin_inscripcion->format('Y-m-d')) }}"
+                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DEL EXAMEN *</label>
-                <input type="date" name="fecha_examen" id="fecha_examen" required class="w-full sm:w-64 rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                <input type="date" name="fecha_examen" id="fecha_examen" required
+                       value="{{ old('fecha_examen', $mesa->fecha_examen->format('Y-m-d')) }}"
+                       class="w-full sm:w-64 rounded-xl border border-slate-300 px-4 py-3 text-sm">
                 <p class="text-xs text-slate-400 mt-1">Debe ser al menos una semana después de la apertura de inscripción.</p>
             </div>
 
@@ -51,7 +54,7 @@
                         <select name="id_turno" id="id_turno" required class="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm">
                             <option value="">Seleccionar...</option>
                             @foreach ($turnos as $t)
-                                <option value="{{ $t->id_turno }}" data-mes-desde="{{ $t->mes_desde }}" data-mes-hasta="{{ $t->mes_hasta }}">{{ $t->nombre_turno }}</option>
+                                <option value="{{ $t->id_turno }}" data-mes-desde="{{ $t->mes_desde }}" data-mes-hasta="{{ $t->mes_hasta }}" @selected(old('id_turno', $mesa->id_turno) == $t->id_turno)>{{ $t->nombre_turno }}</option>
                             @endforeach
                         </select>
                         <button type="button" onclick="abrirModalTurnos()" title="Gestionar turnos de examen"
@@ -61,7 +64,9 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">CUPO MÁXIMO (OPCIONAL)</label>
-                    <input type="number" name="cupo_maximo" min="1" placeholder="Sin límite" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                    <input type="number" name="cupo_maximo" min="1" placeholder="Sin límite"
+                           value="{{ old('cupo_maximo', $mesa->cupo_maximo) }}"
+                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
                 </div>
             </div>
 
@@ -71,7 +76,7 @@
                     <select name="id_llamado" id="id_llamado" required class="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm">
                         <option value="">Seleccionar...</option>
                         @foreach ($llamados as $l)
-                            <option value="{{ $l->id_llamado }}">{{ $l->nombre_llamado }}</option>
+                            <option value="{{ $l->id_llamado }}" @selected(old('id_llamado', $mesa->id_llamado) == $l->id_llamado)>{{ $l->nombre_llamado }}</option>
                         @endforeach
                     </select>
                     <button type="button" onclick="abrirModalLlamados()" title="Gestionar llamados"
@@ -85,19 +90,19 @@
                     <select name="presidente_id" id="presidente_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Presidente...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}" @selected(old('presidente_id', $presidenteId) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                     <select name="vocal1_id" id="vocal1_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Vocal 1...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}" @selected(old('vocal1_id', $vocal1Id) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                     <select name="vocal2_id" id="vocal2_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Vocal 2...</option>
                         @foreach ($profesores as $profesor)
-                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                            <option value="{{ $profesor->id_profesor }}" @selected(old('vocal2_id', $vocal2Id) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -105,7 +110,7 @@
             </div>
 
             <div class="flex gap-3 pt-4">
-                <button type="submit" class="rounded-xl bg-[#D4A017] hover:brightness-95 text-white font-bold text-sm px-8 py-3.5">Crear mesa</button>
+                <button type="submit" class="rounded-xl bg-[#D4A017] hover:brightness-95 text-white font-bold text-sm px-8 py-3.5">Guardar cambios</button>
                 <a href="{{ route('admin.mesas.index') }}" class="rounded-xl border border-slate-300 text-slate-600 font-bold text-sm px-8 py-3.5">Cancelar</a>
             </div>
         </form>

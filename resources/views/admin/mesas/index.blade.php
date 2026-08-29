@@ -62,12 +62,16 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            @if ($mesa->estadoMesa->nombre_estado === 'Programada')
-                                <form method="POST" action="{{ route('admin.mesas.destroy', $mesa) }}" onsubmit="return confirm('¿Cancelar esta mesa?');">
-                                    @csrf @method('DELETE')
-                                    <button class="text-red-500 text-xs font-semibold hover:underline">Cancelar</button>
-                                </form>
-                            @endif
+                            <div class="flex items-center gap-3">
+                                <a href="{{ route('admin.mesas.acta', $mesa) }}" class="text-[#1E4D8C] text-xs font-semibold hover:underline">Ver acta</a>
+                                @if ($mesa->estadoMesa->nombre_estado === 'Programada')
+                                    <a href="{{ route('admin.mesas.edit', $mesa) }}" class="text-[#1E4D8C] text-xs font-semibold hover:underline">Editar</a>
+                                    <form method="POST" action="{{ route('admin.mesas.destroy', $mesa) }}" onsubmit="return confirm('¿Cancelar esta mesa?');">
+                                        @csrf @method('DELETE')
+                                        <button class="text-red-500 text-xs font-semibold hover:underline">Cancelar</button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
