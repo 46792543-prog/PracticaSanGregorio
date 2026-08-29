@@ -38,8 +38,8 @@ class CajaController extends Controller
     public function storeGasto(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'concepto' => ['required', 'string', 'max:100'],
-            'monto' => ['required', 'numeric', 'min:0.01'],
+            'concepto' => ['required', 'string', 'max:30'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999'],
             'fecha_movimiento' => ['required', 'date'],
         ]);
 
