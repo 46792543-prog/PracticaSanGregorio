@@ -1,35 +1,138 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Director;
 
+use App\Http\Controllers\Controller;
+use App\Models\ConceptoCaja;
+use App\Models\CuotaAlumno;
+use App\Models\MedioPago;
+use App\Models\MovimientoCaja;
+use App\Models\TipoMovimiento;
+use App\Models\Usuario;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class CuotaController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $alumno = Auth::user()->persona;
+        $busqueda = trim((string) $request->query('q'));
+        $alumnoSeleccionado = null;
+        $resultados = collect();
 
-        $cuotas = $alumno->cuotas()->with(['anioLectivo', 'mes'])
-            ->orderBy('id_anio_lectivo')
-            ->orderBy('id_mes')
-            ->get();
+        if ($request->query('alumno')) {
+            $alumnoSeleccionado = Usuario::alumnos()
+                ->with([
+                    'persona.inscripcionesCarrera.carrera',
+                    'persona.cuotas' => fn ($q) => $q->with('mes')->orderBy('id_anio_lectivo')->orderBy('id_mes'),
+                ])
+                ->find($request->query('alumno'));
+        } elseif ($busqueda) {
+            $resultados = Usuario::alumnos()
+                ->whereHas('persona', fn ($q) => $q->where('nombre', 'like', "%{$busqueda}%")
+                    ->orWhere('apellido', 'like', "%{$busqueda}%")
+                    ->orWhere('dni', 'like', "%{$busqueda}%"))
+                ->with('persona.inscripcionesCarrera.carrera')
+                ->get()
+                ->sortBy(fn ($u) => $u->persona->apellido)
+                ->take(8)
+                ->values()
+                ->map(function (Usuario $u) {
+                    $u->cuotas_pendientes_count = $u->persona->cuotas()->where('pagado', false)->count();
 
-        $anioLectivo = $cuotas->first()?->anioLectivo?->anio ?? now()->year;
-        $pendientes = $cuotas->where('pagado', false);
-        $pagadas = $cuotas->where('pagado', true);
-        $proximaCuota = $pendientes->sortBy('fecha_vencimiento')->first();
-        $tieneVencidas = $pendientes->contains(fn ($c) => $c->vencida);
-        $totalPagado = $pagadas->sum('monto');
+                    return $u;
+                });
+        }
 
-        return view('cuotas.index', [
-            'cuotas' => $cuotas,
-            'anioLectivo' => $anioLectivo,
-            'proximaCuota' => $proximaCuota,
-            'tieneVencidas' => $tieneVencidas,
-            'totalPagado' => $totalPagado,
-            'cantidadPagadas' => $pagadas->count(),
+        $historial = CuotaAlumno::where('pagado', true)
+            ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
+            ->when($request->query('h_alumno'), fn ($q, $v) => $q->whereHas('personaAlumno', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
+            ->orderByDesc('id_cuota')
+            ->paginate(8, ['*'], 'historial')
+            ->withQueryString();
+
+        return view('director.cuotas.index', [
+            'busqueda' => $busqueda,
+            'resultados' => $resultados,
+            'alumnoSeleccionado' => $alumnoSeleccionado,
+            'historial' => $historial,
+            'filtroHistorialAlumno' => $request->query('h_alumno'),
         ]);
+    }
+
+    public function cobrar(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'persona_id' => ['required', 'exists:persona,id_persona'],
+            'fecha_pago' => ['required', 'date'],
+            'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
+            'cuotas' => ['required', 'array', 'min:1'],
+            'cuotas.*.pagar' => ['nullable'],
+            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0'],
+            'cuotas.*.recargo' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $seleccionadas = collect($data['cuotas'])->filter(fn ($item) => ! empty($item['pagar']));
+
+        if ($seleccionadas->isEmpty()) {
+            return back()->withErrors(['cuotas' => 'Seleccioná al menos una cuota para registrar el cobro.']);
+        }
+
+        $totalCobrado = 0;
+        $cantidad = 0;
+
+        DB::transaction(function () use ($seleccionadas, $data, &$totalCobrado, &$cantidad) {
+            $medioPago = MedioPago::where('nombre_medio', $data['medio_pago'])->firstOrFail();
+            $tipoIngreso = TipoMovimiento::where('nombre_tipo', 'Ingreso')->firstOrFail();
+            $conceptoCuota = ConceptoCaja::firstOrCreate(
+                ['nombre_concepto' => 'Cuota mensual'],
+                ['id_tipo_movimiento' => $tipoIngreso->id_tipo_movimiento]
+            );
+
+            foreach ($seleccionadas as $cuotaId => $item) {
+                $cuota = CuotaAlumno::where('id_persona_alumno', $data['persona_id'])
+                    ->where('pagado', false)
+                    ->find($cuotaId);
+
+                if (! $cuota) {
+                    continue;
+                }
+
+                $monto = round((float) ($item['monto'] ?? $cuota->monto), 2);
+                $recargo = round((float) ($item['recargo'] ?? 0), 2);
+                $conceptoTexto = $cuota->concepto ?: "Cuota {$cuota->mes->nombre_mes}";
+
+                $descripcion = "{$conceptoTexto} — {$cuota->personaAlumno->apellido}, {$cuota->personaAlumno->nombre}";
+                if ($recargo > 0) {
+                    $descripcion .= ' (incluye recargo $' . number_format($recargo, 0, ',', '.') . ')';
+                }
+
+                $movimiento = MovimientoCaja::create([
+                    'id_concepto' => $conceptoCuota->id_concepto,
+                    'monto' => $monto + $recargo,
+                    'fecha_movimiento' => $data['fecha_pago'],
+                    'descripcion_detalle' => $descripcion,
+                    'id_secretario_registra' => Auth::user()->id_persona,
+                    'id_medio_pago' => $medioPago->id_medio_pago,
+                ]);
+
+                $cuota->update([
+                    'monto' => $monto,
+                    'recargo' => $recargo,
+                    'pagado' => true,
+                    'fecha_pago' => $data['fecha_pago'],
+                    'id_movimiento_caja' => $movimiento->id_movimiento,
+                ]);
+
+                $totalCobrado += $monto + $recargo;
+                $cantidad++;
+            }
+        });
+
+        return redirect()->route('director.cuotas.index')
+            ->with('status', "Se registró el cobro de {$cantidad} cuota(s) por $" . number_format($totalCobrado, 0, ',', '.') . ' y se asentó en el Libro de Caja.');
     }
 }
