@@ -1,78 +1,33 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Director;
 
-use App\Models\MesaExamen;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Controller;
+use App\Models\InscripcionCarrera;
+use App\Models\MovimientoCaja;
 use Illuminate\View\View;
 
 class PanelController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
-        $alumno = Auth::user()->persona;
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()->with('carrera', 'anioCursada')->latest('id_inscripcion_carrera')->first();
+        $alumnosActivos = InscripcionCarrera::whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->distinct('id_persona_alumno')->count('id_persona_alumno');
+        $alumnosActivosMesPasado = InscripcionCarrera::whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->where('fecha_inscripcion', '<', now()->startOfMonth())
+            ->distinct('id_persona_alumno')->count('id_persona_alumno');
 
-        $totalMaterias = $inscripcionCarrera
-            ? $inscripcionCarrera->carrera->materias()->count()
-            : 0;
-        $materiasAprobadas = $alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Aprobada'))->count();
-        $porcentaje = $totalMaterias > 0 ? (int) round($materiasAprobadas / $totalMaterias * 100) : 0;
+        $ingresosMes = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Ingreso'))
+            ->whereBetween('fecha_movimiento', [now()->startOfMonth(), now()->endOfMonth()])->sum('monto');
+        $ingresosMesPasado = MovimientoCaja::whereHas('concepto.tipoMovimiento', fn ($q) => $q->where('nombre_tipo', 'Ingreso'))
+            ->whereBetween('fecha_movimiento', [now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->endOfMonth()])->sum('monto');
+        $variacionIngresos = $ingresosMesPasado > 0 ? round((($ingresosMes - $ingresosMesPasado) / $ingresosMesPasado) * 100) : null;
 
-        $mesasDisponibles = MesaExamen::whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))->count();
-        $inscripcionesActivas = $alumno->inscripcionesMesa()->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'En proceso'))->count();
-
-        $cuotasPendientes = $alumno->cuotas()->where('pagado', false)->get();
-        $proximaCuota = $cuotasPendientes->sortBy('fecha_vencimiento')->first();
-        $cuotaVencida = $cuotasPendientes->contains(fn ($c) => $c->vencida);
-
-        $proximasMesas = $alumno->historialAlumno()
-            ->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Regular'))
-            ->with('materia.mesasExamen.estadoMesa', 'materia.mesasExamen.turnoExamen')
-            ->get()
-            ->pluck('materia')
-            ->flatMap(fn ($materia) => $materia->mesasExamen
-                ->filter(fn ($mesa) => $mesa->estadoMesa->nombre_estado === 'Programada')
-                ->map(fn ($mesa) => [
-                    'mesa' => $mesa,
-                    'materia' => $materia,
-                    'bloqueo' => $materia->correlativaFaltante($alumno),
-                ]))
-            ->sortBy(fn ($item) => $item['mesa']->fecha_examen)
-            ->take(3);
-
-        $actividad = collect()
-            ->merge($alumno->cuotas()->where('pagado', true)->with('mes')->latest('fecha_pago')->take(1)->get()->map(fn ($c) => [
-                'titulo' => 'Pago de cuota registrado',
-                'detalle' => ($c->concepto ?: "Cuota {$c->mes->nombre_mes}") . ' · $' . number_format($c->monto, 0, ',', '.'),
-                'fecha' => $c->fecha_pago,
-            ]))
-            ->merge($alumno->inscripcionesMesa()->with('mesaExamen.materia.nombreMateria', 'estadoInscripcion')->latest('fecha_inscripcion')->take(1)->get()->map(fn ($i) => [
-                'titulo' => $i->estadoInscripcion->nombre_estado === 'En proceso' ? 'Inscripción en revisión' : 'Inscripción a mesa actualizada',
-                'detalle' => $i->mesaExamen->materia->nombre,
-                'fecha' => $i->fecha_inscripcion,
-            ]))
-            ->merge($alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Aprobada'))->with('materia.nombreMateria')->latest('fecha_ultima_modificacion')->take(1)->get()->map(fn ($h) => [
-                'titulo' => 'Nota registrada',
-                'detalle' => "{$h->materia->nombre} · Aprobada ({$h->nota_cursada})",
-                'fecha' => $h->fecha_ultima_modificacion,
-            ]))
-            ->sortByDesc('fecha')
-            ->take(4);
-
-        return view('panel.index', [
-            'alumno' => $alumno,
-            'inscripcionCarrera' => $inscripcionCarrera,
-            'totalMaterias' => $totalMaterias,
-            'materiasAprobadas' => $materiasAprobadas,
-            'porcentaje' => $porcentaje,
-            'mesasDisponibles' => $mesasDisponibles,
-            'inscripcionesActivas' => $inscripcionesActivas,
-            'proximaCuota' => $proximaCuota,
-            'cuotaVencida' => $cuotaVencida,
-            'proximasMesas' => $proximasMesas,
-            'actividad' => $actividad,
+        return view('director.panel.index', [
+            'alumnosActivos' => $alumnosActivos,
+            'alumnosNuevos' => max(0, $alumnosActivos - $alumnosActivosMesPasado),
+            'ingresosMes' => $ingresosMes,
+            'variacionIngresos' => $variacionIngresos,
         ]);
     }
 }
