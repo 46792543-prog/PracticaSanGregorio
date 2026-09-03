@@ -100,6 +100,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras', [CarreraController::class, 'index'])->name('carreras.index');
     Route::get('/carreras/nueva', [CarreraController::class, 'create'])->name('carreras.create');
     Route::post('/carreras', [CarreraController::class, 'store'])->name('carreras.store');
+    Route::get('/carreras/{carrera}/editar', [CarreraController::class, 'edit'])->name('carreras.edit');
+    Route::put('/carreras/{carrera}', [CarreraController::class, 'update'])->name('carreras.update');
     Route::get('/carreras/{carrera}/plan', [CarreraController::class, 'plan'])->name('carreras.plan');
     Route::get('/carreras/{carrera}/materias', [CarreraController::class, 'materias'])->name('carreras.materias');
     Route::post('/carreras/{carrera}/materias', [CarreraController::class, 'storeMateria'])->name('carreras.materias.store');
@@ -109,6 +111,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
+    Route::put('/profesores/{profesor}', [ProfesorController::class, 'update'])->name('profesores.update');
     Route::post('/profesores/especialidades', [ProfesorController::class, 'storeEspecialidad'])->name('profesores.especialidades.store');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
     Route::delete('/profesores/asignaciones/{asignacion}', [ProfesorController::class, 'destroyAsignacion'])->name('profesores.asignaciones.destroy');

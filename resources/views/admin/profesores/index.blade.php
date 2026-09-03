@@ -75,16 +75,17 @@
             </div>
         </form>
 
-        <details class="text-sm">
+        <details id="detalle-padron" class="text-sm">
             <summary class="cursor-pointer text-[#1E4D8C] font-semibold">+ Agregar nuevo profesor al padrón</summary>
-            <form method="POST" action="{{ route('admin.profesores.store') }}" class="grid sm:grid-cols-3 gap-3 mt-3">
+            <form id="form-profesor" method="POST" action="{{ route('admin.profesores.store') }}" class="grid sm:grid-cols-3 gap-3 mt-3">
                 @csrf
-                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" placeholder="DNI" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" placeholder="Nombre" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <input type="email" maxlength="25" name="email" placeholder="Email (opcional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="hidden" name="_method" id="input-profesor-method" value="">
+                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" id="input-profesor-dni" placeholder="DNI" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" id="input-profesor-apellido" placeholder="Apellido" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" id="input-profesor-nombre" placeholder="Nombre" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="email" maxlength="25" name="email" id="input-profesor-email" placeholder="Email (opcional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <div class="flex gap-2 min-w-0">
-                    <select name="id_especialidad" required class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <select name="id_especialidad" id="input-profesor-especialidad" required class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Especialidad...</option>
                         @foreach ($especialidades as $especialidad)
                             <option value="{{ $especialidad->id_especialidad }}">{{ $especialidad->nombre_especialidad }}</option>
@@ -93,16 +94,64 @@
                     <button type="button" onclick="abrirModalEspecialidad()" title="Agregar nueva especialidad"
                             class="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-lg font-bold leading-none hover:bg-blue-50">+</button>
                 </div>
-                <select name="condicion" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="condicion" id="input-profesor-condicion" required class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Condición...</option>
                     <option value="Titular">Titular</option>
                     <option value="Suplente">Suplente</option>
                 </select>
-                <div class="sm:col-span-3 flex justify-end">
-                    <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-6 py-2">Guardar docente</button>
+                <div class="sm:col-span-3 flex justify-end items-center gap-3">
+                    <span id="editando-profesor-aviso" class="hidden text-xs text-amber-600 font-semibold mr-auto">✏️ Editando un profesor existente — al guardar se actualizará.</span>
+                    <button type="button" onclick="cancelarEdicionProfesor()" class="rounded-lg border border-slate-300 text-slate-600 text-sm font-semibold px-5 py-2">Limpiar</button>
+                    <button type="submit" id="input-profesor-submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-6 py-2">Guardar docente</button>
                 </div>
             </form>
         </details>
+    </div>
+
+    <p class="text-xs font-semibold text-slate-400 uppercase mb-2 mt-6">Profesores registrados</p>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-4">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left text-xs text-slate-400 uppercase">
+                    <th class="px-6 py-3 font-semibold">DNI</th>
+                    <th class="px-6 py-3 font-semibold">Profesor</th>
+                    <th class="px-6 py-3 font-semibold">Email</th>
+                    <th class="px-6 py-3 font-semibold">Especialidad</th>
+                    <th class="px-6 py-3 font-semibold">Condición</th>
+                    <th class="px-6 py-3 font-semibold"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @forelse ($profesores as $profesor)
+                    @php
+                        $edicionProfesorPayload = [
+                            'id_profesor' => $profesor->id_profesor,
+                            'dni' => $profesor->dni,
+                            'apellido' => $profesor->apellido,
+                            'nombre' => $profesor->nombre,
+                            'email' => $profesor->email,
+                            'id_especialidad' => $profesor->id_especialidad,
+                            'condicion' => $profesor->condicion,
+                        ];
+                    @endphp
+                    <tr>
+                        <td class="px-6 py-3 text-slate-500">{{ $profesor->dni }}</td>
+                        <td class="px-6 py-3 font-semibold text-slate-700">{{ $profesor->apellido }}, {{ $profesor->nombre }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ $profesor->email ?? '—' }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ $profesor->especialidad->nombre_especialidad }}</td>
+                        <td class="px-6 py-3">
+                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $profesor->condicion === 'Titular' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }}">{{ $profesor->condicion }}</span>
+                        </td>
+                        <td class="px-6 py-3">
+                            <button type="button" class="text-[#1E4D8C] text-xs font-semibold hover:underline"
+                                    onclick='editarProfesor(@json($edicionProfesorPayload))'>Editar</button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">No hay profesores cargados.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
     {{-- Modal: nueva especialidad --}}
@@ -155,6 +204,32 @@
 
         function cancelarEdicionAsignacion() {
             document.getElementById('editando-aviso').classList.add('hidden');
+        }
+
+        const rutaBaseProfesores = @json(url('/admin/profesores'));
+        const rutaGuardarProfesor = @json(route('admin.profesores.store'));
+
+        function editarProfesor(profesor) {
+            document.getElementById('form-profesor').action = rutaBaseProfesores + '/' + profesor.id_profesor;
+            document.getElementById('input-profesor-method').value = 'PUT';
+            document.getElementById('input-profesor-dni').value = profesor.dni;
+            document.getElementById('input-profesor-apellido').value = profesor.apellido;
+            document.getElementById('input-profesor-nombre').value = profesor.nombre;
+            document.getElementById('input-profesor-email').value = profesor.email ?? '';
+            document.getElementById('input-profesor-especialidad').value = profesor.id_especialidad;
+            document.getElementById('input-profesor-condicion').value = profesor.condicion;
+            document.getElementById('input-profesor-submit').textContent = 'Guardar cambios';
+            document.getElementById('editando-profesor-aviso').classList.remove('hidden');
+            document.getElementById('detalle-padron').open = true;
+            document.getElementById('detalle-padron').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelarEdicionProfesor() {
+            document.getElementById('form-profesor').reset();
+            document.getElementById('form-profesor').action = rutaGuardarProfesor;
+            document.getElementById('input-profesor-method').value = '';
+            document.getElementById('input-profesor-submit').textContent = 'Guardar docente';
+            document.getElementById('editando-profesor-aviso').classList.add('hidden');
         }
     </script>
 
