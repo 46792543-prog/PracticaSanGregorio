@@ -37,4 +37,12 @@ class ConfiguracionController extends Controller
         return redirect()->route('director.configuracion.index')
             ->with('status', 'Los datos institucionales se actualizaron correctamente.');
     }
+
+    public function destroy(): RedirectResponse
+    {
+        ConfiguracionInstitucion::query()->delete();
+
+        return redirect()->route('director.configuracion.index')
+            ->with('status', 'Se eliminaron los datos institucionales.');
+    }
 }

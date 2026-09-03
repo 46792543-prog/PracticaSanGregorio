@@ -64,6 +64,16 @@
                     <button type="submit" class="rounded-xl bg-[#1E4D8C] hover:shadow-md text-white font-semibold text-sm px-6 py-2.5 transition">Guardar cambios</button>
                 </div>
             </form>
+
+            @if ($configuracion)
+                <form method="POST" action="{{ route('director.configuracion.destroy') }}"
+                      onsubmit="return confirm('¿Eliminar los datos institucionales cargados? Esta acción no se puede deshacer.');"
+                      class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm px-6 py-2.5 transition">Eliminar datos</button>
+                </form>
+            @endif
         </div>
     </div>
 @endsection

@@ -160,4 +160,5 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
+    Route::delete('/configuracion', [DirectorConfiguracionController::class, 'destroy'])->name('configuracion.destroy');
 });
