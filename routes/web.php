@@ -116,6 +116,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
     Route::put('/profesores/{profesor}', [ProfesorController::class, 'update'])->name('profesores.update');
+    Route::put('/profesores/{profesor}/baja', [ProfesorController::class, 'baja'])->name('profesores.baja');
+    Route::put('/profesores/{profesor}/reactivar', [ProfesorController::class, 'reactivar'])->name('profesores.reactivar');
     Route::post('/profesores/especialidades', [ProfesorController::class, 'storeEspecialidad'])->name('profesores.especialidades.store');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
     Route::delete('/profesores/asignaciones/{asignacion}', [ProfesorController::class, 'destroyAsignacion'])->name('profesores.asignaciones.destroy');

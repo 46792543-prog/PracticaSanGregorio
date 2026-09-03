@@ -16,6 +16,11 @@ class Profesor extends Model
         'id_especialidad',
         'condicion',
         'email',
+        'activo',
+    ];
+
+    protected $casts = [
+        'activo' => 'boolean',
     ];
 
     public function persona(): BelongsTo
