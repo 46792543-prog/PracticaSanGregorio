@@ -28,7 +28,8 @@
             </p>
         @endif
         <form method="GET" class="flex flex-col sm:flex-row gap-3">
-            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar materia..." maxlength="50"
+            <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar materia..." maxlength="25"
+                   oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                    class="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             <select name="condicion" onchange="this.form.submit()"
                     class="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">

@@ -42,9 +42,9 @@ class ProfesorController extends Controller
     {
         $data = $request->validate([
             'dni' => ['required', 'digits:8', 'unique:persona,dni'],
-            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
-            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
-            'email' => ['nullable', 'email', 'max:100', 'unique:profesor,email'],
+            'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+            'email' => ['nullable', 'email', 'max:25', 'unique:profesor,email'],
             'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
             'condicion' => ['required', 'in:Titular,Suplente'],
         ]);

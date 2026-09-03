@@ -103,8 +103,8 @@ class AlumnoController extends Controller
     {
         $datos = $request->validate([
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
-            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
-            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+            'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
             'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'direccion' => ['nullable', 'string', 'max:100'],

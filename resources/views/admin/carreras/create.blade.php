@@ -20,17 +20,20 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Oficial de la Carrera *</label>
-                <input type="text" maxlength="50" name="nombre_carrera" value="{{ old('nombre_carrera') }}" required placeholder="Ej. Tecnicatura Superior en Desarrollo de Software"
+                <input type="text" maxlength="40" name="nombre_carrera" value="{{ old('nombre_carrera') }}" required placeholder="Ej. Tecnicatura Superior en Desarrollo de Software"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Familia Profesional</label>
-                <input type="text" maxlength="100" name="familia_profesional" value="{{ old('familia_profesional') }}" placeholder="Ej. Salud"
+                <input type="text" maxlength="20" name="familia_profesional" value="{{ old('familia_profesional') }}" placeholder="Ej. Salud"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Número de Resolución / Decreto</label>
-                <input type="text" maxlength="25" name="resolucion_ministerial" value="{{ old('resolucion_ministerial') }}" placeholder="Ej. Res. N° 102/22"
+                <input type="text" inputmode="numeric" maxlength="4" name="resolucion_ministerial" value="{{ old('resolucion_ministerial') }}" placeholder="Ej. 1022"
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                        class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
             </div>
             <div>

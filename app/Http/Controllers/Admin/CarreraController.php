@@ -39,9 +39,9 @@ class CarreraController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'nombre_carrera' => ['required', 'string', 'max:50', 'unique:carrera,nombre_carrera'],
-            'familia_profesional' => ['nullable', 'string', 'max:100'],
-            'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
+            'nombre_carrera' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/', 'unique:carrera,nombre_carrera'],
+            'familia_profesional' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'resolucion_ministerial' => ['nullable', 'digits_between:1,4'],
             'duracion_anos' => ['required', 'integer', 'min:1', 'max:6'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
         ]);
@@ -90,7 +90,7 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'numero_orden' => ['required', 'integer', 'min:1'],
-            'nombre' => ['required', 'string', 'max:50'],
+            'nombre' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],

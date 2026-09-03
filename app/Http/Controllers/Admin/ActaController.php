@@ -97,7 +97,7 @@ class ActaController extends Controller
 
         $mesa->update(['id_estado_mesa' => \App\Models\EstadoMesa::where('nombre_estado', 'Finalizada')->value('id_estado_mesa')]);
 
-        return redirect()->route('admin.actas.index', ['mesa' => $mesa->id_mesa])->with('status', 'Acta generada correctamente.');
+        return redirect()->route('admin.mesas.acta.pdf', $mesa);
     }
 
     private function guardarActa(Request $request, MesaExamen $mesa, string $estado): void

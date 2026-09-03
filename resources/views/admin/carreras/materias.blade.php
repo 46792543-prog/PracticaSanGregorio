@@ -44,12 +44,16 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Nº ORDEN</label>
-                <input type="number" name="numero_orden" min="1" required value="{{ $materias->max('numero_orden') + 1 }}"
+                <input type="number" name="numero_orden" min="1" step="1" required value="{{ $materias->max('numero_orden') + 1 }}"
+                       onkeydown="if (!['ArrowUp', 'ArrowDown', 'Tab'].includes(event.key)) event.preventDefault();"
+                       onpaste="event.preventDefault();"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE</label>
-                <input type="text" maxlength="50" name="nombre" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" maxlength="40" name="nombre" required
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO</label>
