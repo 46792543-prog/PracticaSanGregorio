@@ -39,6 +39,8 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <h3 class="font-bold text-slate-700 text-sm mb-3">Situación académica</h3>
             <dl class="text-sm space-y-2 text-slate-500">
+                <div class="flex justify-between"><dt>Fecha de ingreso</dt><dd class="text-slate-700">{{ $inscripcion?->fecha_inscripcion ? \App\Support\FechaEsp::corta($inscripcion->fecha_inscripcion) : '—' }}</dd></div>
+                <div class="flex justify-between"><dt>Año lectivo</dt><dd class="text-slate-700">{{ $inscripcion?->anioLectivo?->anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt>Año que cursa</dt><dd class="text-slate-700">{{ $inscripcion?->anioCursada?->nombre_anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt>Turno</dt><dd class="text-slate-700">{{ $inscripcion?->turnoCursada?->nombre_turno ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt>Condición</dt><dd class="text-slate-700">{{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}</dd></div>
