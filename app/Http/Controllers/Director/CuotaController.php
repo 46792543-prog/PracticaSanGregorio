@@ -75,7 +75,7 @@ class CuotaController extends Controller
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'meses' => ['required', 'array', 'min:1'],
             'meses.*' => ['integer', 'exists:mes,id_mes'],
-            'concepto' => ['nullable', 'string', 'max:100'],
+            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
             'monto' => ['required', 'numeric', 'min:0'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
         ]);
