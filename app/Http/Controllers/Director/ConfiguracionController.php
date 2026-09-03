@@ -21,11 +21,11 @@ class ConfiguracionController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'nombre_institucion' => ['required', 'string', 'max:150'],
-            'direccion' => ['nullable', 'string', 'max:255'],
-            'nombre_director' => ['nullable', 'string', 'max:150'],
-            'telefono_contacto' => ['nullable', 'string', 'max:20'],
-            'email_contacto' => ['nullable', 'email', 'max:100'],
+            'nombre_institucion' => ['required', 'string', 'max:20', 'regex:/^[\pL\s\'-]+$/u'],
+            'direccion' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
+            'nombre_director' => ['nullable', 'string', 'max:20', 'regex:/^[\pL\s\'-]+$/u'],
+            'telefono_contacto' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/'],
+            'email_contacto' => ['nullable', 'email', 'max:20'],
         ]);
 
         $configuracion = ConfiguracionInstitucion::first() ?? new ConfiguracionInstitucion();

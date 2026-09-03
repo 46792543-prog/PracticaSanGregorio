@@ -91,7 +91,7 @@
                                 <div class="grid sm:grid-cols-2 gap-4 mb-4">
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-500 mb-1">CONCEPTO</label>
-                                        <input type="text" name="concepto" maxlength="100" placeholder="Cuota mensual"
+                                        <input type="text" name="concepto" data-solo="alfanumerico" data-max-len="20" maxlength="20" placeholder="Cuota mensual"
                                                class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                                     </div>
                                     <div>
