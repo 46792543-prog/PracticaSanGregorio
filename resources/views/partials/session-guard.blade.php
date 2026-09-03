@@ -13,15 +13,10 @@
             return;
         }
 
-        if (sessionStorage.getItem(MARCADOR)) {
-            return;
-        }
-
-        fetch(@json(route('logout')), {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': @json(csrf_token()) },
-        }).finally(function () {
-            window.location.replace(@json(route('login')));
-        });
+        // Antes, si faltaba la marca (pestaña nueva, reabierta, etc.) se forzaba
+        // logout + redirect a /login. Esto terminaba cerrando la sesión en medio
+        // de acciones normales (ej. abrir el PDF del acta en otra pestaña), así
+        // que ahora simplemente se vuelve a marcar la pestaña como válida.
+        sessionStorage.setItem(MARCADOR, '1');
     })();
 </script>

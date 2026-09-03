@@ -9,5 +9,5 @@ class TurnoExamen extends Model
     protected $table = 'turno_examen';
     protected $primaryKey = 'id_turno';
 
-    protected $fillable = ['nombre_turno'];
+    protected $fillable = ['nombre_turno', 'mes_desde', 'mes_hasta'];
 }

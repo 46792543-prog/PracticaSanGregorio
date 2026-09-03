@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\Director\CajaController;
+use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
@@ -116,7 +117,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/mesas', [MesaController::class, 'index'])->name('mesas.index');
     Route::get('/mesas/nueva', [MesaController::class, 'create'])->name('mesas.create');
     Route::post('/mesas', [MesaController::class, 'store'])->name('mesas.store');
+    Route::get('/mesas/{mesa}/editar', [MesaController::class, 'edit'])->name('mesas.edit');
+    Route::put('/mesas/{mesa}', [MesaController::class, 'update'])->name('mesas.update');
     Route::delete('/mesas/{mesa}', [MesaController::class, 'destroy'])->name('mesas.destroy');
+
+    Route::post('/mesas/turnos', [MesaController::class, 'storeTurno'])->name('mesas.turnos.store');
+    Route::put('/mesas/turnos/{turno}', [MesaController::class, 'updateTurno'])->name('mesas.turnos.update');
+    Route::delete('/mesas/turnos/{turno}', [MesaController::class, 'destroyTurno'])->name('mesas.turnos.destroy');
+
+    Route::post('/mesas/llamados', [MesaController::class, 'storeLlamado'])->name('mesas.llamados.store');
+    Route::put('/mesas/llamados/{llamado}', [MesaController::class, 'updateLlamado'])->name('mesas.llamados.update');
+    Route::delete('/mesas/llamados/{llamado}', [MesaController::class, 'destroyLlamado'])->name('mesas.llamados.destroy');
 
     Route::get('/actas', [ActaController::class, 'index'])->name('actas.index');
     Route::get('/mesas/{mesa}/acta', [ActaController::class, 'show'])->name('mesas.acta');
@@ -139,10 +150,16 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
+    Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
+
+    Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
     Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
+
+    Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
 });
