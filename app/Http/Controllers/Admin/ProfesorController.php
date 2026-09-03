@@ -65,6 +65,32 @@ class ProfesorController extends Controller
         return back()->with('status', 'Profesor agregado correctamente.');
     }
 
+    public function update(Request $request, Profesor $profesor): RedirectResponse
+    {
+        $data = $request->validate([
+            'dni' => ['required', 'digits:8', 'unique:persona,dni,' . $profesor->id_persona . ',id_persona'],
+            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'email' => ['nullable', 'email', 'max:100', 'unique:profesor,email,' . $profesor->id_profesor . ',id_profesor'],
+            'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
+            'condicion' => ['required', 'in:Titular,Suplente'],
+        ]);
+
+        $profesor->persona->update([
+            'dni' => $data['dni'],
+            'nombre' => $data['nombre'],
+            'apellido' => $data['apellido'],
+        ]);
+
+        $profesor->update([
+            'email' => $data['email'] ?? null,
+            'id_especialidad' => $data['id_especialidad'],
+            'condicion' => $data['condicion'],
+        ]);
+
+        return back()->with('status', 'Profesor actualizado correctamente.');
+    }
+
     public function storeEspecialidad(Request $request): RedirectResponse
     {
         $data = $request->validate([

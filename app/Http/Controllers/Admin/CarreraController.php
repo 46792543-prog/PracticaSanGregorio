@@ -52,6 +52,29 @@ class CarreraController extends Controller
             ->with('status', 'Carrera creada. Ahora sumá las materias de su plan de estudio.');
     }
 
+    public function edit(Carrera $carrera): View
+    {
+        return view('admin.carreras.edit', [
+            'carrera' => $carrera,
+            'estados' => EstadoCarrera::orderBy('id_estado_carrera')->get(),
+        ]);
+    }
+
+    public function update(Request $request, Carrera $carrera): RedirectResponse
+    {
+        $data = $request->validate([
+            'nombre_carrera' => ['required', 'string', 'max:50', 'unique:carrera,nombre_carrera,' . $carrera->id_carrera . ',id_carrera'],
+            'familia_profesional' => ['nullable', 'string', 'max:100'],
+            'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:6'],
+            'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
+        ]);
+
+        $carrera->update($data);
+
+        return redirect()->route('admin.carreras.index')->with('status', 'Carrera actualizada correctamente.');
+    }
+
     public function materias(Carrera $carrera): View
     {
         return view('admin.carreras.materias', [
