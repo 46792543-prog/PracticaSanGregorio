@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\Director\CajaController;
+use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
@@ -156,4 +157,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
     Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
+
+    Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
 });
