@@ -23,6 +23,11 @@ class Materia extends Model
         'id_regimen',
         'id_nombre_materia',
         'version_plan',
+        'activa',
+    ];
+
+    protected $casts = [
+        'activa' => 'boolean',
     ];
 
     public function carrera(): BelongsTo

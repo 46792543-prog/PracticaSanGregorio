@@ -7,6 +7,7 @@ use App\Models\AnioCursada;
 use App\Models\Carrera;
 use App\Models\Correlativa;
 use App\Models\EstadoCarrera;
+use App\Models\Materia;
 use App\Models\NombreMateria;
 use App\Models\PeriodoDictado;
 use App\Models\RegimenAprobacion;
@@ -108,6 +109,43 @@ class CarreraController extends Controller
         ]);
 
         return back()->with('status', 'Materia agregada al plan de estudio.');
+    }
+
+    public function updateMateria(Request $request, Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $data = $request->validate([
+            'numero_orden' => ['required', 'integer', 'min:1'],
+            'nombre' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
+            'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
+            'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
+        ]);
+
+        $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
+
+        $materia->update([
+            'numero_orden' => $data['numero_orden'],
+            'id_nombre_materia' => $nombreMateria->id_nombre_materia,
+            'id_anio_cursada' => $data['id_anio_cursada'],
+            'id_periodo' => $data['id_periodo'],
+            'id_regimen' => $data['id_regimen'],
+        ]);
+
+        return back()->with('status', 'Materia actualizada correctamente.');
+    }
+
+    public function bajaMateria(Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $materia->update(['activa' => false]);
+
+        return back()->with('status', 'Materia dada de baja.');
+    }
+
+    public function reactivarMateria(Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $materia->update(['activa' => true]);
+
+        return back()->with('status', 'Materia reactivada.');
     }
 
     public function correlativas(Carrera $carrera): View

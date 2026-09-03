@@ -105,6 +105,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras/{carrera}/plan', [CarreraController::class, 'plan'])->name('carreras.plan');
     Route::get('/carreras/{carrera}/materias', [CarreraController::class, 'materias'])->name('carreras.materias');
     Route::post('/carreras/{carrera}/materias', [CarreraController::class, 'storeMateria'])->name('carreras.materias.store');
+    Route::put('/carreras/{carrera}/materias/{materia}', [CarreraController::class, 'updateMateria'])->name('carreras.materias.update');
+    Route::put('/carreras/{carrera}/materias/{materia}/baja', [CarreraController::class, 'bajaMateria'])->name('carreras.materias.baja');
+    Route::put('/carreras/{carrera}/materias/{materia}/reactivar', [CarreraController::class, 'reactivarMateria'])->name('carreras.materias.reactivar');
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
     Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
