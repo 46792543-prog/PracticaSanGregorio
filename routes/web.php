@@ -154,6 +154,8 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
+    Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
+
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
     Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
