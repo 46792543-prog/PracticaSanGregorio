@@ -124,6 +124,41 @@ class CuotaController extends Controller
             ->with('status', $mensaje);
     }
 
+    public function actualizar(Request $request, CuotaAlumno $cuota): RedirectResponse
+    {
+        abort_if($cuota->pagado, 403, 'No se puede modificar una cuota que ya fue cobrada.');
+
+        $data = $request->validate([
+            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
+            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
+            'monto' => ['required', 'numeric', 'min:0'],
+            'fecha_vencimiento' => ['nullable', 'date'],
+        ]);
+
+        $cuota->update([
+            'concepto' => $data['concepto'] ?: null,
+            'monto' => round((float) $data['monto'], 2),
+            'fecha_vencimiento' => $data['fecha_vencimiento'] ?: null,
+        ]);
+
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+            ->with('status', 'Se actualizó la cuota correctamente.');
+    }
+
+    public function eliminar(Request $request, CuotaAlumno $cuota): RedirectResponse
+    {
+        abort_if($cuota->pagado, 403, 'No se puede eliminar una cuota que ya fue cobrada.');
+
+        $data = $request->validate([
+            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
+        ]);
+
+        $cuota->delete();
+
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+            ->with('status', 'Se eliminó la cuota correctamente.');
+    }
+
     public function cobrar(Request $request): RedirectResponse
     {
         $data = $request->validate([
