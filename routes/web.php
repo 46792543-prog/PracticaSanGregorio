@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
+use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
@@ -138,6 +139,8 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
+
+    Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
