@@ -27,8 +27,11 @@ class ProfesorController extends Controller
             ->orderByDesc('id_asignacion')
             ->get();
 
+        $profesores = Profesor::with('persona', 'especialidad')->get()->sortBy('apellido');
+
         return view('admin.profesores.index', [
-            'profesores' => Profesor::with('persona', 'especialidad')->get()->sortBy('apellido'),
+            'profesores' => $profesores,
+            'profesoresActivos' => $profesores->where('activo', true),
             'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'anioLectivo' => $anioLectivo,
@@ -89,6 +92,20 @@ class ProfesorController extends Controller
         ]);
 
         return back()->with('status', 'Profesor actualizado correctamente.');
+    }
+
+    public function baja(Profesor $profesor): RedirectResponse
+    {
+        $profesor->update(['activo' => false]);
+
+        return back()->with('status', 'Profesor dado de baja.');
+    }
+
+    public function reactivar(Profesor $profesor): RedirectResponse
+    {
+        $profesor->update(['activo' => true]);
+
+        return back()->with('status', 'Profesor reactivado.');
     }
 
     public function storeEspecialidad(Request $request): RedirectResponse

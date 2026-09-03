@@ -18,7 +18,7 @@
                 <label class="block text-xs font-semibold text-slate-500 mb-1">PROFESOR *</label>
                 <select name="id_profesor" id="input-id-profesor" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Seleccioná profesor...</option>
-                    @foreach ($profesores as $profesor)
+                    @foreach ($profesoresActivos as $profesor)
                         <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }} — {{ $profesor->especialidad->nombre_especialidad }} ({{ $profesor->condicion }})</option>
                     @endforeach
                 </select>
@@ -118,6 +118,7 @@
                     <th class="px-6 py-3 font-semibold">Email</th>
                     <th class="px-6 py-3 font-semibold">Especialidad</th>
                     <th class="px-6 py-3 font-semibold">Condición</th>
+                    <th class="px-6 py-3 font-semibold">Estado</th>
                     <th class="px-6 py-3 font-semibold"></th>
                 </tr>
             </thead>
@@ -134,7 +135,7 @@
                             'condicion' => $profesor->condicion,
                         ];
                     @endphp
-                    <tr>
+                    <tr class="{{ $profesor->activo ? '' : 'opacity-50' }}">
                         <td class="px-6 py-3 text-slate-500">{{ $profesor->dni }}</td>
                         <td class="px-6 py-3 font-semibold text-slate-700">{{ $profesor->apellido }}, {{ $profesor->nombre }}</td>
                         <td class="px-6 py-3 text-slate-500">{{ $profesor->email ?? '—' }}</td>
@@ -143,12 +144,30 @@
                             <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $profesor->condicion === 'Titular' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }}">{{ $profesor->condicion }}</span>
                         </td>
                         <td class="px-6 py-3">
-                            <button type="button" class="text-[#1E4D8C] text-xs font-semibold hover:underline"
-                                    onclick='editarProfesor(@json($edicionProfesorPayload))'>Editar</button>
+                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $profesor->activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+                                {{ $profesor->activo ? 'Activo' : 'Dado de baja' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3">
+                            <div class="flex items-center gap-3 text-xs font-semibold whitespace-nowrap">
+                                <button type="button" class="text-[#1E4D8C] hover:underline"
+                                        onclick='editarProfesor(@json($edicionProfesorPayload))'>Editar</button>
+                                @if ($profesor->activo)
+                                    <form method="POST" action="{{ route('admin.profesores.baja', $profesor) }}" onsubmit="return confirm('¿Dar de baja a este profesor? Ya no va a poder asignarse a nuevas materias ni tribunales.');">
+                                        @csrf @method('PUT')
+                                        <button class="text-red-500 hover:underline">Dar de baja</button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('admin.profesores.reactivar', $profesor) }}">
+                                        @csrf @method('PUT')
+                                        <button class="text-green-600 hover:underline">Reactivar</button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">No hay profesores cargados.</td></tr>
+                    <tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">No hay profesores cargados.</td></tr>
                 @endforelse
             </tbody>
         </table>
