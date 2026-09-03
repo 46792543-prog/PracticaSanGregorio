@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnioLectivo;
 use App\Models\ConceptoCaja;
 use App\Models\CuotaAlumno;
 use App\Models\MedioPago;
+use App\Models\Mes;
 use App\Models\MovimientoCaja;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
@@ -60,7 +62,66 @@ class CuotaController extends Controller
             'alumnoSeleccionado' => $alumnoSeleccionado,
             'historial' => $historial,
             'filtroHistorialAlumno' => $request->query('h_alumno'),
+            'anios' => AnioLectivo::orderByDesc('anio')->get(),
+            'meses' => Mes::orderBy('id_mes')->get(),
         ]);
+    }
+
+    public function generar(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
+            'persona_id' => ['required', 'exists:persona,id_persona'],
+            'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'meses' => ['required', 'array', 'min:1'],
+            'meses.*' => ['integer', 'exists:mes,id_mes'],
+            'concepto' => ['nullable', 'string', 'max:100'],
+            'monto' => ['required', 'numeric', 'min:0'],
+            'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
+        ]);
+
+        $anio = AnioLectivo::findOrFail($data['id_anio_lectivo']);
+        $creadas = 0;
+        $omitidas = 0;
+
+        DB::transaction(function () use ($data, $anio, &$creadas, &$omitidas) {
+            foreach ($data['meses'] as $idMes) {
+                $existe = CuotaAlumno::where('id_persona_alumno', $data['persona_id'])
+                    ->where('id_anio_lectivo', $anio->id_anio_lectivo)
+                    ->where('id_mes', $idMes)
+                    ->exists();
+
+                if ($existe) {
+                    $omitidas++;
+
+                    continue;
+                }
+
+                CuotaAlumno::create([
+                    'id_persona_alumno' => $data['persona_id'],
+                    'id_anio_lectivo' => $anio->id_anio_lectivo,
+                    'id_mes' => $idMes,
+                    'concepto' => $data['concepto'] ?: null,
+                    'fecha_vencimiento' => sprintf('%04d-%02d-%02d', $anio->anio, $idMes, $data['dia_vencimiento']),
+                    'monto' => round((float) $data['monto'], 2),
+                    'recargo' => 0,
+                    'pagado' => false,
+                ]);
+
+                $creadas++;
+            }
+        });
+
+        $mensaje = $creadas > 0
+            ? "Se generaron {$creadas} cuota(s) nueva(s)."
+            : 'No se generó ninguna cuota nueva.';
+
+        if ($omitidas > 0) {
+            $mensaje .= " Se omitieron {$omitidas} porque ya existían para ese alumno y año.";
+        }
+
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+            ->with('status', $mensaje);
     }
 
     public function cobrar(Request $request): RedirectResponse

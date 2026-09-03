@@ -149,6 +149,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
+    Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 

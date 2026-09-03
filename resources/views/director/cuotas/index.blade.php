@@ -59,6 +59,92 @@
                         <a href="{{ route('director.cuotas.index') }}" class="text-xs font-semibold text-[#1E4D8C] hover:underline">✕ Cambiar alumno</a>
                     </div>
 
+                    @php
+                        $cuotasPorAnio = $alumnoSeleccionado->persona->cuotas->groupBy('id_anio_lectivo')->map(fn ($c) => $c->pluck('id_mes'));
+                        $anioVigenteId = $anios->first()?->id_anio_lectivo;
+                    @endphp
+
+                    <details class="mb-4 rounded-xl border border-slate-200 bg-white">
+                        <summary class="cursor-pointer px-4 py-3 font-semibold text-slate-700 text-sm">➕ Generar cuota nueva</summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-slate-100">
+                            <form method="POST" action="{{ route('director.cuotas.generar') }}" id="form-generar-cuota">
+                                @csrf
+                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+
+                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO LECTIVO *</label>
+                                        <select name="id_anio_lectivo" id="select-anio-generar" required class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                            @foreach ($anios as $anio)
+                                                <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === $anioVigenteId)>{{ $anio->anio }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">DÍA DE VENCIMIENTO (1-28) *</label>
+                                        <input type="number" name="dia_vencimiento" min="1" max="28" value="10" required
+                                               class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                    </div>
+                                </div>
+
+                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">CONCEPTO</label>
+                                        <input type="text" name="concepto" maxlength="100" placeholder="Cuota mensual"
+                                               class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">MONTO *</label>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-slate-400 text-sm">$</span>
+                                            <input type="number" step="0.01" min="0" name="monto" required
+                                                   class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Meses a generar:</p>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4" id="grid-meses-generar">
+                                    @foreach ($meses as $mes)
+                                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm cursor-pointer has-[:checked]:border-[#1E4D8C] has-[:checked]:bg-blue-50/60 has-[:disabled]:opacity-40 has-[:disabled]:cursor-not-allowed">
+                                            <input type="checkbox" name="meses[]" value="{{ $mes->id_mes }}" class="chk-mes-generar h-4 w-4 rounded" data-mes="{{ $mes->id_mes }}">
+                                            {{ $mes->nombre_mes }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <p class="text-xs text-slate-400 mb-4" id="aviso-meses-existentes"></p>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="rounded-xl bg-[#1E4D8C] hover:shadow-md text-white font-semibold text-sm px-6 py-2.5 transition">Generar cuota(s)</button>
+                                </div>
+                            </form>
+                        </div>
+                    </details>
+
+                    <script>
+                        (function () {
+                            const cuotasPorAnio = @json($cuotasPorAnio);
+                            const selectAnio = document.getElementById('select-anio-generar');
+                            const aviso = document.getElementById('aviso-meses-existentes');
+
+                            function actualizarMesesDisponibles() {
+                                const mesesExistentes = cuotasPorAnio[selectAnio.value] || [];
+                                document.querySelectorAll('.chk-mes-generar').forEach(chk => {
+                                    const yaExiste = mesesExistentes.includes(parseInt(chk.dataset.mes));
+                                    chk.disabled = yaExiste;
+                                    chk.checked = false;
+                                });
+                                aviso.textContent = mesesExistentes.length
+                                    ? 'Los meses deshabilitados ya tienen una cuota generada para ese año.'
+                                    : '';
+                            }
+
+                            selectAnio.addEventListener('change', actualizarMesesDisponibles);
+                            actualizarMesesDisponibles();
+                        })();
+                    </script>
+
                     @if ($cuotasPendientes->isEmpty())
                         <p class="text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3">✓ Este alumno no tiene cuotas pendientes.</p>
                     @else
