@@ -46,6 +46,7 @@ class ProfesorController extends Controller
             'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'email' => ['nullable', 'email', 'max:25', 'unique:profesor,email'],
             'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
+            'condicion' => ['required', 'in:Titular,Suplente'],
         ]);
 
         $persona = Persona::create([
@@ -58,6 +59,7 @@ class ProfesorController extends Controller
             'id_persona' => $persona->id_persona,
             'email' => $data['email'] ?? null,
             'id_especialidad' => $data['id_especialidad'],
+            'condicion' => $data['condicion'],
         ]);
 
         return back()->with('status', 'Profesor agregado correctamente.');
