@@ -116,8 +116,8 @@ class ActaController extends Controller
         $acta = Acta::updateOrCreate(
             ['id_mesa' => $mesa->id_mesa],
             [
-                'libro' => $data['libro'] ?? '',
-                'folio' => $data['folio'] ?? '',
+                'libro' => $data['libro'] ?? null,
+                'folio' => $data['folio'] ?? null,
                 'id_tipo_acta' => TipoActa::where('nombre_tipo', 'Acta de Examen Final')->value('id_tipo_acta'),
                 'observaciones' => $data['observaciones'] ?? null,
                 'id_secretario_creador' => Auth::user()->id_persona,
