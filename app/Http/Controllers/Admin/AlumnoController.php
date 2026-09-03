@@ -81,6 +81,7 @@ class AlumnoController extends Controller
         $persona->load([
             'usuario',
             'inscripcionesCarrera.carrera',
+            'inscripcionesCarrera.anioLectivo',
             'inscripcionesCarrera.anioCursada',
             'inscripcionesCarrera.turnoCursada',
             'inscripcionesCarrera.condicion',
