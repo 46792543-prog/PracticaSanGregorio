@@ -33,10 +33,12 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
         <div class="flex flex-wrap items-center gap-3 p-4 border-b border-slate-100">
-            <form method="GET" class="flex-1 min-w-[200px]">
-                <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar alumno..." onchange="this.form.submit()" maxlength="50"
+            <form method="GET" class="flex-1 min-w-[200px] flex gap-2">
+                <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar alumno..." maxlength="25"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm">
                 <input type="hidden" name="filtro" value="{{ $filtro }}">
+                <button type="submit" class="rounded-lg bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-4 py-2 whitespace-nowrap">Buscar</button>
             </form>
             <div class="flex gap-2">
                 @foreach (['todos' => 'Todos', 'pendientes' => 'Pendientes', 'completos' => 'Completos'] as $valor => $texto)

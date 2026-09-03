@@ -30,7 +30,7 @@ class InscripcionAdminController extends Controller
     public function actualizar(Request $request, InscripcionMesa $inscripcionMesa): RedirectResponse
     {
         $data = $request->validate([
-            'estado' => ['required', Rule::in(['Aceptado', 'Rechazado'])],
+            'estado' => ['required', Rule::in(['En proceso', 'Aceptado', 'Rechazado'])],
             'nota_examen' => ['nullable', 'integer', 'between:1,10'],
             'resultado' => ['nullable', 'in:aprobado,desaprobado,ausente'],
         ]);
@@ -44,5 +44,12 @@ class InscripcionAdminController extends Controller
         ]);
 
         return back()->with('status', 'Inscripción actualizada correctamente.');
+    }
+
+    public function destroy(InscripcionMesa $inscripcionMesa): RedirectResponse
+    {
+        $inscripcionMesa->delete();
+
+        return back()->with('status', 'Inscripción eliminada correctamente.');
     }
 }

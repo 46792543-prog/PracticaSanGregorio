@@ -45,13 +45,13 @@ class PerfilController extends Controller
         $alumno = $usuario->persona;
 
         $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
-            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')->ignore($alumno->id_persona, 'id_persona')],
             'fecha_nacimiento' => ['nullable', 'date'],
-            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
-            'direccion' => ['nullable', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')->ignore($usuario->id_usuario, 'id_usuario')],
+            'telefono' => ['nullable', 'string', 'max:15', 'regex:/^[0-9+\-\s()]+$/'],
+            'direccion' => ['nullable', 'string', 'max:35', 'regex:/^[\pL0-9\s]+$/u'],
+            'email' => ['required', 'email', 'max:25', Rule::unique('usuario', 'email')->ignore($usuario->id_usuario, 'id_usuario')],
         ]);
 
         $email = $datos['email'];

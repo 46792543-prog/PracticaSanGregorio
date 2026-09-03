@@ -12,6 +12,7 @@
                 letras: /[^\p{L}\s'-]/gu,
                 numeros: /[^0-9]/g,
                 telefono: /[^0-9+\-\s()]/g,
+                alfanumerico: /[^\p{L}0-9\s]/gu,
             };
             if (patrones[modo]) {
                 el.value = el.value.replace(patrones[modo], '');

@@ -13,7 +13,8 @@
             <form method="GET" class="grid sm:grid-cols-[1fr_auto] gap-4 mb-2">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">BUSCAR ALUMNO *</label>
-                    <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..." autofocus data-busqueda maxlength="50"
+                    <input type="text" name="q" value="{{ $busqueda }}" placeholder="Nombre, apellido o DNI..." autofocus data-busqueda maxlength="20"
+                           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü0-9\s]/g, '')"
                            class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                 </div>
                 <div class="flex items-end">
@@ -167,7 +168,8 @@
             <h3 class="font-bold text-slate-700 text-sm">📋 Historial de Cobros de Cuotas</h3>
         </div>
         <form method="GET" class="flex flex-wrap gap-3 px-6 py-4 border-b border-slate-100">
-            <input type="text" name="h_alumno" value="{{ $filtroHistorialAlumno }}" placeholder="Buscar alumno..."
+            <input type="text" name="h_alumno" value="{{ $filtroHistorialAlumno }}" placeholder="Buscar alumno..." maxlength="25"
+                   oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                    class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
             <button class="rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold px-4">Filtrar</button>
         </form>

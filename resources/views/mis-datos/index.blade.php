@@ -37,12 +37,12 @@
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE</label>
-                        <input type="text" data-solo="letras" maxlength="100" name="nombre" value="{{ old('nombre', $alumno->nombre) }}" required
+                        <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" value="{{ old('nombre', $alumno->nombre) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">APELLIDO</label>
-                        <input type="text" data-solo="letras" maxlength="100" name="apellido" value="{{ old('apellido', $alumno->apellido) }}" required
+                        <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" value="{{ old('apellido', $alumno->apellido) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
@@ -57,17 +57,17 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">TELÉFONO</label>
-                        <input type="text" data-solo="telefono" maxlength="20" name="telefono" value="{{ old('telefono', $alumno->telefono) }}"
+                        <input type="text" data-solo="telefono" data-max-len="15" maxlength="15" name="telefono" value="{{ old('telefono', $alumno->telefono) }}"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">DIRECCIÓN</label>
-                        <input type="text" maxlength="250" name="direccion" value="{{ old('direccion', $alumno->direccion) }}" placeholder="Calle, número, localidad"
+                        <input type="text" data-solo="alfanumerico" data-max-len="35" maxlength="35" name="direccion" value="{{ old('direccion', $alumno->direccion) }}" placeholder="Calle, número, localidad"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">EMAIL DE CONTACTO</label>
-                        <input type="email" maxlength="100" name="email" value="{{ old('email', $alumno->usuario->email) }}" required
+                        <input type="email" maxlength="25" name="email" value="{{ old('email', $alumno->usuario->email) }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
                 </div>

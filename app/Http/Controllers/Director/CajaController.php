@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\ConceptoCaja;
 use App\Models\MovimientoCaja;
 use App\Models\TipoMovimiento;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -35,11 +38,31 @@ class CajaController extends Controller
         ]);
     }
 
+    public function pdf(Request $request): Response
+    {
+        $mes = $request->query('mes') ? Carbon::parse($request->query('mes') . '-01') : now();
+
+        $resumenMes = $this->resumen($mes->copy()->startOfMonth(), $mes->copy()->endOfMonth());
+
+        $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
+            ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
+            ->orderBy('fecha_movimiento')
+            ->get();
+
+        $pdf = Pdf::loadView('director.caja.pdf', [
+            'mes' => $mes,
+            'resumenMes' => $resumenMes,
+            'movimientos' => $movimientos,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream("libro-caja-{$mes->format('Y-m')}.pdf");
+    }
+
     public function storeGasto(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'concepto' => ['required', 'string', 'max:100'],
-            'monto' => ['required', 'numeric', 'min:0.01'],
+            'concepto' => ['required', 'string', 'max:30'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999'],
             'fecha_movimiento' => ['required', 'date'],
         ]);
 
