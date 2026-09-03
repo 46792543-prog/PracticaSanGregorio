@@ -17,7 +17,7 @@
                 <div class="grid sm:grid-cols-2 gap-4 mb-4">
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE DE LA INSTITUCIÓN *</label>
-                        <input type="text" name="nombre_institucion" data-solo="letras" data-max-len="20" maxlength="20" required
+                        <input type="text" name="nombre_institucion" data-solo="letras" data-max-len="40" maxlength="40" required
                                value="{{ old('nombre_institucion', $configuracion->nombre_institucion ?? '') }}"
                                class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                     </div>
@@ -45,7 +45,7 @@
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">EMAIL DE CONTACTO</label>
-                        <input type="email" name="email_contacto" maxlength="20"
+                        <input type="email" name="email_contacto" maxlength="40"
                                value="{{ old('email_contacto', $configuracion->email_contacto ?? '') }}"
                                class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                     </div>
