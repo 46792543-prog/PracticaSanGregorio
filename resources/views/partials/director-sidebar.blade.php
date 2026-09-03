@@ -33,8 +33,7 @@
             </svg>
         </div>
         <div class="min-w-0">
-            <p class="font-bold text-[15px] leading-tight truncate">Instituto Superior</p>
-            <p class="font-bold text-[15px] leading-tight truncate">San Gregorio</p>
+            <p class="font-bold text-[15px] leading-tight">{{ \App\Models\ConfiguracionInstitucion::first()?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</p>
             <p class="text-[10px] font-semibold tracking-widest text-[#e8c465] mt-0.5">DIRECCIÓN</p>
         </div>
     </div>
