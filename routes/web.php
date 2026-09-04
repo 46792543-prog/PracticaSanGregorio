@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ProfesorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CuotaController;
+use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
@@ -171,4 +172,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::delete('/configuracion', [DirectorConfiguracionController::class, 'destroy'])->name('configuracion.destroy');
+
+    Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 });

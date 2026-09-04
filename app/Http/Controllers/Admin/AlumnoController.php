@@ -105,11 +105,13 @@ class AlumnoController extends Controller
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
             'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
-            'fecha_nacimiento' => ['required', 'date', 'before:today'],
+            'fecha_nacimiento' => ['required', 'date', 'before_or_equal:' . now()->subYears(17)->toDateString()],
             'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'direccion' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')],
             'localidad' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\'-]+$/u'],
+        ], [
+            'fecha_nacimiento.before_or_equal' => 'El alumno debe tener al menos 17 años.',
         ]);
 
         session([self::SESSION_KEY . '.personales' => $datos]);
