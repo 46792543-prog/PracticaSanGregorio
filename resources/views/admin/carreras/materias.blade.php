@@ -85,7 +85,7 @@
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE</label>
-                <input type="text" maxlength="40" name="nombre" id="input-materia-nombre" required
+                <input type="text" maxlength="150" name="nombre" id="input-materia-nombre" required
                        oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>

@@ -148,77 +148,113 @@
                     @if ($cuotasPendientes->isEmpty())
                         <p class="text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3">✓ Este alumno no tiene cuotas pendientes.</p>
                     @else
-                        <form method="POST" action="{{ route('director.cuotas.cobrar') }}">
+                        <form id="form-cobrar-cuotas" method="POST" action="{{ route('director.cuotas.cobrar') }}">
                             @csrf
                             <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                        </form>
 
-                            <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
-                            <div class="space-y-2 mb-4">
-                                @foreach ($cuotasPendientes as $cuota)
-                                    <div class="rounded-xl bg-white border border-slate-200 px-4 py-3 has-[:checked]:border-[#1E4D8C] has-[:checked]:bg-blue-50/60">
-                                        <label class="flex items-center justify-between gap-3 cursor-pointer">
-                                            <span class="flex items-center gap-3">
-                                                <input type="checkbox" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" checked>
-                                                <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</span>
-                                            </span>
+                        <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
+                        <div class="space-y-2 mb-4">
+                            @foreach ($cuotasPendientes as $cuota)
+                                <div class="rounded-xl bg-white border border-slate-200 px-4 py-3 has-[:checked]:border-[#1E4D8C] has-[:checked]:bg-blue-50/60">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <label class="flex items-center gap-3 cursor-pointer flex-1">
+                                            <input type="checkbox" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" checked>
+                                            <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</span>
                                         </label>
-                                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
-                                            <div>
-                                                <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Monto</label>
-                                                <div class="flex items-center gap-1">
-                                                    <span class="text-slate-400 text-sm">$</span>
-                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
-                                                           class="cuota-monto w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30" data-id="{{ $cuota->id_cuota }}">
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] font-semibold text-amber-600 uppercase mb-1">Recargo por mora</label>
-                                                <div class="flex items-center gap-1">
-                                                    <span class="text-slate-400 text-sm">$</span>
-                                                    <input type="number" step="0.01" min="0" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="0"
-                                                           class="cuota-recargo w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" data-id="{{ $cuota->id_cuota }}">
-                                                </div>
-                                            </div>
-                                            <div class="col-span-2 sm:col-span-1">
-                                                <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Subtotal</label>
-                                                <p class="cuota-subtotal font-bold text-slate-700 text-sm py-1.5" data-id="{{ $cuota->id_cuota }}">
-                                                    $ {{ number_format($cuota->monto, 0, ',', '.') }}
-                                                </p>
-                                            </div>
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            <button type="button" onclick="document.getElementById('editar-cuota-{{ $cuota->id_cuota }}').classList.toggle('hidden')"
+                                                    class="h-7 w-7 grid place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-[#1E4D8C]" title="Editar cuota">✏️</button>
+                                            <form method="POST" action="{{ route('director.cuotas.eliminar', $cuota) }}" onsubmit="return confirm('¿Eliminar esta cuota? Esta acción no se puede deshacer.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                                <button type="submit" class="h-7 w-7 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600" title="Eliminar cuota">🗑️</button>
+                                            </form>
                                         </div>
                                     </div>
-                                @endforeach
-                            </div>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                                        <div>
+                                            <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Monto</label>
+                                            <div class="flex items-center gap-1">
+                                                <span class="text-slate-400 text-sm">$</span>
+                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
+                                                       class="cuota-monto w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30" data-id="{{ $cuota->id_cuota }}">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-semibold text-amber-600 uppercase mb-1">Recargo por mora</label>
+                                            <div class="flex items-center gap-1">
+                                                <span class="text-slate-400 text-sm">$</span>
+                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="0"
+                                                       class="cuota-recargo w-full rounded-lg border border-amber-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" data-id="{{ $cuota->id_cuota }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-span-2 sm:col-span-1">
+                                            <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Subtotal</label>
+                                            <p class="cuota-subtotal font-bold text-slate-700 text-sm py-1.5" data-id="{{ $cuota->id_cuota }}">
+                                                $ {{ number_format($cuota->monto, 0, ',', '.') }}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                            <div class="grid sm:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DE PAGO *</label>
-                                    <input type="date" name="fecha_pago" value="{{ now()->toDateString() }}" required
-                                           class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                    <div id="editar-cuota-{{ $cuota->id_cuota }}" class="hidden mt-3 pt-3 border-t border-dashed border-slate-200">
+                                        <form method="POST" action="{{ route('director.cuotas.actualizar', $cuota) }}" class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                            <div class="col-span-2">
+                                                <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Concepto</label>
+                                                <input type="text" name="concepto" data-solo="alfanumerico" data-max-len="20" maxlength="20" value="{{ $cuota->concepto }}"
+                                                       class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Monto</label>
+                                                <input type="number" step="0.01" min="0" name="monto" value="{{ $cuota->monto }}" required
+                                                       class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-semibold text-slate-400 uppercase mb-1">Vencimiento</label>
+                                                <input type="date" name="fecha_vencimiento" value="{{ $cuota->fecha_vencimiento?->toDateString() }}"
+                                                       class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30">
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-4 flex justify-end">
+                                                <button type="submit" class="rounded-lg bg-[#1E4D8C] text-white font-semibold text-xs px-4 py-2">Guardar cambios de la cuota</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">MEDIO DE PAGO *</label>
-                                    <select name="medio_pago" required class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
-                                        <option value="Efectivo">Efectivo</option>
-                                        <option value="Transferencia">Transferencia</option>
-                                    </select>
-                                </div>
-                            </div>
+                            @endforeach
+                        </div>
 
-                            <div class="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-4 py-3 mb-4">
-                                <span class="font-semibold text-slate-600 text-sm">Total a registrar:</span>
-                                <span id="total-cobro" class="font-bold text-lg text-[#1E4D8C]">$ {{ number_format($cuotasPendientes->sum('monto'), 0, ',', '.') }}</span>
+                        <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DE PAGO *</label>
+                                <input type="date" form="form-cobrar-cuotas" name="fecha_pago" value="{{ now()->toDateString() }}" required
+                                       class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                             </div>
-
-                            <p class="text-xs text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3 mb-4">
-                                ✓ Al confirmar: el estado de {{ $alumnoSeleccionado->apellido }}, {{ $alumnoSeleccionado->nombre }} se actualizará y se registrará automáticamente un ingreso en el Libro de Caja.
-                            </p>
-
-                            <div class="flex justify-end gap-3">
-                                <a href="{{ route('director.cuotas.index') }}" class="rounded-xl border border-slate-300 text-slate-600 font-semibold text-sm px-6 py-2.5">Cancelar</a>
-                                <button type="submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 py-2.5 transition">✓ Confirmar cobro y registrar en Caja</button>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">MEDIO DE PAGO *</label>
+                                <select form="form-cobrar-cuotas" name="medio_pago" required class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                </select>
                             </div>
-                        </form>
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-4 py-3 mb-4">
+                            <span class="font-semibold text-slate-600 text-sm">Total a registrar:</span>
+                            <span id="total-cobro" class="font-bold text-lg text-[#1E4D8C]">$ {{ number_format($cuotasPendientes->sum('monto'), 0, ',', '.') }}</span>
+                        </div>
+
+                        <p class="text-xs text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3 mb-4">
+                            ✓ Al confirmar: el estado de {{ $alumnoSeleccionado->apellido }}, {{ $alumnoSeleccionado->nombre }} se actualizará y se registrará automáticamente un ingreso en el Libro de Caja.
+                        </p>
+
+                        <div class="flex justify-end gap-3">
+                            <a href="{{ route('director.cuotas.index') }}" class="rounded-xl border border-slate-300 text-slate-600 font-semibold text-sm px-6 py-2.5">Cancelar</a>
+                            <button type="submit" form="form-cobrar-cuotas" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 py-2.5 transition">✓ Confirmar cobro y registrar en Caja</button>
+                        </div>
 
                         <script>
                             function recalcularCuota(id) {

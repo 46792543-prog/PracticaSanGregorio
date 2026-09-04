@@ -91,7 +91,7 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'numero_orden' => ['required', 'integer', 'min:1'],
-            'nombre' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
@@ -115,7 +115,7 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'numero_orden' => ['required', 'integer', 'min:1'],
-            'nombre' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
