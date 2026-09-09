@@ -29,7 +29,8 @@ class MesaController extends Controller
             ->where('id_turno', $turnoId)
             ->when($request->query('q'), fn ($q, $busqueda) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$busqueda}%")))
             ->orderBy('fecha_examen')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
         return view('admin.mesas.index', [
             'mesas' => $mesas,
