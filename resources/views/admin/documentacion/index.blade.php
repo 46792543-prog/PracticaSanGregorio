@@ -19,7 +19,7 @@
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
             <p class="text-xs font-semibold text-slate-400 uppercase">Pendientes</p>
-            <p class="text-2xl font-bold text-red-500">{{ $alumnos->whereIn('estado_documentacion', ['pendiente', 'sin_enviar'])->count() }}</p>
+            <p class="text-2xl font-bold text-red-500">{{ $totales['pendientes'] }}</p>
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
             <p class="text-xs font-semibold text-slate-400 uppercase">En revisión</p>
@@ -97,5 +97,8 @@
                 @endforelse
             </tbody>
         </table>
+        <div class="px-6 py-4 border-t border-slate-100">
+            {{ $alumnos->links() }}
+        </div>
     </div>
 @endsection
