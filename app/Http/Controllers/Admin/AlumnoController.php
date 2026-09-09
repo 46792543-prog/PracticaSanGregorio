@@ -49,6 +49,13 @@ class AlumnoController extends Controller
             $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('id_carrera', $carreraId));
         }
 
+        if ($estado === 'baja') {
+            $query->whereHas('inscripcionesCarrera.estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'));
+        } elseif ($estado === 'activo') {
+            $query->whereHas('inscripcionesCarrera')
+                ->whereDoesntHave('inscripcionesCarrera.estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'));
+        }
+
         $alumnos = $query->orderBy('apellido')->paginate(8)->withQueryString();
 
         $carreras = Carrera::orderBy('nombre_carrera')->get();

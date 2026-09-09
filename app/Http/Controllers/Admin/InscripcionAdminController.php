@@ -19,7 +19,8 @@ class InscripcionAdminController extends Controller
         $inscripciones = InscripcionMesa::with('personaAlumno', 'mesaExamen.materia.carrera', 'mesaExamen.materia.nombreMateria', 'estadoInscripcion')
             ->when($filtro !== 'todas', fn ($q) => $q->whereHas('estadoInscripcion', fn ($e) => $e->where('nombre_estado', $filtro)))
             ->orderByDesc('fecha_inscripcion')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
         return view('admin.inscripciones.index', [
             'inscripciones' => $inscripciones,

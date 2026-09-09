@@ -123,7 +123,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse ($profesores as $profesor)
+                @forelse ($profesoresPaginados as $profesor)
                     @php
                         $edicionProfesorPayload = [
                             'id_profesor' => $profesor->id_profesor,
@@ -171,6 +171,9 @@
                 @endforelse
             </tbody>
         </table>
+        <div class="px-6 py-4 border-t border-slate-100">
+            {{ $profesoresPaginados->links() }}
+        </div>
     </div>
 
     {{-- Modal: nueva especialidad --}}
@@ -329,5 +332,8 @@
                 @endforelse
             </tbody>
         </table>
+        <div class="px-6 py-4 border-t border-slate-100">
+            {{ $asignaciones->links() }}
+        </div>
     </div>
 @endsection
