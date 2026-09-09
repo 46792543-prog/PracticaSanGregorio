@@ -1,3 +1,19 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+<script>
+    // El selector de fecha nativo del navegador muestra el calendario en el idioma
+    // configurado en el sistema operativo/navegador del usuario (a veces inglés,
+    // aunque la página esté en español). Flatpickr reemplaza ese calendario por uno
+    // propio, siempre en español, sin depender de esa configuración.
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr.localize(flatpickr.l10ns.es);
+        document.querySelectorAll('input[type="date"]').forEach(function (el) {
+            flatpickr(el, { altInput: true, altFormat: 'd/m/Y', dateFormat: 'Y-m-d' });
+        });
+    });
+</script>
+
 <script>
     // Filtra en tiempo real lo que el usuario escribe/pega en campos marcados con
     // data-solo o data-nota. Es una ayuda de UX (evita que se pueda ni siquiera
@@ -46,4 +62,35 @@
         if (isNaN(n) || n < 1) el.value = '1';
         else if (n > 10) el.value = '10';
     }, true);
+</script>
+
+<script>
+    // Confirmación de acciones destructivas (data-confirm="mensaje" en el <form>)
+    // sin usar el confirm() nativo del navegador: Chrome bloquea en silencio los
+    // diálogos si se disparan varias veces seguidas en la misma página (sin avisar
+    // ni mostrar nada), lo que hacía que un "Dar de baja" pareciera no hacer nada.
+    // En su lugar, el primer clic cambia el botón a un estado "¿Confirmar?" y recién
+    // el segundo clic (dentro de los 4s) envía el formulario de verdad.
+    document.addEventListener('submit', function (evento) {
+        var form = evento.target;
+        var mensaje = form.dataset.confirm;
+        if (!mensaje || form.dataset.confirmado === 'si') return;
+
+        evento.preventDefault();
+
+        var boton = evento.submitter || form.querySelector('button[type="submit"], button:not([type])');
+        if (!boton) return;
+
+        var textoOriginal = boton.textContent;
+        boton.textContent = '¿Confirmar? Clic de nuevo';
+        boton.classList.add('animate-pulse');
+        form.dataset.confirmado = 'si';
+
+        clearTimeout(form._confirmTimeout);
+        form._confirmTimeout = setTimeout(function () {
+            form.dataset.confirmado = 'no';
+            boton.textContent = textoOriginal;
+            boton.classList.remove('animate-pulse');
+        }, 4000);
+    });
 </script>

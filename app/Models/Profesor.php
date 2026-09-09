@@ -17,15 +17,31 @@ class Profesor extends Model
         'condicion',
         'email',
         'activo',
+        'id_secretario_baja',
+        'fecha_baja',
+        'id_secretario_reactiva',
+        'fecha_reactivacion',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'fecha_baja' => 'datetime',
+        'fecha_reactivacion' => 'datetime',
     ];
 
     public function persona(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_persona', 'id_persona');
+    }
+
+    public function secretarioBaja(): BelongsTo
+    {
+        return $this->belongsTo(Persona::class, 'id_secretario_baja', 'id_persona');
+    }
+
+    public function secretarioReactiva(): BelongsTo
+    {
+        return $this->belongsTo(Persona::class, 'id_secretario_reactiva', 'id_persona');
     }
 
     public function especialidad(): BelongsTo

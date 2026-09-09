@@ -32,7 +32,7 @@
                 <div class="grid sm:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DE NACIMIENTO *</label>
-                        <input type="date" name="fecha_nacimiento" value="{{ old('fecha_nacimiento', $datos['fecha_nacimiento'] ?? '') }}" required
+                        <input type="date" name="fecha_nacimiento" value="{{ old('fecha_nacimiento', $datos['fecha_nacimiento'] ?? '') }}" max="{{ now()->subYears(17)->toDateString() }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div>

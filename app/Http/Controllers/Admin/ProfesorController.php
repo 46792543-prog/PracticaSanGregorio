@@ -12,6 +12,7 @@ use App\Models\Persona;
 use App\Models\Profesor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ProfesorController extends Controller
@@ -96,14 +97,22 @@ class ProfesorController extends Controller
 
     public function baja(Profesor $profesor): RedirectResponse
     {
-        $profesor->update(['activo' => false]);
+        $profesor->update([
+            'activo' => false,
+            'id_secretario_baja' => Auth::user()->id_persona,
+            'fecha_baja' => now(),
+        ]);
 
         return back()->with('status', 'Profesor dado de baja.');
     }
 
     public function reactivar(Profesor $profesor): RedirectResponse
     {
-        $profesor->update(['activo' => true]);
+        $profesor->update([
+            'activo' => true,
+            'id_secretario_reactiva' => Auth::user()->id_persona,
+            'fecha_reactivacion' => now(),
+        ]);
 
         return back()->with('status', 'Profesor reactivado.');
     }

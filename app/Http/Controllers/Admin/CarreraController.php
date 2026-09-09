@@ -165,20 +165,29 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'id_materia_principal' => ['required', 'exists:materia,id_materia'],
-            'id_materia_requisito' => ['required', 'exists:materia,id_materia', 'different:id_materia_principal'],
+            'id_materia_requisito' => ['required', 'array', 'min:1'],
+            'id_materia_requisito.*' => ['exists:materia,id_materia', 'different:id_materia_principal'],
             'requiere_regularizada' => ['nullable', 'boolean'],
             'requiere_aprobada' => ['nullable', 'boolean'],
+        ], [
+            'id_materia_requisito.*.different' => 'Una materia no puede ser correlativa de sí misma. Destildá la materia destino de la lista de requeridas.',
+        ], [
+            'id_materia_principal' => 'materia cursante/destino',
+            'id_materia_requisito' => 'materia correlativa',
+            'id_materia_requisito.*' => 'materia correlativa',
         ]);
 
-        Correlativa::updateOrCreate(
-            ['id_materia_principal' => $data['id_materia_principal'], 'id_materia_requisito' => $data['id_materia_requisito']],
-            [
-                'requiere_regularizada' => $request->boolean('requiere_regularizada'),
-                'requiere_aprobada' => $request->boolean('requiere_aprobada'),
-            ]
-        );
+        foreach ($data['id_materia_requisito'] as $idRequisito) {
+            Correlativa::updateOrCreate(
+                ['id_materia_principal' => $data['id_materia_principal'], 'id_materia_requisito' => $idRequisito],
+                [
+                    'requiere_regularizada' => $request->boolean('requiere_regularizada'),
+                    'requiere_aprobada' => $request->boolean('requiere_aprobada'),
+                ]
+            );
+        }
 
-        return back()->with('status', 'Correlativa guardada.');
+        return back()->with('status', 'Correlativa(s) guardada(s).');
     }
 
     public function destroyCorrelativa(int $principal, int $requisito): RedirectResponse

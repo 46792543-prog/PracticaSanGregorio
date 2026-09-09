@@ -153,7 +153,7 @@
                                 <button type="button" class="text-[#1E4D8C] hover:underline"
                                         onclick='editarProfesor(@json($edicionProfesorPayload))'>Editar</button>
                                 @if ($profesor->activo)
-                                    <form method="POST" action="{{ route('admin.profesores.baja', $profesor) }}" onsubmit="return confirm('¿Dar de baja a este profesor? Ya no va a poder asignarse a nuevas materias ni tribunales.');">
+                                    <form method="POST" action="{{ route('admin.profesores.baja', $profesor) }}" data-confirm="¿Dar de baja a este profesor? Ya no va a poder asignarse a nuevas materias ni tribunales.">
                                         @csrf @method('PUT')
                                         <button class="text-red-500 hover:underline">Dar de baja</button>
                                     </form>
