@@ -26,12 +26,21 @@ class ProfesorController extends Controller
             ->when($request->query('dia'), fn ($q, $dia) => $q->whereHas('horarios', fn ($w) => $w->where('dia_semana', ucfirst($dia))))
             ->when($request->query('materia'), fn ($q, $m) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$m}%")))
             ->orderByDesc('id_asignacion')
-            ->get();
+            ->paginate(15, ['*'], 'pagina_asignaciones')
+            ->withQueryString();
 
         $profesores = Profesor::with('persona', 'especialidad')->get()->sortBy('apellido');
 
+        $profesoresPaginados = Profesor::with('persona', 'especialidad')
+            ->join('persona', 'persona.id_persona', '=', 'profesor.id_persona')
+            ->orderBy('persona.apellido')
+            ->select('profesor.*')
+            ->paginate(15, ['*'], 'pagina_profesores')
+            ->withQueryString();
+
         return view('admin.profesores.index', [
             'profesores' => $profesores,
+            'profesoresPaginados' => $profesoresPaginados,
             'profesoresActivos' => $profesores->where('activo', true),
             'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
