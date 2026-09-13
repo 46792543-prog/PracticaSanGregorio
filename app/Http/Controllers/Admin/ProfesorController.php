@@ -10,6 +10,7 @@ use App\Models\EspecialidadProfesor;
 use App\Models\HorarioAsignacion;
 use App\Models\Persona;
 use App\Models\Profesor;
+use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,9 +19,10 @@ class ProfesorController extends Controller
 {
     public function index(Request $request): View
     {
-        $anioLectivo = AnioLectivo::orderByDesc('anio')->first();
+        $anioLectivo = CorteActivo::actual() ?? AnioLectivo::orderByDesc('anio')->first();
 
         $asignaciones = AsignacionProfesorMateria::with('profesor.persona', 'materia.carrera', 'materia.nombreMateria', 'horarios')
+            ->when($anioLectivo, fn ($q) => $q->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo))
             ->when($request->query('profesor'), fn ($q, $p) => $q->where('id_profesor', $p))
             ->when($request->query('dia'), fn ($q, $dia) => $q->whereHas('horarios', fn ($w) => $w->where('dia_semana', ucfirst($dia))))
             ->when($request->query('materia'), fn ($q, $m) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$m}%")))

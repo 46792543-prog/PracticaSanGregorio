@@ -12,6 +12,7 @@ use App\Models\Profesor;
 use App\Models\RolTribunal;
 use App\Models\TribunalMesa;
 use App\Models\TurnoExamen;
+use App\Support\CorteActivo;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,11 @@ class MesaController extends Controller
     {
         $turnos = TurnoExamen::orderBy('id_turno')->get();
         $turnoId = (int) $request->query('turno', $turnos->firstWhere('nombre_turno', 'Turno Julio')?->id_turno ?? $turnos->first()?->id_turno);
+        $corteActivo = CorteActivo::actual();
 
         $mesas = MesaExamen::with('materia.carrera', 'materia.nombreMateria', 'tribunal.profesor.persona', 'tribunal.rolTribunal', 'llamadoExamen', 'inscripciones', 'estadoMesa')
             ->where('id_turno', $turnoId)
+            ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
             ->when($request->query('q'), fn ($q, $busqueda) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$busqueda}%")))
             ->orderBy('fecha_examen')
             ->get();
@@ -36,6 +39,7 @@ class MesaController extends Controller
             'turno' => $turnoId,
             'turnos' => $turnos,
             'busqueda' => $request->query('q'),
+            'corteActivo' => $corteActivo,
         ]);
     }
 
@@ -53,7 +57,7 @@ class MesaController extends Controller
     {
         $data = $this->validarDatosMesa($request);
 
-        $anioLectivo = AnioLectivo::orderByDesc('anio')->firstOrFail();
+        $anioLectivo = CorteActivo::actual() ?? AnioLectivo::orderByDesc('anio')->firstOrFail();
 
         $mesa = MesaExamen::create([
             'id_materia' => $data['id_materia'],

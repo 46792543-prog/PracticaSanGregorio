@@ -11,6 +11,7 @@ use App\Models\Mes;
 use App\Models\MovimientoCaja;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
+use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,8 +50,11 @@ class CuotaController extends Controller
                 });
         }
 
+        $corteActivo = CorteActivo::actual();
+
         $historial = CuotaAlumno::where('pagado', true)
             ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
+            ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
             ->when($request->query('h_alumno'), fn ($q, $v) => $q->whereHas('personaAlumno', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
             ->orderByDesc('id_cuota')
             ->paginate(8, ['*'], 'historial')
@@ -64,6 +68,7 @@ class CuotaController extends Controller
             'filtroHistorialAlumno' => $request->query('h_alumno'),
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
             'meses' => Mes::orderBy('id_mes')->get(),
+            'corteActivo' => $corteActivo,
         ]);
     }
 

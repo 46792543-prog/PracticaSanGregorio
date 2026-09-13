@@ -76,4 +76,57 @@
             @endif
         </div>
     </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+        <div class="bg-[#1E4D8C] px-6 py-3.5">
+            <h2 class="text-white font-bold text-sm flex items-center gap-2">📅 Años Lectivos (Cortes)</h2>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" action="{{ route('director.configuracion.cortes.store') }}" class="grid sm:grid-cols-[1fr_auto] gap-4 mb-6">
+                @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">NUEVO CORTE (AÑO) *</label>
+                    <input type="number" name="anio" min="2000" max="2100" step="1" placeholder="{{ now()->year + 1 }}" required
+                           value="{{ old('anio') }}"
+                           class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="rounded-xl bg-[#1E4D8C] hover:shadow-md text-white font-semibold text-sm px-6 py-2.5 transition">➕ Cargar corte</button>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                @forelse ($aniosLectivos as $anio)
+                    <div class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-slate-700 text-sm">Corte {{ $anio->anio }}</span>
+                            @if ($anio->estadoAnio?->nombre_estado === 'Activo')
+                                <span class="text-xs font-semibold rounded-full px-3 py-1 bg-emerald-100 text-emerald-700">Activo</span>
+                            @else
+                                <span class="text-xs font-semibold rounded-full px-3 py-1 bg-slate-100 text-slate-500">Cerrado</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <form method="POST" action="{{ route('director.configuracion.cortes.estado', $anio) }}">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs px-3 py-1.5 transition">
+                                    {{ $anio->estadoAnio?->nombre_estado === 'Activo' ? 'Cerrar' : 'Reactivar' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('director.configuracion.cortes.destroy', $anio) }}"
+                                  onsubmit="return confirm('¿Eliminar el corte {{ $anio->anio }}? Sólo se puede eliminar si no tiene datos cargados.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600" title="Eliminar corte">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400">Todavía no hay cortes cargados.</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
 @endsection

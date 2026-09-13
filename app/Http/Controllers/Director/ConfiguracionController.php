@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnioLectivo;
 use App\Models\ConfiguracionInstitucion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class ConfiguracionController extends Controller
     {
         return view('director.configuracion.index', [
             'configuracion' => ConfiguracionInstitucion::first(),
+            'aniosLectivos' => AnioLectivo::with('estadoAnio')->orderByDesc('anio')->get(),
         ]);
     }
 

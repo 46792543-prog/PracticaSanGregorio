@@ -61,7 +61,7 @@
 
                     @php
                         $cuotasPorAnio = $alumnoSeleccionado->persona->cuotas->groupBy('id_anio_lectivo')->map(fn ($c) => $c->pluck('id_mes'));
-                        $anioVigenteId = $anios->first()?->id_anio_lectivo;
+                        $anioVigenteId = $corteActivo?->id_anio_lectivo ?? $anios->first()?->id_anio_lectivo;
                     @endphp
 
                     <details class="mb-4 rounded-xl border border-slate-200 bg-white">
