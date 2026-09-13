@@ -7,10 +7,12 @@ use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionCont
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
 use App\Http\Controllers\Admin\PanelController as AdminPanelController;
+use App\Http\Controllers\Admin\PeriodoCursadaController;
 use App\Http\Controllers\Admin\ProfesorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CuotaController;
+use App\Http\Controllers\CursadaController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
@@ -59,6 +61,9 @@ Route::middleware(['auth', 'alumno'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
+    Route::get('/cursada', [CursadaController::class, 'index'])->name('cursada.index');
+    Route::post('/cursada/{materia}/inscribirme', [CursadaController::class, 'inscribir'])->name('cursada.inscribir');
+
     Route::get('/mesas-examen', [MesaExamenController::class, 'index'])->name('mesas-examen.index');
     Route::post('/mesas-examen/{mesa}/inscribirme', [MesaExamenController::class, 'inscribir'])->name('mesas-examen.inscribir');
 
@@ -90,6 +95,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
+    Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
+    Route::post('/alumnos/{persona}/seguimiento', [AlumnoController::class, 'storeSeguimiento'])->name('alumnos.seguimiento.store');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
@@ -113,6 +120,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
     Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
+
+    Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
+    Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
