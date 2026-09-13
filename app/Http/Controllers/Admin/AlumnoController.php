@@ -240,6 +240,24 @@ class AlumnoController extends Controller
         return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
     }
 
+    public function alta(Request $request, Persona $persona): RedirectResponse
+    {
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+
+        abort_unless($inscripcion, 404);
+
+        $inscripcion->update([
+            'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
+            'fecha_baja' => null,
+            'id_secretario_baja' => null,
+        ]);
+
+        return back()->with('status', "Se dio de alta nuevamente a {$persona->nombre} {$persona->apellido}.");
+    }
+
     public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
     {
         abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);

@@ -22,6 +22,11 @@
                     @csrf @method('PUT')
                     <button type="submit" class="rounded-lg bg-red-50 text-red-600 text-sm font-semibold px-4 py-2">Dar de baja</button>
                 </form>
+            @elseif ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Baja')
+                <form method="POST" action="{{ route('admin.alumnos.alta', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de alta nuevamente a este alumno?');">
+                    @csrf @method('PUT')
+                    <button type="submit" class="rounded-lg bg-emerald-50 text-emerald-600 text-sm font-semibold px-4 py-2">Dar de alta</button>
+                </form>
             @endif
         </div>
     </div>

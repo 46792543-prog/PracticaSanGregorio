@@ -92,6 +92,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
+    Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
