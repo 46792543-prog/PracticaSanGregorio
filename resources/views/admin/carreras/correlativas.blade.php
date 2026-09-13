@@ -12,11 +12,11 @@
         <h2 class="font-bold text-slate-800 mb-1">Matriz de Correlatividades de Materias</h2>
         <p class="text-sm text-slate-400 mb-6">Defina qué asignaturas son prerrequisitos de aprobación o regularidad para avanzar.</p>
 
-        <form method="POST" action="{{ route('admin.carreras.correlativas.store', $carrera) }}" class="grid sm:grid-cols-3 gap-4 items-end mb-8">
+        <form method="POST" action="{{ route('admin.carreras.correlativas.store', $carrera) }}" class="grid sm:grid-cols-3 gap-4 items-start mb-8">
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CURSANTE / DESTINO</label>
-                <select name="id_materia_principal" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+                <select id="select-materia-principal" name="id_materia_principal" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
                     @foreach ($materias as $materia)
                         <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
                     @endforeach
@@ -24,12 +24,15 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CORRELATIVA / REQUERIDA</label>
-                <select name="id_materia_requisito" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                    <option value="">Seleccione la materia previa...</option>
+                <div class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto space-y-1.5">
                     @foreach ($materias as $materia)
-                        <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
+                        <label class="checkbox-requisito-label flex items-center gap-2 font-normal text-slate-700">
+                            <input type="checkbox" name="id_materia_requisito[]" value="{{ $materia->id_materia }}" class="checkbox-requisito h-4 w-4 rounded">
+                            {{ $materia->nombre }}
+                        </label>
                     @endforeach
-                </select>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Tildá una o más materias.</p>
             </div>
             <div class="flex items-center gap-6">
                 <label class="flex items-center gap-2 text-sm font-semibold text-slate-600">
@@ -93,4 +96,24 @@
         <a href="{{ route('admin.carreras.materias', $carrera) }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">← Volver</a>
         <a href="{{ route('admin.carreras.plan', $carrera) }}" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow transition text-white font-semibold text-sm px-6 py-2.5">Ver plan de estudio</a>
     </div>
+
+    <script>
+        (function () {
+            const selectPrincipal = document.getElementById('select-materia-principal');
+
+            function actualizarOpcionesRequisito() {
+                document.querySelectorAll('.checkbox-requisito').forEach(function (checkbox) {
+                    const esLaMismaMateria = checkbox.value === selectPrincipal.value;
+                    checkbox.disabled = esLaMismaMateria;
+                    if (esLaMismaMateria) {
+                        checkbox.checked = false;
+                    }
+                    checkbox.closest('.checkbox-requisito-label').classList.toggle('opacity-40', esLaMismaMateria);
+                });
+            }
+
+            selectPrincipal.addEventListener('change', actualizarOpcionesRequisito);
+            actualizarOpcionesRequisito();
+        })();
+    </script>
 @endsection

@@ -106,7 +106,7 @@
                     @forelse ($movimientos as $i => $mov)
                         @php $esIngreso = $mov->tipo === 'Ingreso'; @endphp
                         <tr class="hover:bg-slate-50/70">
-                            <td class="px-6 py-3 text-slate-400">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</td>
+                            <td class="px-6 py-3 text-slate-400">{{ str_pad($movimientos->firstItem() + $i, 2, '0', STR_PAD_LEFT) }}</td>
                             <td class="px-6 py-3 text-slate-500">{{ $mov->fecha_movimiento->format('d/m') }} · {{ $mov->fecha_movimiento->format('H:i') }}</td>
                             <td class="px-6 py-3 text-slate-700">
                                 {{ $mov->concepto->nombre_concepto }}
@@ -145,6 +145,9 @@
                     </tfoot>
                 @endif
             </table>
+            <div class="px-6 py-4 border-t border-slate-100">
+                {{ $movimientos->links() }}
+            </div>
         </div>
 
         <div class="grid grid-cols-2 gap-6 px-10 py-8 text-center text-sm text-slate-500">

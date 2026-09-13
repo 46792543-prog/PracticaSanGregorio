@@ -126,7 +126,7 @@
             if (!this.value) return;
             const minimo = new Date(this.value + 'T00:00:00');
             minimo.setDate(minimo.getDate() + 7);
-            inputExamen.min = minimo.toISOString().slice(0, 10);
+            inputExamen._flatpickr.set('minDate', minimo);
         });
 
         // Sugerir turno de examen automáticamente según el mes de la fecha del examen.

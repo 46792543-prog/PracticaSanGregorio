@@ -10,6 +10,7 @@ use App\Models\EstadoDocumento;
 use App\Models\Persona;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -49,8 +50,20 @@ class DocumentacionController extends Controller
             $alumnos = $alumnos->where('estado_documentacion', 'completo');
         }
 
+        $pendientesTotal = $alumnos->whereIn('estado_documentacion', ['pendiente', 'sin_enviar'])->count();
+
+        $perPage = 15;
+        $pagina = LengthAwarePaginator::resolveCurrentPage();
+        $alumnosPaginados = (new LengthAwarePaginator(
+            $alumnos->forPage($pagina, $perPage)->values(),
+            $alumnos->count(),
+            $perPage,
+            $pagina,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
+        ))->withQueryString();
+
         return view('admin.documentacion.index', [
-            'alumnos' => $alumnos,
+            'alumnos' => $alumnosPaginados,
             'filtro' => $filtro,
             'busqueda' => $busqueda,
             'totales' => [
@@ -60,6 +73,7 @@ class DocumentacionController extends Controller
                 'completos' => Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
                     ->whereDoesntHave('documentacion.estadoDocumento', fn ($q) => $q->whereIn('nombre_estado', ['Pendiente', 'Entregado', 'Rechazado']))
                     ->count(),
+                'pendientes' => $pendientesTotal,
             ],
         ]);
     }

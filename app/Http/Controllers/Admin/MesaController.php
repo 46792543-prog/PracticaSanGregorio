@@ -32,7 +32,8 @@ class MesaController extends Controller
             ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
             ->when($request->query('q'), fn ($q, $busqueda) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$busqueda}%")))
             ->orderBy('fecha_examen')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
         return view('admin.mesas.index', [
             'mesas' => $mesas,
@@ -47,7 +48,7 @@ class MesaController extends Controller
     {
         return view('admin.mesas.create', [
             'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
-            'profesores' => Profesor::with('persona')->get()->sortBy('apellido'),
+            'profesores' => Profesor::with('persona')->where('activo', true)->get()->sortBy('apellido'),
             'turnos' => TurnoExamen::orderBy('id_turno')->get(),
             'llamados' => LlamadoExamen::orderBy('id_llamado')->get(),
         ]);
@@ -83,10 +84,14 @@ class MesaController extends Controller
         $tribunal = TribunalMesa::with('rolTribunal')->where('id_mesa', $mesa->id_mesa)->get()
             ->mapWithKeys(fn ($t) => [$t->rolTribunal->nombre_rol => $t->id_profesor]);
 
+        $profesores = Profesor::with('persona')
+            ->where(fn ($q) => $q->where('activo', true)->orWhereIn('id_profesor', $tribunal->values()))
+            ->get()->sortBy('apellido');
+
         return view('admin.mesas.edit', [
             'mesa' => $mesa,
             'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
-            'profesores' => Profesor::with('persona')->get()->sortBy('apellido'),
+            'profesores' => $profesores,
             'turnos' => TurnoExamen::orderBy('id_turno')->get(),
             'llamados' => LlamadoExamen::orderBy('id_llamado')->get(),
             'presidenteId' => $tribunal['Presidente'] ?? null,

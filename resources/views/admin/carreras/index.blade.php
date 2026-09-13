@@ -63,6 +63,7 @@
                             <a href="{{ route('admin.carreras.plan', $carrera) }}" class="text-blue-600 hover:underline">Ver plan</a>
                             <a href="{{ route('admin.carreras.materias', $carrera) }}" class="text-[#1E4D8C] hover:underline">Materias</a>
                             <a href="{{ route('admin.carreras.correlativas', $carrera) }}" class="text-[#1E4D8C] hover:underline">Correlativas</a>
+                            <a href="{{ route('admin.carreras.edit', $carrera) }}" class="text-[#1E4D8C] hover:underline">Editar</a>
                         </td>
                     </tr>
                 @empty

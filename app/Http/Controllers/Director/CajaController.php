@@ -27,7 +27,8 @@ class CajaController extends Controller
         $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
             ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
             ->orderByDesc('fecha_movimiento')
-            ->get();
+            ->paginate(20)
+            ->withQueryString();
 
         return view('director.caja.index', [
             'mes' => $mes,

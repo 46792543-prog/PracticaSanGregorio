@@ -7,6 +7,7 @@ use App\Models\AnioCursada;
 use App\Models\Carrera;
 use App\Models\Correlativa;
 use App\Models\EstadoCarrera;
+use App\Models\Materia;
 use App\Models\NombreMateria;
 use App\Models\PeriodoDictado;
 use App\Models\RegimenAprobacion;
@@ -52,6 +53,29 @@ class CarreraController extends Controller
             ->with('status', 'Carrera creada. Ahora sumá las materias de su plan de estudio.');
     }
 
+    public function edit(Carrera $carrera): View
+    {
+        return view('admin.carreras.edit', [
+            'carrera' => $carrera,
+            'estados' => EstadoCarrera::orderBy('id_estado_carrera')->get(),
+        ]);
+    }
+
+    public function update(Request $request, Carrera $carrera): RedirectResponse
+    {
+        $data = $request->validate([
+            'nombre_carrera' => ['required', 'string', 'max:50', 'unique:carrera,nombre_carrera,' . $carrera->id_carrera . ',id_carrera'],
+            'familia_profesional' => ['nullable', 'string', 'max:100'],
+            'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:6'],
+            'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
+        ]);
+
+        $carrera->update($data);
+
+        return redirect()->route('admin.carreras.index')->with('status', 'Carrera actualizada correctamente.');
+    }
+
     public function materias(Carrera $carrera): View
     {
         return view('admin.carreras.materias', [
@@ -67,7 +91,7 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'numero_orden' => ['required', 'integer', 'min:1'],
-            'nombre' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
@@ -87,6 +111,43 @@ class CarreraController extends Controller
         return back()->with('status', 'Materia agregada al plan de estudio.');
     }
 
+    public function updateMateria(Request $request, Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $data = $request->validate([
+            'numero_orden' => ['required', 'integer', 'min:1'],
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
+            'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
+            'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
+            'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
+        ]);
+
+        $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
+
+        $materia->update([
+            'numero_orden' => $data['numero_orden'],
+            'id_nombre_materia' => $nombreMateria->id_nombre_materia,
+            'id_anio_cursada' => $data['id_anio_cursada'],
+            'id_periodo' => $data['id_periodo'],
+            'id_regimen' => $data['id_regimen'],
+        ]);
+
+        return back()->with('status', 'Materia actualizada correctamente.');
+    }
+
+    public function bajaMateria(Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $materia->update(['activa' => false]);
+
+        return back()->with('status', 'Materia dada de baja.');
+    }
+
+    public function reactivarMateria(Carrera $carrera, Materia $materia): RedirectResponse
+    {
+        $materia->update(['activa' => true]);
+
+        return back()->with('status', 'Materia reactivada.');
+    }
+
     public function correlativas(Carrera $carrera): View
     {
         $materiaIds = $carrera->materias()->pluck('id_materia');
@@ -104,20 +165,29 @@ class CarreraController extends Controller
     {
         $data = $request->validate([
             'id_materia_principal' => ['required', 'exists:materia,id_materia'],
-            'id_materia_requisito' => ['required', 'exists:materia,id_materia', 'different:id_materia_principal'],
+            'id_materia_requisito' => ['required', 'array', 'min:1'],
+            'id_materia_requisito.*' => ['exists:materia,id_materia', 'different:id_materia_principal'],
             'requiere_regularizada' => ['nullable', 'boolean'],
             'requiere_aprobada' => ['nullable', 'boolean'],
+        ], [
+            'id_materia_requisito.*.different' => 'Una materia no puede ser correlativa de sí misma. Destildá la materia destino de la lista de requeridas.',
+        ], [
+            'id_materia_principal' => 'materia cursante/destino',
+            'id_materia_requisito' => 'materia correlativa',
+            'id_materia_requisito.*' => 'materia correlativa',
         ]);
 
-        Correlativa::updateOrCreate(
-            ['id_materia_principal' => $data['id_materia_principal'], 'id_materia_requisito' => $data['id_materia_requisito']],
-            [
-                'requiere_regularizada' => $request->boolean('requiere_regularizada'),
-                'requiere_aprobada' => $request->boolean('requiere_aprobada'),
-            ]
-        );
+        foreach ($data['id_materia_requisito'] as $idRequisito) {
+            Correlativa::updateOrCreate(
+                ['id_materia_principal' => $data['id_materia_principal'], 'id_materia_requisito' => $idRequisito],
+                [
+                    'requiere_regularizada' => $request->boolean('requiere_regularizada'),
+                    'requiere_aprobada' => $request->boolean('requiere_aprobada'),
+                ]
+            );
+        }
 
-        return back()->with('status', 'Correlativa guardada.');
+        return back()->with('status', 'Correlativa(s) guardada(s).');
     }
 
     public function destroyCorrelativa(int $principal, int $requisito): RedirectResponse

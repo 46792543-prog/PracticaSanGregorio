@@ -4,6 +4,7 @@
         ['ruta' => 'admin.alumnos.index', 'texto' => 'Alumnos', 'icono' => 'users'],
         ['ruta' => 'admin.profesores.index', 'texto' => 'Profesores', 'icono' => 'briefcase'],
         ['ruta' => 'admin.carreras.index', 'texto' => 'Carreras y planes', 'icono' => 'cap'],
+        ['ruta' => 'admin.cursada.index', 'texto' => 'Inscripción a cursada', 'icono' => 'cap'],
         ['ruta' => 'admin.mesas.index', 'texto' => 'Mesas de examen', 'icono' => 'clipboard'],
         ['ruta' => 'admin.actas.index', 'texto' => 'Actas', 'icono' => 'document'],
         ['ruta' => 'admin.inscripciones.index', 'texto' => 'Inscripciones', 'icono' => 'inbox'],

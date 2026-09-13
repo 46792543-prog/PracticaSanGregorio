@@ -79,5 +79,8 @@
                 @endforelse
             </tbody>
         </table>
+        <div class="px-6 py-4 border-t border-slate-100">
+            {{ $mesas->links() }}
+        </div>
     </div>
 @endsection

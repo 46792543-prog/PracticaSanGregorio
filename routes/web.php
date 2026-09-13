@@ -7,12 +7,15 @@ use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionCont
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
 use App\Http\Controllers\Admin\PanelController as AdminPanelController;
+use App\Http\Controllers\Admin\PeriodoCursadaController;
 use App\Http\Controllers\Admin\ProfesorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CorteActivoController;
 use App\Http\Controllers\CuotaController;
+use App\Http\Controllers\CursadaController;
 use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
+use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
@@ -62,6 +65,9 @@ Route::middleware(['auth', 'alumno'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
+    Route::get('/cursada', [CursadaController::class, 'index'])->name('cursada.index');
+    Route::post('/cursada/{materia}/inscribirme', [CursadaController::class, 'inscribir'])->name('cursada.inscribir');
+
     Route::get('/mesas-examen', [MesaExamenController::class, 'index'])->name('mesas-examen.index');
     Route::post('/mesas-examen/{mesa}/inscribirme', [MesaExamenController::class, 'inscribir'])->name('mesas-examen.inscribir');
 
@@ -94,6 +100,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
+    Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
+    Route::post('/alumnos/{persona}/seguimiento', [AlumnoController::class, 'storeSeguimiento'])->name('alumnos.seguimiento.store');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
@@ -106,15 +114,26 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras', [CarreraController::class, 'index'])->name('carreras.index');
     Route::get('/carreras/nueva', [CarreraController::class, 'create'])->name('carreras.create');
     Route::post('/carreras', [CarreraController::class, 'store'])->name('carreras.store');
+    Route::get('/carreras/{carrera}/editar', [CarreraController::class, 'edit'])->name('carreras.edit');
+    Route::put('/carreras/{carrera}', [CarreraController::class, 'update'])->name('carreras.update');
     Route::get('/carreras/{carrera}/plan', [CarreraController::class, 'plan'])->name('carreras.plan');
     Route::get('/carreras/{carrera}/materias', [CarreraController::class, 'materias'])->name('carreras.materias');
     Route::post('/carreras/{carrera}/materias', [CarreraController::class, 'storeMateria'])->name('carreras.materias.store');
+    Route::put('/carreras/{carrera}/materias/{materia}', [CarreraController::class, 'updateMateria'])->name('carreras.materias.update');
+    Route::put('/carreras/{carrera}/materias/{materia}/baja', [CarreraController::class, 'bajaMateria'])->name('carreras.materias.baja');
+    Route::put('/carreras/{carrera}/materias/{materia}/reactivar', [CarreraController::class, 'reactivarMateria'])->name('carreras.materias.reactivar');
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
     Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
 
+    Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
+    Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
+
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
+    Route::put('/profesores/{profesor}', [ProfesorController::class, 'update'])->name('profesores.update');
+    Route::put('/profesores/{profesor}/baja', [ProfesorController::class, 'baja'])->name('profesores.baja');
+    Route::put('/profesores/{profesor}/reactivar', [ProfesorController::class, 'reactivar'])->name('profesores.reactivar');
     Route::post('/profesores/especialidades', [ProfesorController::class, 'storeEspecialidad'])->name('profesores.especialidades.store');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
     Route::delete('/profesores/asignaciones/{asignacion}', [ProfesorController::class, 'destroyAsignacion'])->name('profesores.asignaciones.destroy');
@@ -174,4 +193,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
     Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');
     Route::delete('/configuracion/cortes/{anio}', [DirectorAnioLectivoController::class, 'destroy'])->name('configuracion.cortes.destroy');
+
+    Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 });

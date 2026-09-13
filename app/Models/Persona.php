@@ -40,6 +40,11 @@ class Persona extends Model
         return $this->hasMany(HistorialAlumno::class, 'id_persona_alumno', 'id_persona');
     }
 
+    public function seguimientos()
+    {
+        return $this->hasMany(SeguimientoAlumno::class, 'id_persona_alumno', 'id_persona');
+    }
+
     public function cuotas()
     {
         return $this->hasMany(CuotaAlumno::class, 'id_persona_alumno', 'id_persona');

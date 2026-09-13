@@ -56,6 +56,13 @@ class AlumnoController extends Controller
             $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo));
         }
 
+        if ($estado === 'baja') {
+            $query->whereHas('inscripcionesCarrera.estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'));
+        } elseif ($estado === 'activo') {
+            $query->whereHas('inscripcionesCarrera')
+                ->whereDoesntHave('inscripcionesCarrera.estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'));
+        }
+
         $alumnos = $query->orderBy('apellido')->paginate(8)->withQueryString();
 
         $carreras = Carrera::orderBy('nombre_carrera')->get();
@@ -102,7 +109,10 @@ class AlumnoController extends Controller
             'documentacion.documentoRequisito',
         ]);
 
-        return view('admin.alumnos.show', ['alumno' => $persona]);
+        $seguimientos = $persona->seguimientos()->with('autor')->latest()->get();
+        $condiciones = CondicionAlumno::whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Aprobada'])->orderBy('id_condicion')->get();
+
+        return view('admin.alumnos.show', ['alumno' => $persona, 'seguimientos' => $seguimientos, 'condiciones' => $condiciones]);
     }
 
     public function create(): View
@@ -116,11 +126,13 @@ class AlumnoController extends Controller
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
             'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
-            'fecha_nacimiento' => ['required', 'date', 'before:today'],
+            'fecha_nacimiento' => ['required', 'date', 'before_or_equal:' . now()->subYears(17)->toDateString()],
             'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'direccion' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')],
             'localidad' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\'-]+$/u'],
+        ], [
+            'fecha_nacimiento.before_or_equal' => 'El alumno debe tener al menos 17 años.',
         ]);
 
         session([self::SESSION_KEY . '.personales' => $datos]);
@@ -269,6 +281,38 @@ class AlumnoController extends Controller
         $historial->update($data);
 
         return back()->with('status', 'Plazo de regularidad actualizado correctamente.');
+    }
+
+    public function actualizarCondicionHistorial(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
+    {
+        abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
+
+        $data = $request->validate([
+            'id_condicion' => ['required', 'exists:condicion_alumno,id_condicion'],
+            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+        ]);
+
+        $historial->update([
+            'id_condicion' => $data['id_condicion'],
+            'nota_cursada' => $data['nota_cursada'] ?? null,
+            'fecha_ultima_modificacion' => now(),
+        ]);
+
+        return back()->with('status', 'Condición académica actualizada correctamente.');
+    }
+
+    public function storeSeguimiento(Request $request, Persona $persona): RedirectResponse
+    {
+        $data = $request->validate([
+            'texto' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $persona->seguimientos()->create([
+            'id_persona_autor' => Auth::user()->id_persona,
+            'texto' => $data['texto'],
+        ]);
+
+        return back()->with('status', 'Nota de seguimiento agregada.');
     }
 
     private function generarClave(string $dni): string

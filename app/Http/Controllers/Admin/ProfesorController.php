@@ -13,6 +13,7 @@ use App\Models\Profesor;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ProfesorController extends Controller
@@ -27,10 +28,22 @@ class ProfesorController extends Controller
             ->when($request->query('dia'), fn ($q, $dia) => $q->whereHas('horarios', fn ($w) => $w->where('dia_semana', ucfirst($dia))))
             ->when($request->query('materia'), fn ($q, $m) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$m}%")))
             ->orderByDesc('id_asignacion')
-            ->get();
+            ->paginate(15, ['*'], 'pagina_asignaciones')
+            ->withQueryString();
+
+        $profesores = Profesor::with('persona', 'especialidad')->get()->sortBy('apellido');
+
+        $profesoresPaginados = Profesor::with('persona', 'especialidad')
+            ->join('persona', 'persona.id_persona', '=', 'profesor.id_persona')
+            ->orderBy('persona.apellido')
+            ->select('profesor.*')
+            ->paginate(15, ['*'], 'pagina_profesores')
+            ->withQueryString();
 
         return view('admin.profesores.index', [
-            'profesores' => Profesor::with('persona', 'especialidad')->get()->sortBy('apellido'),
+            'profesores' => $profesores,
+            'profesoresPaginados' => $profesoresPaginados,
+            'profesoresActivos' => $profesores->where('activo', true),
             'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'anioLectivo' => $anioLectivo,
@@ -65,6 +78,54 @@ class ProfesorController extends Controller
         ]);
 
         return back()->with('status', 'Profesor agregado correctamente.');
+    }
+
+    public function update(Request $request, Profesor $profesor): RedirectResponse
+    {
+        $data = $request->validate([
+            'dni' => ['required', 'digits:8', 'unique:persona,dni,' . $profesor->id_persona . ',id_persona'],
+            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'email' => ['nullable', 'email', 'max:100', 'unique:profesor,email,' . $profesor->id_profesor . ',id_profesor'],
+            'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
+            'condicion' => ['required', 'in:Titular,Suplente'],
+        ]);
+
+        $profesor->persona->update([
+            'dni' => $data['dni'],
+            'nombre' => $data['nombre'],
+            'apellido' => $data['apellido'],
+        ]);
+
+        $profesor->update([
+            'email' => $data['email'] ?? null,
+            'id_especialidad' => $data['id_especialidad'],
+            'condicion' => $data['condicion'],
+        ]);
+
+        return back()->with('status', 'Profesor actualizado correctamente.');
+    }
+
+    public function baja(Profesor $profesor): RedirectResponse
+    {
+        $profesor->update([
+            'activo' => false,
+            'id_secretario_baja' => Auth::user()->id_persona,
+            'fecha_baja' => now(),
+        ]);
+
+        return back()->with('status', 'Profesor dado de baja.');
+    }
+
+    public function reactivar(Profesor $profesor): RedirectResponse
+    {
+        $profesor->update([
+            'activo' => true,
+            'id_secretario_reactiva' => Auth::user()->id_persona,
+            'fecha_reactivacion' => now(),
+        ]);
+
+        return back()->with('status', 'Profesor reactivado.');
     }
 
     public function storeEspecialidad(Request $request): RedirectResponse
