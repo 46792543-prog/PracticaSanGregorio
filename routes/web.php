@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PanelController as AdminPanelController;
 use App\Http\Controllers\Admin\ProfesorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\CursadaController;
 use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
@@ -59,10 +60,14 @@ Route::middleware(['auth', 'alumno'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
+    Route::get('/mis-materias', [CursadaController::class, 'index'])->name('cursada.index');
+    Route::post('/mis-materias/{materia}', [CursadaController::class, 'store'])->name('cursada.store');
+
     Route::get('/mesas-examen', [MesaExamenController::class, 'index'])->name('mesas-examen.index');
     Route::post('/mesas-examen/{mesa}/inscribirme', [MesaExamenController::class, 'inscribir'])->name('mesas-examen.inscribir');
 
     Route::get('/mis-inscripciones', [InscripcionController::class, 'index'])->name('inscripciones.index');
+    Route::delete('/mis-inscripciones/{inscripcion}', [InscripcionController::class, 'cancelar'])->name('inscripciones.cancelar');
     Route::get('/mis-cuotas', [CuotaController::class, 'index'])->name('cuotas.index');
 
     Route::post('/mis-documentos/{documentoRequisito}', [DocumentacionController::class, 'store'])->name('documentacion.store');
@@ -90,6 +95,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
+    Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
+    Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');

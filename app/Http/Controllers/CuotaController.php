@@ -20,14 +20,21 @@ class CuotaController extends Controller
         $pendientes = $cuotas->where('pagado', false);
         $pagadas = $cuotas->where('pagado', true);
         $proximaCuota = $pendientes->sortBy('fecha_vencimiento')->first();
-        $tieneVencidas = $pendientes->contains(fn ($c) => $c->vencida);
         $totalPagado = $pagadas->sum('monto');
+
+        // Los meses adeudados se calculan por calendario (desde que se
+        // inscribió hasta el mes actual), no solo mirando qué cuotas llegó
+        // a generar secretaría — así no figura "Al día" solo porque todavía
+        // no le cargaron nada.
+        $mesesAdeudados = $alumno->mesesAdeudados();
+        $cuotasEstado = $mesesAdeudados->isEmpty() ? 'al_dia' : 'debe';
 
         return view('cuotas.index', [
             'cuotas' => $cuotas,
             'anioLectivo' => $anioLectivo,
             'proximaCuota' => $proximaCuota,
-            'tieneVencidas' => $tieneVencidas,
+            'cuotasEstado' => $cuotasEstado,
+            'mesesAdeudados' => $mesesAdeudados,
             'totalPagado' => $totalPagado,
             'cantidadPagadas' => $pagadas->count(),
         ]);

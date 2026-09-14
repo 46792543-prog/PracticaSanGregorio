@@ -128,4 +128,41 @@ class Materia extends Model
 
         return null;
     }
+
+    /**
+     * Motivo por el que el alumno no puede inscribirse a cursar esta materia
+     * todavía, o null si no tiene ningún bloqueo. Se usa tanto en el
+     * autoservicio del alumno como en la pantalla de secretaría (ahí solo se
+     * muestra como aviso, no impide la inscripción manual).
+     */
+    public function bloqueoParaCursar(Persona $alumno): ?string
+    {
+        // En Primer Año no hay correlativas previas ni tiempo de haber
+        // pagado cuotas o entregado papeles todavía — estos controles solo
+        // tienen sentido a partir de 2do año, cuando el alumno ya viene
+        // cursando y esas cosas ya deberían estar en regla.
+        if ($this->anioCursada?->nombre_anio === 'Primer Año') {
+            return null;
+        }
+
+        if ($requisito = $this->correlativaFaltante($alumno)) {
+            return "Correlativa pendiente: {$requisito->nombre}";
+        }
+
+        if ($alumno->cuotas()->where('pagado', false)->exists()) {
+            return 'Tiene cuotas pendientes de pago.';
+        }
+
+        $documentacionIncompleta = DocumentoRequisito::where('es_obligatorio', true)
+            ->where(fn ($q) => $q->whereNull('id_carrera')->orWhere('id_carrera', $this->id_carrera))
+            ->whereDoesntHave('controlDocumentacion', fn ($q) => $q->where('id_persona_alumno', $alumno->id_persona)
+                ->whereHas('estadoDocumento', fn ($e) => $e->where('nombre_estado', 'Aprobado')))
+            ->exists();
+
+        if ($documentacionIncompleta) {
+            return 'Tiene documentación obligatoria pendiente de entrega o aprobación.';
+        }
+
+        return null;
+    }
 }

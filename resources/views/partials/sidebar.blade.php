@@ -2,6 +2,7 @@
     $enlaces = [
         ['ruta' => 'panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
         ['ruta' => 'estado-academico.index', 'texto' => 'Mi estado académico', 'icono' => 'chart'],
+        ['ruta' => 'cursada.index', 'texto' => 'Inscribirme a materias', 'icono' => 'book'],
         ['ruta' => 'mesas-examen.index', 'texto' => 'Mesas de examen', 'icono' => 'clipboard'],
         ['ruta' => 'inscripciones.index', 'texto' => 'Mis inscripciones', 'icono' => 'pencil'],
         ['ruta' => 'cuotas.index', 'texto' => 'Mis cuotas', 'icono' => 'cash'],
@@ -12,6 +13,7 @@
         'home' => 'M3 9.75 12 3l9 6.75V21a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75v-5.25h-4.5V21a.75.75 0 0 1-.75.75H3.75A.75.75 0 0 1 3 21V9.75Z',
         'chart' => 'M3 3v18h18M8.25 17.25V11m4.5 6.25V7m4.5 10.25v-4.5',
         'clipboard' => 'M9 3.75h6a1.5 1.5 0 0 1 1.5 1.5v.75H7.5v-.75A1.5 1.5 0 0 1 9 3.75Zm-3 3h12v13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20.25V6.75Zm3 4.5h6m-6 3.75h6',
+        'book' => 'M4.5 4.5A2.25 2.25 0 0 1 6.75 2.25H18a.75.75 0 0 1 .75.75v16.5a.75.75 0 0 1-.75.75H6.75A2.25 2.25 0 0 0 4.5 22.5V4.5Zm0 15A2.25 2.25 0 0 1 6.75 17.25H18',
         'pencil' => 'M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L8.25 19.038l-4.5 1.125 1.125-4.5L16.862 4.487Z',
         'cash' => 'M2.25 8.25h19.5M2.25 8.25v9a1.5 1.5 0 0 0 1.5 1.5h16.5a1.5 1.5 0 0 0 1.5-1.5v-9M2.25 8.25l1.72-3.44A1.5 1.5 0 0 1 5.31 4h13.38a1.5 1.5 0 0 1 1.34.81l1.72 3.44M12 15a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z',
         'user' => 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.25a7.5 7.5 0 0 1 15 0',

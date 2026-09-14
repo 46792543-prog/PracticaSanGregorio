@@ -24,7 +24,7 @@
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         @forelse ($mesas as $mesa)
-            @php $bloqueada = (bool) $mesa->bloqueo; @endphp
+            @php $bloqueada = (bool) $mesa->bloqueo || $cuotasEstado !== 'al_dia'; @endphp
             <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col {{ $bloqueada ? 'opacity-70' : '' }}">
                 <div class="flex items-start justify-between mb-4">
                     <div class="h-14 w-14 rounded-lg bg-[#16305a] text-white flex flex-col items-center justify-center leading-none">
@@ -48,7 +48,11 @@
                         <button type="button" disabled class="w-full rounded-lg bg-slate-100 text-slate-400 text-sm font-semibold py-2">
                             No disponible
                         </button>
-                        <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar {{ $mesa->bloqueo->nombre }}</p>
+                        @if ($mesa->bloqueo)
+                            <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar {{ $mesa->bloqueo->nombre }}</p>
+                        @else
+                            <p class="text-xs text-red-500 mt-2">✕ Debés: {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}</p>
+                        @endif
                     @else
                         <button type="button"
                                 onclick="abrirModalInscripcion('{{ $mesa->materia->nombre }}', '{{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}', '{{ $mesa->turnoExamen->nombre_turno }}', '{{ $mesa->llamadoExamen->nombre_llamado }}', '{{ route('mesas-examen.inscribir', $mesa) }}')"

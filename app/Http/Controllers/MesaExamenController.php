@@ -19,6 +19,12 @@ class MesaExamenController extends Controller
         $turnos = TurnoExamen::orderBy('id_turno')->get();
         $turnoId = (int) $request->query('turno', $turnos->firstWhere('nombre_turno', 'Turno Julio')?->id_turno ?? $turnos->first()?->id_turno);
 
+        // Mismo criterio que "Mis cuotas": tiene que estar al día hasta el
+        // mes actual (no alcanza con no deber nada de antes) — sin importar
+        // si esas cuotas llegaron a generarse.
+        $mesesAdeudados = $alumno->mesesAdeudados();
+        $cuotasEstado = $mesesAdeudados->isEmpty() ? 'al_dia' : 'debe';
+
         $mesas = MesaExamen::with('materia.nombreMateria', 'estadoMesa', 'turnoExamen', 'llamadoExamen')
             ->where('id_turno', $turnoId)
             ->whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))
@@ -37,6 +43,8 @@ class MesaExamenController extends Controller
             'mesas' => $mesas,
             'turno' => $turnoId,
             'turnos' => $turnos,
+            'cuotasEstado' => $cuotasEstado,
+            'mesesAdeudados' => $mesesAdeudados,
         ]);
     }
 
@@ -46,6 +54,10 @@ class MesaExamenController extends Controller
 
         if ($mesa->materia->correlativaFaltante($alumno)) {
             return back()->withErrors(['mesa' => 'No cumplís las correlativas necesarias para esta mesa.']);
+        }
+
+        if ($alumno->mesesAdeudados()->isNotEmpty()) {
+            return back()->withErrors(['mesa' => 'Tu situación de pagos no está al día. Consultá con secretaría.']);
         }
 
         $yaInscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)

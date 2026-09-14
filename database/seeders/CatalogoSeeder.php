@@ -155,7 +155,7 @@ class CatalogoSeeder extends Seeder
             EspecialidadProfesor::firstOrCreate(['nombre_especialidad' => $nombre]);
         }
 
-        foreach (['Presidente', 'Vocal 1', 'Vocal 2'] as $nombre) {
+        foreach (['Presidente', 'Vocal 1', 'Vocal 2', 'Suplente'] as $nombre) {
             RolTribunal::firstOrCreate(['nombre_rol' => $nombre]);
         }
 
