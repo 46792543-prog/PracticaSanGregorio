@@ -51,6 +51,7 @@ class MesaController extends Controller
             'profesores' => Profesor::with('persona')->where('activo', true)->get()->sortBy('apellido'),
             'turnos' => TurnoExamen::orderBy('id_turno')->get(),
             'llamados' => LlamadoExamen::orderBy('id_llamado')->get(),
+            'corteActivo' => CorteActivo::actual(),
         ]);
     }
 
