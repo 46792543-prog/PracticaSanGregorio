@@ -22,6 +22,10 @@
         @include('partials.admin-sidebar')
 
         <div class="flex-1 flex flex-col min-w-0">
+            <div class="flex items-center justify-end px-8 py-2 text-xs font-semibold text-slate-400 bg-white border-b border-slate-100">
+                @include('partials.corte-selector')
+            </div>
+
             @hasSection('header')
                 <header class="relative bg-gradient-to-r from-[#1E4D8C] to-[#2a5ba3] text-white px-8 py-6 shadow-sm overflow-hidden">
                     <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5"></div>

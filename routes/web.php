@@ -11,8 +11,10 @@ use App\Http\Controllers\Admin\PeriodoCursadaController;
 use App\Http\Controllers\Admin\ProfesorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\CursadaController;
+use App\Http\Controllers\CorteActivoController;
 use App\Http\Controllers\CuotaController;
+use App\Http\Controllers\CursadaController;
+use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
@@ -51,6 +53,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::post('/corte/seleccionar', [CorteActivoController::class, 'seleccionar'])->middleware('auth')->name('corte.seleccionar');
 
 /*
 |--------------------------------------------------------------------------
@@ -95,6 +99,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
+    Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
@@ -187,6 +192,10 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::delete('/configuracion', [DirectorConfiguracionController::class, 'destroy'])->name('configuracion.destroy');
+
+    Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
+    Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');
+    Route::delete('/configuracion/cortes/{anio}', [DirectorAnioLectivoController::class, 'destroy'])->name('configuracion.cortes.destroy');
 
     Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 });

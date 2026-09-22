@@ -16,6 +16,7 @@ use App\Models\Persona;
 use App\Models\Rol;
 use App\Models\TurnoCursada;
 use App\Models\Usuario;
+use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,12 @@ class AlumnoController extends Controller
             $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('id_carrera', $carreraId));
         }
 
+        $corteActivo = CorteActivo::actual();
+
+        if ($corteActivo) {
+            $query->whereHas('inscripcionesCarrera', fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo));
+        }
+
         if ($estado === 'baja') {
             $query->whereHas('inscripcionesCarrera.estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'));
         } elseif ($estado === 'activo') {
@@ -61,14 +68,16 @@ class AlumnoController extends Controller
 
         $carreras = Carrera::orderBy('nombre_carrera')->get();
 
-        $inscripcionesCarrera = InscripcionCarrera::when($carreraId, fn ($q) => $q->where('id_carrera', $carreraId));
+        $inscripcionesCarrera = InscripcionCarrera::when($carreraId, fn ($q) => $q->where('id_carrera', $carreraId))
+            ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo));
         $totalEnCarrera = (clone $inscripcionesCarrera)->count();
         $activos = (clone $inscripcionesCarrera)->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))->count();
         $docPendiente = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
             ->whereHas('documentacion.estadoDocumento', fn ($q) => $q->whereIn('nombre_estado', ['Pendiente', 'Rechazado']))
             ->count();
         $conDeuda = Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
-            ->whereHas('cuotas', fn ($q) => $q->where('pagado', false))
+            ->whereHas('cuotas', fn ($q) => $q->where('pagado', false)
+                ->when($corteActivo, fn ($qq) => $qq->where('id_anio_lectivo', $corteActivo->id_anio_lectivo)))
             ->count();
 
         return view('admin.alumnos.index', [
@@ -81,6 +90,7 @@ class AlumnoController extends Controller
             'activos' => $activos,
             'docPendiente' => $docPendiente,
             'conDeuda' => $conDeuda,
+            'corteActivo' => $corteActivo,
         ]);
     }
 
@@ -248,6 +258,30 @@ class AlumnoController extends Controller
         ]);
 
         return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
+    }
+
+    public function alta(Request $request, Persona $persona): RedirectResponse
+    {
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+
+        abort_unless($inscripcion, 404);
+
+        $inscripcion->update([
+            'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
+            'fecha_baja' => null,
+            'id_secretario_baja' => null,
+        ]);
+
+        // Si el alumno tenía usuario para entrar al sistema, se lo reactiva
+        // también (ver AlumnoController::baja y LoginController::login).
+        $persona->usuario?->update([
+            'id_estado' => EstadoUsuario::where('nombre_estado', 'Activo')->value('id_estado'),
+        ]);
+
+        return back()->with('status', "Se dio de alta nuevamente a {$persona->nombre} {$persona->apellido}.");
     }
 
     public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse

@@ -27,7 +27,7 @@
     <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
             <h1 class="text-xl font-bold text-slate-800 tracking-tight">Alumnos Registrados</h1>
-            <p class="text-sm text-slate-400 mt-0.5">Listado completo por carrera — Año lectivo {{ now()->year }}</p>
+            <p class="text-sm text-slate-400 mt-0.5">Listado completo por carrera — Corte {{ $corteActivo?->anio ?? now()->year }}</p>
         </div>
         <a href="{{ route('admin.alumnos.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-[#D4A017] hover:brightness-105 text-[#122a52] font-bold text-sm px-5 py-3 shadow-md shadow-black/5 transition">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="h-4 w-4">
