@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\EstadoInscripcion;
 use App\Models\InscripcionMesa;
+use App\Models\Materia;
 use App\Models\MesaExamen;
+use App\Models\Persona;
 use App\Models\TurnoExamen;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +33,7 @@ class MesaExamenController extends Controller
             ->orderBy('fecha_examen')
             ->get()
             ->map(function (MesaExamen $mesa) use ($alumno) {
-                $mesa->bloqueo = $mesa->materia->correlativaFaltante($alumno);
+                $mesa->bloqueo = $this->materiaSinCursar($mesa->materia, $alumno) ?? $mesa->materia->correlativaFaltante($alumno);
                 $mesa->ya_inscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)
                     ->where('id_persona_alumno', $alumno->id_persona)
                     ->exists();
@@ -51,6 +53,10 @@ class MesaExamenController extends Controller
     public function inscribir(Request $request, MesaExamen $mesa): RedirectResponse
     {
         $alumno = Auth::user()->persona;
+
+        if ($this->materiaSinCursar($mesa->materia, $alumno)) {
+            return back()->withErrors(['mesa' => 'No estás en condiciones de rendir esta materia: todavía no la cursaste o no estás regularizado.']);
+        }
 
         if ($mesa->materia->correlativaFaltante($alumno)) {
             return back()->withErrors(['mesa' => 'No cumplís las correlativas necesarias para esta mesa.']);
@@ -83,5 +89,19 @@ class MesaExamenController extends Controller
 
         return redirect()->route('inscripciones.index')
             ->with('status', 'Tu inscripción a ' . $mesa->materia->nombre . ' quedó registrada y pendiente de aprobación.');
+    }
+
+    /**
+     * Devuelve la propia materia si el alumno todavía no la cursó/regularizó
+     * (o su regularidad venció), o null si está en condiciones de rendirla.
+     */
+    private function materiaSinCursar(Materia $materia, Persona $alumno): ?Materia
+    {
+        $historial = $materia->historialDe($alumno);
+        $condicionNombre = $historial?->condicion?->nombre_condicion;
+        $puedeRendir = $condicionNombre === 'Aprobada'
+            || ($condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false));
+
+        return $puedeRendir ? null : $materia;
     }
 }

@@ -130,6 +130,46 @@ class Materia extends Model
     }
 
     /**
+     * Igual que correlativaFaltante() pero solo evalúa el requisito "para cursar"
+     * (columna requiere_regularizada), ignorando requiere_aprobada que es para rendir.
+     */
+    public function correlativaFaltanteParaCursar(Persona $alumno): ?Materia
+    {
+        $historialPorMateria = $alumno->historialAlumno()
+            ->whereIn('id_materia', $this->requisitos->pluck('id_materia'))
+            ->get()
+            ->keyBy('id_materia');
+
+        foreach ($this->requisitos as $requisito) {
+            if (! $requisito->pivot->requiere_regularizada) {
+                continue;
+            }
+
+            $historial = $historialPorMateria->get($requisito->id_materia);
+            $condicionNombre = $historial?->condicion?->nombre_condicion;
+            $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
+
+            if (! ($condicionNombre === 'Aprobada' || $regularVigente)) {
+                return $requisito;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Historial del alumno para esta materia puntual (el más reciente, por si
+     * la recursó en más de un año lectivo).
+     */
+    public function historialDe(Persona $alumno): ?HistorialAlumno
+    {
+        return $alumno->historialAlumno()
+            ->where('id_materia', $this->id_materia)
+            ->latest('id_anio_lectivo')
+            ->first();
+    }
+
+    /**
      * Motivo por el que el alumno no puede inscribirse a cursar esta materia
      * todavía, o null si no tiene ningún bloqueo. Se usa tanto en el
      * autoservicio del alumno como en la pantalla de secretaría (ahí solo se
@@ -145,7 +185,7 @@ class Materia extends Model
             return null;
         }
 
-        if ($requisito = $this->correlativaFaltante($alumno)) {
+        if ($requisito = $this->correlativaFaltanteParaCursar($alumno)) {
             return "Correlativa pendiente: {$requisito->nombre}";
         }
 

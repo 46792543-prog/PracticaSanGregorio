@@ -100,7 +100,10 @@ class AlumnoController extends Controller
             'documentacion.documentoRequisito',
         ]);
 
-        return view('admin.alumnos.show', ['alumno' => $persona]);
+        $seguimientos = $persona->seguimientos()->with('autor')->latest()->get();
+        $condiciones = CondicionAlumno::whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Aprobada'])->orderBy('id_condicion')->get();
+
+        return view('admin.alumnos.show', ['alumno' => $persona, 'seguimientos' => $seguimientos, 'condiciones' => $condiciones]);
     }
 
     public function create(): View
@@ -325,6 +328,38 @@ class AlumnoController extends Controller
         }
 
         return back()->with('status', "Se inscribió al alumno a {$inscriptas} materia(s).");
+    }
+
+    public function actualizarCondicionHistorial(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
+    {
+        abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
+
+        $data = $request->validate([
+            'id_condicion' => ['required', 'exists:condicion_alumno,id_condicion'],
+            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+        ]);
+
+        $historial->update([
+            'id_condicion' => $data['id_condicion'],
+            'nota_cursada' => $data['nota_cursada'] ?? null,
+            'fecha_ultima_modificacion' => now(),
+        ]);
+
+        return back()->with('status', 'Condición académica actualizada correctamente.');
+    }
+
+    public function storeSeguimiento(Request $request, Persona $persona): RedirectResponse
+    {
+        $data = $request->validate([
+            'texto' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $persona->seguimientos()->create([
+            'id_persona_autor' => Auth::user()->id_persona,
+            'texto' => $data['texto'],
+        ]);
+
+        return back()->with('status', 'Nota de seguimiento agregada.');
     }
 
     private function generarClave(string $dni): string

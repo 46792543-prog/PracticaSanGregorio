@@ -19,7 +19,7 @@ class SmokeTest extends TestCase
         foreach ([
             '/panel',
             '/mi-estado-academico',
-            '/mis-materias',
+            '/cursada',
             '/mesas-examen',
             '/mis-inscripciones',
             '/mis-cuotas',
@@ -41,6 +41,7 @@ class SmokeTest extends TestCase
 
         $this->get('/admin/alumnos/' . $alumno->persona->id_persona)->assertStatus(200);
         $this->get('/admin/alumnos/' . $alumno->persona->id_persona . '/materias')->assertStatus(200);
+        $this->get('/admin/cursada')->assertStatus(200);
         $this->get('/admin/mesas/nueva')->assertStatus(200);
 
         if ($mesaProgramada) {

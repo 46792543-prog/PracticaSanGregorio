@@ -73,6 +73,18 @@
                 <div class="flex items-center justify-between py-2 text-sm gap-3">
                     <span class="text-slate-600">{{ $historial->materia->nombre }}</span>
                     <div class="flex items-center gap-3">
+                        <form method="POST" action="{{ route('admin.alumnos.historial.condicion', [$alumno, $historial]) }}" class="flex items-center gap-1.5">
+                            @csrf @method('PUT')
+                            <label class="text-[11px] text-slate-400">Condición:</label>
+                            <select name="id_condicion" class="text-xs rounded-lg border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30">
+                                @foreach ($condiciones as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}" @selected($historial->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </select>
+                            <input type="text" inputmode="numeric" name="nota_cursada" value="{{ $historial->nota_cursada }}" placeholder="Nota"
+                                   class="w-14 text-xs rounded-lg border border-slate-300 px-2 py-1">
+                            <button type="submit" class="text-xs font-semibold text-[#1E4D8C] hover:underline">Guardar</button>
+                        </form>
                         @if ($condicionNombre === 'Regular')
                             <form method="POST" action="{{ route('admin.alumnos.historial.plazo', [$alumno, $historial]) }}" class="flex items-center gap-1.5">
                                 @csrf @method('PUT')
@@ -107,6 +119,26 @@
                 </div>
             @empty
                 <p class="text-sm text-slate-400">Sin historial académico cargado.</p>
+            @endforelse
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6">
+        <h3 class="font-bold text-slate-700 mb-4">Seguimiento del alumno</h3>
+        <form method="POST" action="{{ route('admin.alumnos.seguimiento.store', $alumno) }}" class="flex flex-col gap-2 mb-5">
+            @csrf
+            <textarea name="texto" required maxlength="1000" rows="2" placeholder="Agregar una nota de seguimiento..."
+                      class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]"></textarea>
+            <button type="submit" class="self-end rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white font-semibold text-sm px-5 py-2">Agregar nota</button>
+        </form>
+        <div class="divide-y divide-slate-100">
+            @forelse ($seguimientos as $nota)
+                <div class="py-3 text-sm">
+                    <p class="text-slate-700 whitespace-pre-line">{{ $nota->texto }}</p>
+                    <p class="text-xs text-slate-400 mt-1">{{ $nota->autor->nombre }} {{ $nota->autor->apellido }} · {{ \App\Support\FechaEsp::corta($nota->created_at) }} {{ $nota->created_at->format('H:i') }}</p>
+                </div>
+            @empty
+                <p class="text-sm text-slate-400">Todavía no hay notas de seguimiento cargadas.</p>
             @endforelse
         </div>
     </div>
