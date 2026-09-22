@@ -1,4 +1,5 @@
 @php
+    $configInstitucion = \App\Models\ConfiguracionInstitucion::first();
     $enlaces = [
         ['ruta' => 'panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
         ['ruta' => 'estado-academico.index', 'texto' => 'Mi estado académico', 'icono' => 'chart'],
@@ -22,13 +23,17 @@
 
 <aside class="w-72 shrink-0 bg-[#16305a] text-white flex flex-col">
     <div class="px-6 py-7 text-center border-b border-white/10">
-        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 ring-2 ring-amber-400">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" class="h-7 w-7">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
-            </svg>
+        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 ring-2 ring-amber-400 overflow-hidden">
+            @if ($configInstitucion?->logo_url)
+                <img src="{{ $configInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
+            @else
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" class="h-7 w-7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
+                </svg>
+            @endif
         </div>
-        <p class="font-bold text-sm leading-tight">Instituto Superior<br>San Gregorio</p>
+        <p class="font-bold text-sm leading-tight">{{ $configInstitucion?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</p>
         <p class="text-[11px] tracking-wide text-amber-400 font-semibold mt-1">PORTAL DEL ALUMNO</p>
     </div>
 

@@ -12,6 +12,7 @@ class ConfiguracionInstitucion extends Model
 
     protected $fillable = [
         'nombre_institucion',
+        'logo_path',
         'direccion',
         'nombre_director',
         'telefono_contacto',
@@ -27,5 +28,10 @@ class ConfiguracionInstitucion extends Model
     public function secretarioModifica(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_secretario_modifica', 'id_persona');
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path ? asset('storage/'.$this->logo_path) : null;
     }
 }

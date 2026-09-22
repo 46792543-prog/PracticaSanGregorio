@@ -1,4 +1,5 @@
 @php
+    $configInstitucion = \App\Models\ConfiguracionInstitucion::first();
     $enlaces = [
         ['ruta' => 'admin.panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
         ['ruta' => 'admin.alumnos.index', 'texto' => 'Alumnos', 'icono' => 'users'],
@@ -31,15 +32,18 @@
          style="background-image: radial-gradient(circle at 20% 20%, white 1px, transparent 1px); background-size: 22px 22px;"></div>
 
     <div class="relative px-6 pt-7 pb-6 flex items-center gap-3 border-b border-white/10">
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#a97b0e] shadow-lg shadow-black/20 ring-1 ring-white/10">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0e2242" stroke-width="1.7" class="h-6 w-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
-            </svg>
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#a97b0e] shadow-lg shadow-black/20 ring-1 ring-white/10 overflow-hidden">
+            @if ($configInstitucion?->logo_url)
+                <img src="{{ $configInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
+            @else
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0e2242" stroke-width="1.7" class="h-6 w-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
+                </svg>
+            @endif
         </div>
         <div class="min-w-0">
-            <p class="font-bold text-[15px] leading-tight truncate">Instituto Superior</p>
-            <p class="font-bold text-[15px] leading-tight truncate">San Gregorio</p>
+            <p class="font-bold text-[15px] leading-tight truncate">{{ $configInstitucion?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</p>
             <p class="text-[10px] font-semibold tracking-widest text-[#e8c465] mt-0.5">PANEL DE GESTIÓN</p>
         </div>
     </div>
