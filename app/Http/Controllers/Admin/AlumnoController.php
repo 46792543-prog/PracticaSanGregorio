@@ -275,6 +275,12 @@ class AlumnoController extends Controller
             'id_secretario_baja' => null,
         ]);
 
+        // Si el alumno tenía usuario para entrar al sistema, se lo reactiva
+        // también (ver AlumnoController::baja y LoginController::login).
+        $persona->usuario?->update([
+            'id_estado' => EstadoUsuario::where('nombre_estado', 'Activo')->value('id_estado'),
+        ]);
+
         return back()->with('status', "Se dio de alta nuevamente a {$persona->nombre} {$persona->apellido}.");
     }
 
