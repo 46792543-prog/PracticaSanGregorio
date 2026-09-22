@@ -97,6 +97,7 @@ class MesaController extends Controller
             'presidenteId' => $tribunal['Presidente'] ?? null,
             'vocal1Id' => $tribunal['Vocal 1'] ?? null,
             'vocal2Id' => $tribunal['Vocal 2'] ?? null,
+            'suplenteId' => $tribunal['Suplente'] ?? null,
         ]);
     }
 
@@ -142,6 +143,7 @@ class MesaController extends Controller
             'presidente_id' => ['nullable', 'exists:profesor,id_profesor'],
             'vocal1_id' => ['nullable', 'exists:profesor,id_profesor'],
             'vocal2_id' => ['nullable', 'exists:profesor,id_profesor'],
+            'suplente_id' => ['nullable', 'exists:profesor,id_profesor'],
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -154,7 +156,7 @@ class MesaController extends Controller
                 }
             }
 
-            $docentes = array_filter([$request->presidente_id, $request->vocal1_id, $request->vocal2_id]);
+            $docentes = array_filter([$request->presidente_id, $request->vocal1_id, $request->vocal2_id, $request->suplente_id]);
             if (count($docentes) !== count(array_unique($docentes))) {
                 $validator->errors()->add('presidente_id', 'No se puede asignar el mismo docente en más de un rol del tribunal.');
             }
@@ -167,7 +169,7 @@ class MesaController extends Controller
     {
         $roles = RolTribunal::pluck('id_rol_tribunal', 'nombre_rol');
 
-        foreach (['Presidente' => 'presidente_id', 'Vocal 1' => 'vocal1_id', 'Vocal 2' => 'vocal2_id'] as $rol => $campo) {
+        foreach (['Presidente' => 'presidente_id', 'Vocal 1' => 'vocal1_id', 'Vocal 2' => 'vocal2_id', 'Suplente' => 'suplente_id'] as $rol => $campo) {
             if (! empty($data[$campo]) && $roles->has($rol)) {
                 TribunalMesa::create([
                     'id_mesa' => $mesa->id_mesa,

@@ -107,6 +107,13 @@
                 @endif
             </div>
 
+            @if ($estadoNombre === 'En proceso')
+                <form method="POST" action="{{ route('inscripciones.cancelar', $seleccionada) }}" class="mt-4" onsubmit="return confirm('¿Confirmás que querés cancelar esta inscripción?');">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="rounded-lg border border-red-200 text-red-600 text-sm font-semibold px-4 py-2 hover:bg-red-50">Cancelar inscripción</button>
+                </form>
+            @endif
+
             @if ($seleccionada->resultado)
                 <div class="mt-4 flex items-center gap-3 text-sm">
                     <span class="font-semibold text-slate-600">Resultado del examen:</span>

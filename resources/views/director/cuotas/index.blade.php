@@ -49,7 +49,10 @@
             @endif
 
             @if ($alumnoSeleccionado)
-                @php $cuotasPendientes = $alumnoSeleccionado->persona->cuotas->where('pagado', false); @endphp
+                @php
+                    $cuotasPendientes = $alumnoSeleccionado->persona->cuotas->where('pagado', false);
+                    $mesesAdeudados = $estadoMensual->reject(fn ($item) => $item['pagado'])->pluck('mes');
+                @endphp
                 <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
                     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                         <div>
@@ -58,6 +61,23 @@
                         </div>
                         <a href="{{ route('director.cuotas.index') }}" class="text-xs font-semibold text-[#1E4D8C] hover:underline">✕ Cambiar alumno</a>
                     </div>
+
+                    @if ($estadoMensual->isNotEmpty())
+                        <div class="mb-5">
+                            <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Estado mes a mes (ciclo {{ now()->year }})</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($estadoMensual as $item)
+                                    <span @class([
+                                            'text-xs font-semibold rounded-full px-3 py-1',
+                                            'bg-emerald-100 text-emerald-700' => $item['pagado'],
+                                            'bg-red-100 text-red-600' => ! $item['pagado'],
+                                        ])>
+                                        {{ $item['pagado'] ? '✓' : '✕' }} {{ $item['mes']->nombre_mes }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
                     @php
                         $cuotasPorAnio = $alumnoSeleccionado->persona->cuotas->groupBy('id_anio_lectivo')->map(fn ($c) => $c->pluck('id_mes'));
@@ -145,7 +165,11 @@
                         })();
                     </script>
 
-                    @if ($cuotasPendientes->isEmpty())
+                    @if ($cuotasPendientes->isEmpty() && $mesesAdeudados->isNotEmpty())
+                        <p class="text-sm text-amber-700 bg-amber-50 rounded-xl px-4 py-3">
+                            ⚠ Debe {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}, pero todavía no se le generó la cuota de {{ $mesesAdeudados->count() > 1 ? 'esos meses' : 'ese mes' }}. Generala más abajo para poder cobrarla.
+                        </p>
+                    @elseif ($cuotasPendientes->isEmpty())
                         <p class="text-sm text-emerald-700 bg-emerald-50 rounded-xl px-4 py-3">✓ Este alumno no tiene cuotas pendientes.</p>
                     @else
                         <form id="form-cobrar-cuotas" method="POST" action="{{ route('director.cuotas.cobrar') }}">
