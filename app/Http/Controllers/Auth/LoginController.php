@@ -26,6 +26,17 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'Las credenciales no coinciden con ningún registro.'])->onlyInput('email');
         }
 
+        // El email y la contraseña pueden ser correctos aunque el usuario esté
+        // dado de baja (ver AlumnoController::baja), así que se chequea el
+        // estado recién acá, con un mensaje propio en vez del genérico de arriba.
+        if (Auth::user()->estadoUsuario?->nombre_estado !== 'Activo') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors(['email' => 'Tu cuenta está dada de baja. Consultá con la secretaría.'])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         // Bandera de un solo uso: le avisa a la primera página autenticada que

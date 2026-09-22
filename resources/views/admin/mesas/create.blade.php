@@ -80,8 +80,8 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-2">TRIBUNAL EXAMINADOR (PRESIDENTE / VOCALES)</label>
-                <div class="grid sm:grid-cols-3 gap-3">
+                <label class="block text-xs font-semibold text-slate-500 mb-2">TRIBUNAL EXAMINADOR (PRESIDENTE / VOCALES / SUPLENTE)</label>
+                <div class="grid sm:grid-cols-4 gap-3">
                     <select name="presidente_id" id="presidente_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Presidente...</option>
                         @foreach ($profesores as $profesor)
@@ -96,6 +96,12 @@
                     </select>
                     <select name="vocal2_id" id="vocal2_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
                         <option value="">Vocal 2...</option>
+                        @foreach ($profesores as $profesor)
+                            <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                        @endforeach
+                    </select>
+                    <select name="suplente_id" id="suplente_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                        <option value="">Suplente...</option>
                         @foreach ($profesores as $profesor)
                             <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach

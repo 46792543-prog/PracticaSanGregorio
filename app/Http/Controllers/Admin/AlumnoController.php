@@ -11,6 +11,7 @@ use App\Models\EstadoInscripcion;
 use App\Models\EstadoUsuario;
 use App\Models\HistorialAlumno;
 use App\Models\InscripcionCarrera;
+use App\Models\Materia;
 use App\Models\Persona;
 use App\Models\Rol;
 use App\Models\TurnoCursada;
@@ -239,6 +240,13 @@ class AlumnoController extends Controller
             'id_secretario_baja' => Auth::user()->id_persona,
         ]);
 
+        // Si el alumno tiene usuario para entrar al sistema, se lo desactiva
+        // también: dar de baja la inscripción no debía impedir el login por sí
+        // solo, y ahora sí lo hace (ver LoginController::login).
+        $persona->usuario?->update([
+            'id_estado' => EstadoUsuario::where('nombre_estado', 'Inactivo')->value('id_estado'),
+        ]);
+
         return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
     }
 
@@ -253,6 +261,73 @@ class AlumnoController extends Controller
         $historial->update($data);
 
         return back()->with('status', 'Plazo de regularidad actualizado correctamente.');
+    }
+
+    public function materias(Persona $persona): View
+    {
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+
+        abort_unless($inscripcion, 404, 'El alumno no tiene una inscripción a carrera activa.');
+
+        // A diferencia del autoservicio del alumno, acá se listan TODAS las
+        // materias de la carrera (no solo las del año/cuatrimestre actual):
+        // secretaría necesita poder inscribir en casos excepcionales
+        // (recursada, materias de otro año, etc.), por eso el bloqueo se
+        // muestra solo como aviso, no impide tildar la materia.
+        $materias = $inscripcion->carrera->materias()
+            ->where('activa', true)
+            ->with(['nombreMateria', 'anioCursada', 'periodo', 'requisitos'])
+            ->get()
+            ->sortBy(['id_anio_cursada', 'nombre'])
+            ->map(fn (Materia $materia) => [
+                'materia' => $materia,
+                'bloqueo' => $materia->bloqueoParaCursar($persona),
+                'yaCursando' => $persona->historialAlumno->firstWhere('id_materia', $materia->id_materia),
+            ]);
+
+        return view('admin.alumnos.materias', [
+            'alumno' => $persona,
+            'inscripcion' => $inscripcion,
+            'materias' => $materias,
+        ]);
+    }
+
+    public function materiasStore(Request $request, Persona $persona): RedirectResponse
+    {
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+
+        abort_unless($inscripcion, 404);
+
+        $data = $request->validate([
+            'materias' => ['required', 'array', 'min:1'],
+            'materias.*' => ['integer', Rule::exists('materia', 'id_materia')->where('id_carrera', $inscripcion->id_carrera)],
+        ]);
+
+        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        abort_unless($anioLectivoActivo, 500, 'No hay un año lectivo activo configurado.');
+
+        $idCondicionCursando = CondicionAlumno::where('nombre_condicion', 'Cursando')->value('id_condicion');
+        $yaInscriptas = $persona->historialAlumno()->pluck('id_materia');
+
+        $inscriptas = 0;
+        foreach (array_diff($data['materias'], $yaInscriptas->all()) as $idMateria) {
+            HistorialAlumno::create([
+                'id_persona_alumno' => $persona->id_persona,
+                'id_materia' => $idMateria,
+                'id_anio_lectivo' => $anioLectivoActivo->id_anio_lectivo,
+                'id_condicion' => $idCondicionCursando,
+                'fecha_ultima_modificacion' => now(),
+            ]);
+            $inscriptas++;
+        }
+
+        return back()->with('status', "Se inscribió al alumno a {$inscriptas} materia(s).");
     }
 
     public function actualizarCondicionHistorial(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse

@@ -43,7 +43,7 @@ class CuotaController extends Controller
                 ->take(8)
                 ->values()
                 ->map(function (Usuario $u) {
-                    $u->cuotas_pendientes_count = $u->persona->cuotas()->where('pagado', false)->count();
+                    $u->cuotas_pendientes_count = $u->persona->mesesAdeudados()->count();
 
                     return $u;
                 });
@@ -60,6 +60,7 @@ class CuotaController extends Controller
             'busqueda' => $busqueda,
             'resultados' => $resultados,
             'alumnoSeleccionado' => $alumnoSeleccionado,
+            'estadoMensual' => $alumnoSeleccionado ? $alumnoSeleccionado->persona->estadoMensualCuotas() : collect(),
             'historial' => $historial,
             'filtroHistorialAlumno' => $request->query('h_alumno'),
             'anios' => AnioLectivo::orderByDesc('anio')->get(),

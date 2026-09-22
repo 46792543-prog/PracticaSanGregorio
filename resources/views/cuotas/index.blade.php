@@ -10,10 +10,16 @@
         <div class="grid sm:grid-cols-3 gap-4 mb-6">
             <div class="bg-slate-50 rounded-xl p-4">
                 <p class="text-xs font-semibold text-slate-400 uppercase">✅ Estado actual</p>
-                <p class="text-xl font-bold {{ $tieneVencidas ? 'text-red-600' : 'text-green-600' }} mt-1">
-                    {{ $tieneVencidas ? 'Con deuda' : 'Al día' }}
+                <p class="text-xl font-bold mt-1 {{ $cuotasEstado === 'debe' ? 'text-red-600' : 'text-green-600' }}">
+                    {{ $cuotasEstado === 'debe' ? 'Con deuda' : 'Al día' }}
                 </p>
-                <p class="text-xs text-slate-400 mt-1">{{ $tieneVencidas ? 'Tenés cuotas vencidas' : 'Sin deudas pendientes' }}</p>
+                <p class="text-xs text-slate-400 mt-1">
+                    @if ($cuotasEstado === 'debe')
+                        Debés: {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}
+                    @else
+                        Sin deudas pendientes
+                    @endif
+                </p>
             </div>
             <div class="bg-slate-50 rounded-xl p-4">
                 <p class="text-xs font-semibold text-slate-400 uppercase">📅 Próxima cuota pendiente</p>

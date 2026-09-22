@@ -18,6 +18,9 @@
         <div class="flex gap-2">
             <a href="{{ route('admin.documentacion.show', $alumno) }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-sm font-semibold px-4 py-2">Ver documentación</a>
             @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
+                <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="rounded-lg bg-[#1E4D8C] text-white text-sm font-semibold px-4 py-2">Inscribir a materias</a>
+            @endif
+            @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                 <form method="POST" action="{{ route('admin.alumnos.baja', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de baja a este alumno?');">
                     @csrf @method('PUT')
                     <button type="submit" class="rounded-lg bg-red-50 text-red-600 text-sm font-semibold px-4 py-2">Dar de baja</button>
