@@ -17,6 +17,10 @@
         </div>
         <div class="flex gap-2">
             <a href="{{ route('admin.documentacion.show', $alumno) }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-sm font-semibold px-4 py-2">Ver documentación</a>
+            <a href="{{ route('admin.alumnos.boletin', $alumno) }}" target="_blank" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-sm font-semibold px-4 py-2">📋 Boletín</a>
+            @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
+                <a href="{{ route('admin.alumnos.certificado.regular', $alumno) }}" target="_blank" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] text-sm font-semibold px-4 py-2">📄 Certificado regular</a>
+            @endif
             @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                 <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="rounded-lg bg-[#1E4D8C] text-white text-sm font-semibold px-4 py-2">Inscribir a materias</a>
             @endif

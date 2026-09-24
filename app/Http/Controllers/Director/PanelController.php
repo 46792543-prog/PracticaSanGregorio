@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Director;
 use App\Http\Controllers\Controller;
 use App\Models\InscripcionCarrera;
 use App\Models\MovimientoCaja;
+use App\Support\CentralAlertas;
 use Illuminate\View\View;
 
 class PanelController extends Controller
@@ -23,11 +24,15 @@ class PanelController extends Controller
             ->whereBetween('fecha_movimiento', [now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->endOfMonth()])->sum('monto');
         $variacionIngresos = $ingresosMesPasado > 0 ? round((($ingresosMes - $ingresosMesPasado) / $ingresosMesPasado) * 100) : null;
 
+        $alertas = CentralAlertas::activas();
+
         return view('director.panel.index', [
             'alumnosActivos' => $alumnosActivos,
             'alumnosNuevos' => max(0, $alumnosActivos - $alumnosActivosMesPasado),
             'ingresosMes' => $ingresosMes,
             'variacionIngresos' => $variacionIngresos,
+            'alertasCount' => $alertas->count(),
+            'alertasDestacadas' => $alertas->take(3),
         ]);
     }
 }

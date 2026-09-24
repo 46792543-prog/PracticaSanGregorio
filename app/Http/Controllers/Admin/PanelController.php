@@ -10,6 +10,7 @@ use App\Models\HistorialAlumno;
 use App\Models\InscripcionCarrera;
 use App\Models\InscripcionMesa;
 use App\Models\MesaExamen;
+use App\Support\CentralAlertas;
 use Illuminate\View\View;
 
 class PanelController extends Controller
@@ -57,6 +58,8 @@ class PanelController extends Controller
             ->sortByDesc('fecha')
             ->take(6);
 
+        $alertas = CentralAlertas::activas(paraDirector: false);
+
         return view('admin.panel.index', [
             'alumnosActivos' => $alumnosActivos,
             'carreras' => $carreras,
@@ -65,6 +68,8 @@ class PanelController extends Controller
             'actasPorGenerar' => $actasPorGenerar,
             'mesasDeHoy' => $mesasDeHoy,
             'actividad' => $actividad,
+            'alertasCount' => $alertas->count(),
+            'alertasDestacadas' => $alertas->take(3),
         ]);
     }
 }

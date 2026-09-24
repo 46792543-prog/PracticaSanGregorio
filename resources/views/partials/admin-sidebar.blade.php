@@ -1,7 +1,9 @@
 @php
     $configInstitucion = \App\Models\ConfiguracionInstitucion::first();
+    $alertasBadge = \App\Support\CentralAlertas::cantidad(paraDirector: false);
     $enlaces = [
         ['ruta' => 'admin.panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
+        ['ruta' => 'admin.alertas.index', 'texto' => 'Central de Alertas', 'icono' => 'bell', 'badge' => $alertasBadge],
         ['ruta' => 'admin.alumnos.index', 'texto' => 'Alumnos', 'icono' => 'users'],
         ['ruta' => 'admin.profesores.index', 'texto' => 'Profesores', 'icono' => 'briefcase'],
         ['ruta' => 'admin.carreras.index', 'texto' => 'Carreras y planes', 'icono' => 'cap'],
@@ -21,6 +23,7 @@
         'inbox' => 'M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859M2.25 13.5V17.25a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25V13.5M2.25 13.5 5.25 4.5h13.5l3 9',
         'folder' => 'M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-19.5 0v6a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-6m-19.5 0v-.15c0-1.03.84-1.85 1.85-1.85h3.729c.535 0 1.045.226 1.406.622l1.03 1.128c.36.396.87.622 1.406.622h4.104c1.01 0 1.85.82 1.85 1.85v.15',
         'upload' => 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 8.25 12 3.75m0 0L7.5 8.25M12 3.75v12',
+        'bell' => 'M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0',
         'logout' => 'M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 12H8.25m9.75 0-3-3m3 3-3 3',
         'chevron' => 'm8.25 4.5 7.5 7.5-7.5 7.5',
         'back' => 'M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18',
@@ -63,8 +66,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos[$enlace['icono']] }}" />
                     </svg>
                 </span>
-                <span class="truncate {{ $activo ? 'font-semibold' : '' }}">{{ $enlace['texto'] }}</span>
-                @if ($activo)
+                <span class="truncate flex-1 {{ $activo ? 'font-semibold' : '' }}">{{ $enlace['texto'] }}</span>
+                @if (! empty($enlace['badge']))
+                    <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#D4A017] text-[#122a52] text-[11px] font-bold px-1.5">
+                        {{ $enlace['badge'] }}
+                    </span>
+                @elseif ($activo)
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3.5 w-3.5 ml-auto text-[#D4A017]">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos['chevron'] }}" />
                     </svg>

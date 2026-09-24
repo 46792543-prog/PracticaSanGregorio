@@ -86,6 +86,10 @@
                    class="rounded-lg bg-[#1E4D8C] text-white text-xs font-semibold px-3 py-1.5 hover:shadow-md transition">
                     📄 Exportar PDF
                 </a>
+                <a href="{{ route('director.caja.excel', ['mes' => $mes->format('Y-m')]) }}"
+                   class="rounded-lg bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 hover:shadow-md transition">
+                    📊 Exportar Excel
+                </a>
             </div>
         </div>
 

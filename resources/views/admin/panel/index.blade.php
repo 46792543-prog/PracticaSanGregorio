@@ -50,6 +50,25 @@
         </div>
     </div>
 
+    @if ($alertasCount > 0)
+        <a href="{{ route('admin.alertas.index') }}" class="block rounded-2xl bg-rose-50 border border-rose-100 px-6 py-4 mb-6 hover:shadow-md transition">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">🔔</span>
+                    <div>
+                        <p class="font-bold text-sm text-rose-700">{{ $alertasCount }} {{ $alertasCount === 1 ? 'alerta requiere' : 'alertas requieren' }} tu atención</p>
+                        <p class="text-xs text-rose-500 mt-0.5">
+                            @foreach ($alertasDestacadas as $alerta)
+                                {{ $alerta['titulo'] }}{{ ! $loop->last ? ' · ' : '' }}
+                            @endforeach
+                        </p>
+                    </div>
+                </div>
+                <span class="text-rose-400 text-sm font-semibold">Ver todas →</span>
+            </div>
+        </a>
+    @endif
+
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         @foreach ($stats as $stat)
             @php $c = $colorMap[$stat['color']]; @endphp
