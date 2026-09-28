@@ -8,6 +8,24 @@
         $meses = [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'];
     @endphp
 
+    @if ($corteActivo)
+        <div @class([
+                'mb-6 rounded-xl border px-4 py-3 text-sm flex items-start gap-2 max-w-3xl',
+                'bg-red-50 border-red-200 text-red-800' => $corteActivo->anio != now()->year,
+                'bg-amber-50 border-amber-200 text-amber-800' => $corteActivo->anio == now()->year,
+            ])>
+            <span>⚠️</span>
+            <span>
+                Esta mesa se va a crear en el <strong>corte {{ $corteActivo->anio }}</strong>{{ $corteActivo->estadoAnio?->nombre_estado !== 'Activo' ? ' (Cerrado)' : '' }}.
+                @if ($corteActivo->anio != now()->year)
+                    Estás en {{ now()->year }} pero el corte activo es {{ $corteActivo->anio }}: si no es el año que querés cargar, cambialo arriba con el selector de corte antes de guardar.
+                @else
+                    Verificá que sea el año correcto antes de guardar.
+                @endif
+            </span>
+        </div>
+    @endif
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-3xl">
         <h2 class="font-bold text-slate-800 flex items-center gap-2 mb-6">📋 Completar datos de la mesa</h2>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Director;
 
+use App\Exports\CajaExport;
 use App\Http\Controllers\Controller;
 use App\Models\ConceptoCaja;
 use App\Models\MovimientoCaja;
@@ -13,6 +14,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CajaController extends Controller
 {
@@ -57,6 +59,18 @@ class CajaController extends Controller
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("libro-caja-{$mes->format('Y-m')}.pdf");
+    }
+
+    public function excel(Request $request)
+    {
+        $mes = $request->query('mes') ? Carbon::parse($request->query('mes') . '-01') : now();
+
+        $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
+            ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
+            ->orderBy('fecha_movimiento')
+            ->get();
+
+        return Excel::download(new CajaExport($movimientos), "libro-caja-{$mes->format('Y-m')}.xlsx");
     }
 
     public function storeGasto(Request $request): RedirectResponse

@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\ActaController;
+use App\Http\Controllers\Admin\AlertaController as AdminAlertaController;
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarreraController;
+use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\CorteActivoController;
 use App\Http\Controllers\CuotaController;
 use App\Http\Controllers\CursadaController;
+use App\Http\Controllers\Director\AlertaController;
 use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
@@ -21,6 +24,7 @@ use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguraci
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
+use App\Http\Controllers\Director\ReporteIngresosController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
 use App\Http\Controllers\InscripcionController;
@@ -90,6 +94,8 @@ Route::middleware(['auth', 'alumno'])->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(function () {
     Route::get('/panel', [AdminPanelController::class, 'index'])->name('panel.index');
 
+    Route::get('/alertas', [AdminAlertaController::class, 'index'])->name('alertas.index');
+
     Route::get('/alumnos', [AlumnoController::class, 'index'])->name('alumnos.index');
     Route::get('/alumnos/nuevo', [AlumnoController::class, 'create'])->name('alumnos.create');
     Route::post('/alumnos/nuevo', [AlumnoController::class, 'store'])->name('alumnos.store');
@@ -105,6 +111,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
     Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
     Route::post('/alumnos/{persona}/seguimiento', [AlumnoController::class, 'storeSeguimiento'])->name('alumnos.seguimiento.store');
+    Route::get('/alumnos/{persona}/certificado-regular', [CertificadoController::class, 'regular'])->name('alumnos.certificado.regular');
+    Route::get('/alumnos/{persona}/boletin', [CertificadoController::class, 'boletin'])->name('alumnos.boletin');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
@@ -175,6 +183,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->group(function () {
     Route::get('/panel', [DirectorPanelController::class, 'index'])->name('panel.index');
 
+    Route::get('/alertas', [AlertaController::class, 'index'])->name('alertas.index');
+
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
     Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
@@ -182,12 +192,16 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
-
-    Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
+    Route::get('/pagos/excel', [EstadoPagosController::class, 'excel'])->name('pagos.excel');
 
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
+    Route::get('/caja/excel', [CajaController::class, 'excel'])->name('caja.excel');
     Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
+
+    Route::get('/reportes/ingresos', [ReporteIngresosController::class, 'index'])->name('reportes.ingresos.index');
+    Route::get('/reportes/ingresos/pdf', [ReporteIngresosController::class, 'pdf'])->name('reportes.ingresos.pdf');
+    Route::get('/reportes/ingresos/excel', [ReporteIngresosController::class, 'excel'])->name('reportes.ingresos.excel');
 
     Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');

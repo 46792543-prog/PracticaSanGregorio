@@ -54,6 +54,10 @@
             @if ($busqueda || $carreraId || $estado)
                 <a href="{{ route('director.pagos.index') }}" class="rounded-xl border border-slate-200 text-slate-500 font-semibold text-sm px-4 py-2">Limpiar</a>
             @endif
+            <a href="{{ route('director.pagos.excel', request()->query()) }}"
+               class="ml-auto rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm px-4 py-2 shadow-sm hover:shadow-md transition">
+                📊 Exportar Excel
+            </a>
         </form>
 
         <table class="w-full text-sm">
