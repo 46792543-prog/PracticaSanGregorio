@@ -22,12 +22,12 @@
                 <div class="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
                     <h2 class="font-bold text-slate-700">{{ $seccion->nombre }}</h2>
                     <div class="flex items-center gap-1.5 text-xs font-semibold">
-                        <form method="PUT" action="{{ route('admin.ficha-inscripcion.secciones.mover', $seccion) }}">
+                        <form method="POST" action="{{ route('admin.ficha-inscripcion.secciones.mover', $seccion) }}">
                             @csrf @method('PUT')
                             <input type="hidden" name="direccion" value="arriba">
                             <button class="h-7 w-7 rounded-lg hover:bg-slate-200 text-slate-500" title="Mover arriba">↑</button>
                         </form>
-                        <form method="PUT" action="{{ route('admin.ficha-inscripcion.secciones.mover', $seccion) }}">
+                        <form method="POST" action="{{ route('admin.ficha-inscripcion.secciones.mover', $seccion) }}">
                             @csrf @method('PUT')
                             <input type="hidden" name="direccion" value="abajo">
                             <button class="h-7 w-7 rounded-lg hover:bg-slate-200 text-slate-500" title="Mover abajo">↓</button>
@@ -63,18 +63,18 @@
                                 </p>
                             </div>
                             <div class="flex items-center gap-1.5 text-xs font-semibold shrink-0">
-                                <form method="PUT" action="{{ route('admin.ficha-inscripcion.campos.mover', $campo) }}">
+                                <form method="POST" action="{{ route('admin.ficha-inscripcion.campos.mover', $campo) }}">
                                     @csrf @method('PUT')
                                     <input type="hidden" name="direccion" value="arriba">
                                     <button class="h-7 w-7 rounded-lg hover:bg-slate-100 text-slate-500" title="Mover arriba">↑</button>
                                 </form>
-                                <form method="PUT" action="{{ route('admin.ficha-inscripcion.campos.mover', $campo) }}">
+                                <form method="POST" action="{{ route('admin.ficha-inscripcion.campos.mover', $campo) }}">
                                     @csrf @method('PUT')
                                     <input type="hidden" name="direccion" value="abajo">
                                     <button class="h-7 w-7 rounded-lg hover:bg-slate-100 text-slate-500" title="Mover abajo">↓</button>
                                 </form>
                                 <button type="button" onclick="editarCampo({{ \Illuminate\Support\Js::from($payloadCampo) }})" class="text-[#1E4D8C] hover:underline px-1.5">Editar</button>
-                                <form method="PUT" action="{{ route('admin.ficha-inscripcion.campos.toggle', $campo) }}">
+                                <form method="POST" action="{{ route('admin.ficha-inscripcion.campos.toggle', $campo) }}">
                                     @csrf @method('PUT')
                                     <button class="text-slate-500 hover:underline px-1.5">{{ $campo->activo ? 'Ocultar' : 'Mostrar' }}</button>
                                 </form>
