@@ -11,9 +11,11 @@ use App\Models\EstadoCarrera;
 use App\Models\EstadoDocumento;
 use App\Models\EstadoInscripcion;
 use App\Models\EstadoMesa;
+use App\Models\EstadoPagoDocente;
 use App\Models\EstadoUsuario;
 use App\Models\LlamadoExamen;
 use App\Models\MedioPago;
+use App\Models\MetodoPagoDocente;
 use App\Models\Mes;
 use App\Models\NombreMateria;
 use App\Models\PeriodoDictado;
@@ -174,6 +176,14 @@ class CatalogoSeeder extends Seeder
 
         foreach (['Alta Cargo', 'Baja Definitiva', 'Comisión de Servicio', 'Licencia Médica'] as $nombre) {
             TipoAccion::firstOrCreate(['nombre_tipo' => $nombre]);
+        }
+
+        foreach (['Efectivo', 'Transferencia', 'Cheque', 'Otro'] as $nombre) {
+            MetodoPagoDocente::firstOrCreate(['nombre_metodo' => $nombre]);
+        }
+
+        foreach (['Pagado', 'Pendiente', 'Anulado'] as $nombre) {
+            EstadoPagoDocente::firstOrCreate(['nombre_estado' => $nombre]);
         }
 
         // institucion_origen y concepto_caja quedan vacías a propósito (igual
