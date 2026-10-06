@@ -8,6 +8,7 @@
         ['ruta' => 'inscripciones.index', 'texto' => 'Mis inscripciones', 'icono' => 'pencil'],
         ['ruta' => 'cuotas.index', 'texto' => 'Mis cuotas', 'icono' => 'cash'],
         ['ruta' => 'mis-datos.edit', 'texto' => 'Mis datos', 'icono' => 'user'],
+        ['ruta' => 'ficha-inscripcion.edit', 'texto' => 'Mi ficha de inscripción', 'icono' => 'clipboard'],
     ];
 
     $iconos = [
