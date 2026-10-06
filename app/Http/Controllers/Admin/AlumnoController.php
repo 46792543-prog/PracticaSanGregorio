@@ -9,12 +9,12 @@ use App\Models\Carrera;
 use App\Models\CondicionAlumno;
 use App\Models\EstadoInscripcion;
 use App\Models\EstadoUsuario;
+use App\Models\FichaSeccion;
 use App\Models\HistorialAlumno;
 use App\Models\InscripcionCarrera;
 use App\Models\Materia;
 use App\Models\Persona;
 use App\Models\Rol;
-use App\Models\TurnoCursada;
 use App\Models\Usuario;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
@@ -113,7 +113,19 @@ class AlumnoController extends Controller
         $seguimientos = $persona->seguimientos()->with('autor')->latest()->get();
         $condiciones = CondicionAlumno::whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Aprobada'])->orderBy('id_condicion')->get();
 
-        return view('admin.alumnos.show', ['alumno' => $persona, 'seguimientos' => $seguimientos, 'condiciones' => $condiciones]);
+        $fichaSecciones = FichaSeccion::where('activo', true)
+            ->with(['campos' => fn ($q) => $q->where('activo', true)])
+            ->orderBy('orden')
+            ->get();
+        $fichaRespuestas = $persona->fichaRespuestas()->get()->keyBy('id_campo');
+
+        return view('admin.alumnos.show', [
+            'alumno' => $persona,
+            'seguimientos' => $seguimientos,
+            'condiciones' => $condiciones,
+            'fichaSecciones' => $fichaSecciones,
+            'fichaRespuestas' => $fichaRespuestas,
+        ]);
     }
 
     public function create(): View
@@ -127,13 +139,7 @@ class AlumnoController extends Controller
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
             'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
-            'fecha_nacimiento' => ['required', 'date', 'before_or_equal:' . now()->subYears(17)->toDateString()],
-            'telefono' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
-            'direccion' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')],
-            'localidad' => ['nullable', 'string', 'max:100', 'regex:/^[\pL\s\'-]+$/u'],
-        ], [
-            'fecha_nacimiento.before_or_equal' => 'El alumno debe tener al menos 17 años.',
         ]);
 
         session([self::SESSION_KEY . '.personales' => $datos]);
@@ -152,8 +158,7 @@ class AlumnoController extends Controller
             'academicos' => session(self::SESSION_KEY . '.academicos', []),
             'carreras' => Carrera::whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))->orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
-            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
-            'condiciones' => CondicionAlumno::whereIn('nombre_condicion', ['Regular', 'Promoción', 'Libre'])->orderBy('id_condicion')->get(),
+            'corteActivoId' => CorteActivo::id(),
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
         ]);
     }
@@ -166,8 +171,6 @@ class AlumnoController extends Controller
             'carrera_id' => ['required', 'exists:carrera,id_carrera'],
             'anio_cursada_id' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'anio_lectivo_id' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
-            'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
-            'condicion_id' => ['required', 'exists:condicion_alumno,id_condicion'],
         ]);
 
         session([self::SESSION_KEY . '.academicos' => $datos]);
@@ -205,10 +208,6 @@ class AlumnoController extends Controller
             'dni' => $personales['dni'],
             'nombre' => $personales['nombre'],
             'apellido' => $personales['apellido'],
-            'fecha_nacimiento' => $personales['fecha_nacimiento'],
-            'telefono' => $personales['telefono'] ?? null,
-            'direccion' => $personales['direccion'] ?? null,
-            'localidad' => $personales['localidad'] ?? null,
         ]);
 
         Usuario::create([
@@ -224,8 +223,8 @@ class AlumnoController extends Controller
             'id_carrera' => $academicos['carrera_id'],
             'id_anio_cursada' => $academicos['anio_cursada_id'],
             'id_anio_lectivo' => $academicos['anio_lectivo_id'],
-            'id_turno_cursada' => $academicos['turno_cursada_id'],
-            'id_condicion' => $academicos['condicion_id'],
+            'id_turno_cursada' => null,
+            'id_condicion' => CondicionAlumno::where('nombre_condicion', 'Regular')->value('id_condicion'),
             'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
             'id_secretario_registra' => Auth::user()->id_persona,
         ]);
