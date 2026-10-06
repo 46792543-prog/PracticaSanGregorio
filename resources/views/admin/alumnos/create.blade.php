@@ -29,35 +29,12 @@
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                 </div>
-                <div class="grid sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DE NACIMIENTO *</label>
-                        <input type="date" name="fecha_nacimiento" value="{{ old('fecha_nacimiento', $datos['fecha_nacimiento'] ?? '') }}" max="{{ now()->subYears(17)->toDateString() }}" required
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">TELÉFONO</label>
-                        <input type="text" data-solo="telefono" maxlength="20" name="telefono" value="{{ old('telefono', $datos['telefono'] ?? '') }}" placeholder="Ej: +54 388 412-5678"
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">DIRECCIÓN</label>
-                    <input type="text" maxlength="250" name="direccion" value="{{ old('direccion', $datos['direccion'] ?? '') }}" placeholder="Calle, número, barrio, localidad"
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">EMAIL *</label>
+                    <input type="email" maxlength="100" name="email" value="{{ old('email', $datos['email'] ?? '') }}" required placeholder="alumno@email.com"
                            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                 </div>
-                <div class="grid sm:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">EMAIL *</label>
-                        <input type="email" maxlength="100" name="email" value="{{ old('email', $datos['email'] ?? '') }}" required placeholder="alumno@email.com"
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">LOCALIDAD</label>
-                        <input type="text" data-solo="letras" maxlength="100" name="localidad" value="{{ old('localidad', $datos['localidad'] ?? '') }}" placeholder="Ej: San Pedro de Jujuy"
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                </div>
+                <p class="text-xs text-slate-400 mb-6">El resto de los datos personales (fecha de nacimiento, contacto, domicilio, etc.) los va a completar el alumno desde su propio portal, en "Mi ficha de inscripción".</p>
 
                 <div class="flex justify-end gap-3">
                     <a href="{{ route('admin.alumnos.index') }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">← Volver</a>
