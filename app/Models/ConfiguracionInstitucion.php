@@ -17,6 +17,11 @@ class ConfiguracionInstitucion extends Model
         'nombre_director',
         'telefono_contacto',
         'email_contacto',
+        'horario_atencion',
+        'landing_anios_formacion',
+        'landing_docentes_cantidad',
+        'landing_alumnos_cantidad',
+        'landing_egresados_cantidad',
         'fecha_ultima_modificacion',
         'id_secretario_modifica',
     ];

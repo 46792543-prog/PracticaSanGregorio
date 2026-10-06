@@ -29,6 +29,7 @@ use App\Http\Controllers\Director\ReporteIngresosController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
 use App\Http\Controllers\InscripcionController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MesaExamenController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PerfilController;
@@ -40,7 +41,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::redirect('/', '/login');
+Route::get('/', [LandingController::class, 'index'])->name('welcome');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -207,6 +208,9 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/configuracion', [DirectorConfiguracionController::class, 'index'])->name('configuracion.index');
     Route::put('/configuracion', [DirectorConfiguracionController::class, 'update'])->name('configuracion.update');
     Route::delete('/configuracion', [DirectorConfiguracionController::class, 'destroy'])->name('configuracion.destroy');
+
+    Route::post('/configuracion/imagenes', [DirectorConfiguracionController::class, 'storeImagenLanding'])->name('configuracion.imagenes.store');
+    Route::delete('/configuracion/imagenes/{imagen}', [DirectorConfiguracionController::class, 'destroyImagenLanding'])->name('configuracion.imagenes.destroy');
 
     Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
     Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');

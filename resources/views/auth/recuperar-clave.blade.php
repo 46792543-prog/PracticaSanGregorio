@@ -3,63 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creá tu nueva contraseña · Instituto Superior San Gregorio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Creá tu nueva contraseña · {{ $config?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
-<body class="bg-white min-h-screen">
-    <div class="min-h-screen flex flex-col md:flex-row">
+<body class="landing-body landing-login">
+    @include('auth.partials.recuperar-fondo')
+
+    <div class="landing-login__tarjeta landing-login__tarjeta--ancha">
+        <a href="{{ route('password.verificar') }}" class="landing-login__volver">← Volver al paso anterior</a>
+
         @include('auth.partials.recuperar-sidebar', ['paso' => 3])
 
-        <div class="flex-1 flex items-center justify-center px-6 py-16">
-            <div class="w-full max-w-md">
-                <div class="flex items-center gap-3 mb-8 text-sm font-bold">
-                    <span class="flex items-center gap-1 text-green-600"><span class="h-6 w-6 rounded-full bg-green-500 text-white grid place-items-center text-xs">✓</span> Email</span>
-                    <span class="flex-1 h-px bg-green-500"></span>
-                    <span class="flex items-center gap-1 text-green-600"><span class="h-6 w-6 rounded-full bg-green-500 text-white grid place-items-center text-xs">✓</span> Código</span>
-                    <span class="flex-1 h-px bg-green-500"></span>
-                    <span class="flex items-center gap-1 text-[#1E4D8C]"><span class="h-6 w-6 rounded-full bg-[#1E4D8C] text-white grid place-items-center text-xs">3</span> Nueva clave</span>
-                </div>
-
-                <h1 class="text-2xl font-bold text-slate-800 mb-3">Creá tu nueva contraseña</h1>
-                <p class="text-slate-500 mb-6">Elegí una contraseña segura. No podrás reutilizar tu contraseña anterior.</p>
-
-                @if ($errors->any())
-                    <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                        {{ $errors->first() }}
-                    </div>
-                @endif
-
-                <form method="POST" action="{{ route('password.nueva') }}" class="space-y-5">
-                    @csrf
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-2">CONTRASEÑA NUEVA</label>
-                        <input type="password" name="password" minlength="8" maxlength="100" required autofocus
-                               class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-2">CONFIRMAR CONTRASEÑA</label>
-                        <input type="password" name="password_confirmation" minlength="8" maxlength="100" required placeholder="Repetí tu nueva contraseña"
-                               class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-
-                    <ul class="text-xs text-slate-500 bg-slate-50 rounded-xl px-4 py-3 space-y-1">
-                        <li>• Mínimo 8 caracteres</li>
-                        <li>• Recomendado: combiná mayúsculas, números y símbolos</li>
-                    </ul>
-
-                    <button type="submit" class="w-full rounded-xl bg-[#1E4D8C] hover:bg-[#173d70] text-white font-semibold py-3.5 text-sm transition">
-                        💾 Guardar nueva contraseña
-                    </button>
-
-                    <a href="{{ route('password.verificar') }}" class="block text-center rounded-xl border border-[#1E4D8C] text-[#1E4D8C] font-semibold py-3.5 text-sm">
-                        ← Volver al paso anterior
-                    </a>
-                </form>
-            </div>
+        <div class="landing-login__cabecera" style="text-align:left;margin-bottom:18px;">
+            <h1 style="font-size:1.3rem;">Creá tu nueva contraseña</h1>
+            <p style="margin-top:8px;line-height:1.55;">Elegí una contraseña segura. No podrás reutilizar tu contraseña anterior.</p>
         </div>
+
+        @if ($errors->any())
+            <div class="landing-login__error" role="alert">{{ $errors->first() }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('password.nueva') }}" class="landing-form">
+            @csrf
+            <div class="landing-form__campo">
+                <label for="rec-password">Contraseña nueva</label>
+                <div class="landing-input-icono">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                    <input id="rec-password" type="password" name="password" minlength="8" maxlength="100" required autofocus>
+                </div>
+            </div>
+            <div class="landing-form__campo">
+                <label for="rec-password-confirm">Confirmar contraseña</label>
+                <div class="landing-input-icono">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                    <input id="rec-password-confirm" type="password" name="password_confirmation" minlength="8" maxlength="100" required placeholder="Repetí tu nueva contraseña">
+                </div>
+            </div>
+
+            <ul style="font-size:.78rem;color:var(--landing-texto-suave);background:var(--landing-celeste-claro);border-radius:12px;padding:12px 16px;display:grid;gap:4px;list-style:none;">
+                <li>• Mínimo 8 caracteres</li>
+                <li>• Recomendado: combiná mayúsculas, números y símbolos</li>
+            </ul>
+
+            <button type="submit" class="landing-btn landing-btn--primario landing-btn--bloque">Guardar nueva contraseña →</button>
+            <a href="{{ route('password.verificar') }}" class="landing-btn landing-btn--outline-azul landing-btn--bloque">← Volver al paso anterior</a>
+        </form>
     </div>
+
+    <script src="{{ asset('js/landing.js') }}" defer></script>
 </body>
 </html>

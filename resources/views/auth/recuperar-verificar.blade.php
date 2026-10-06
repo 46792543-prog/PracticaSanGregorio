@@ -3,70 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificá tu identidad · Instituto Superior San Gregorio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Verificá tu identidad · {{ $config?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
-<body class="bg-white min-h-screen">
-    <div class="min-h-screen flex flex-col md:flex-row">
+<body class="landing-body landing-login">
+    @include('auth.partials.recuperar-fondo')
+
+    <div class="landing-login__tarjeta landing-login__tarjeta--ancha">
+        <a href="{{ route('password.solicitar') }}" class="landing-login__volver">← Volver al paso anterior</a>
+
         @include('auth.partials.recuperar-sidebar', ['paso' => 2])
 
-        <div class="flex-1 flex items-center justify-center px-6 py-16">
-            <div class="w-full max-w-md">
-                <div class="flex items-center gap-3 mb-8 text-sm font-bold">
-                    <span class="flex items-center gap-1 text-green-600"><span class="h-6 w-6 rounded-full bg-green-500 text-white grid place-items-center text-xs">✓</span> Email</span>
-                    <span class="flex-1 h-px bg-green-500"></span>
-                    <span class="flex items-center gap-1 text-[#1E4D8C]"><span class="h-6 w-6 rounded-full bg-[#1E4D8C] text-white grid place-items-center text-xs">2</span> Código</span>
-                    <span class="flex-1 h-px bg-slate-200"></span>
-                    <span class="flex items-center gap-1 text-slate-300"><span class="h-6 w-6 rounded-full border border-slate-300 grid place-items-center text-xs">3</span> Nueva clave</span>
-                </div>
-
-                <h1 class="text-2xl font-bold text-slate-800 mb-3">Verificá tu identidad</h1>
-                <p class="text-slate-500 mb-2">Ingresá el código de 6 dígitos que enviamos a tu email institucional.</p>
-                <p class="text-slate-400 text-xs mb-6">Revisá también tu carpeta de spam.</p>
-
-                <div class="flex items-center gap-2 rounded-xl bg-blue-50 text-[#1E4D8C] text-sm px-4 py-3 mb-6">
-                    ✉️ Código enviado a <strong>{{ $email }}</strong>
-                </div>
-
-                @if ($codigoDemo)
-                    <div class="rounded-xl bg-amber-50 text-amber-700 text-xs px-4 py-3 mb-6">
-                        Modo demo (no hay servidor de correo configurado): tu código es <strong class="text-base">{{ $codigoDemo }}</strong>
-                    </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                        {{ $errors->first() }}
-                    </div>
-                @endif
-
-                <form method="POST" action="{{ route('password.verificar') }}" class="space-y-6">
-                    @csrf
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-2">CÓDIGO DE 6 DÍGITOS</label>
-                        <input type="text" name="codigo" inputmode="numeric" maxlength="6" required autofocus
-                               placeholder="000000"
-                               class="w-full text-center tracking-[0.5em] text-2xl font-bold rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-
-                    <button type="submit" class="w-full rounded-xl bg-[#1E4D8C] hover:bg-[#173d70] text-white font-semibold py-3.5 text-sm transition">
-                        ✅ Verificar código
-                    </button>
-
-                    <a href="{{ route('password.solicitar') }}" class="block text-center rounded-xl border border-[#1E4D8C] text-[#1E4D8C] font-semibold py-3.5 text-sm">
-                        ← Volver al paso anterior
-                    </a>
-                </form>
-
-                <p class="text-center mt-6 text-sm text-slate-500">
-                    ¿No recibiste el código?
-                    <a href="{{ route('password.solicitar') }}" class="text-[#1E4D8C] font-semibold">Reenviar código</a>
-                </p>
-            </div>
+        <div class="landing-login__cabecera" style="text-align:left;margin-bottom:18px;">
+            <h1 style="font-size:1.3rem;">Verificá tu identidad</h1>
+            <p style="margin-top:8px;line-height:1.55;">
+                Ingresá el código de 6 dígitos que enviamos a tu email institucional.
+                <span style="display:block;color:#94a3b8;font-size:.78rem;margin-top:4px;">Revisá también tu carpeta de spam.</span>
+            </p>
         </div>
+
+        <div class="landing-caja-info">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+            Código enviado a <strong>{{ $email }}</strong>
+        </div>
+
+        @if ($codigoDemo)
+            <div class="landing-caja-demo">
+                Modo demo (no hay servidor de correo configurado): tu código es <strong>{{ $codigoDemo }}</strong>
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="landing-login__error" role="alert">{{ $errors->first() }}</div>
+        @endif
+
+        <form method="POST" action="{{ route('password.verificar') }}" class="landing-form">
+            @csrf
+            <div class="landing-form__campo">
+                <label for="rec-codigo">Código de 6 dígitos</label>
+                <input id="rec-codigo" type="text" name="codigo" inputmode="numeric" maxlength="6" required autofocus placeholder="000000"
+                       style="text-align:center;letter-spacing:.5em;font-size:1.4rem;font-weight:800;font-family:var(--landing-fuente-titulo);padding-left:16px;">
+            </div>
+
+            <button type="submit" class="landing-btn landing-btn--primario landing-btn--bloque">Verificar código →</button>
+            <a href="{{ route('password.solicitar') }}" class="landing-btn landing-btn--outline-azul landing-btn--bloque">← Volver al paso anterior</a>
+        </form>
+
+        <p style="text-align:center;margin-top:18px;font-size:.85rem;color:var(--landing-texto-suave);">
+            ¿No recibiste el código?
+            <a href="{{ route('password.solicitar') }}" style="color:var(--landing-azul);font-weight:700;">Reenviar código</a>
+        </p>
     </div>
+
+    <script src="{{ asset('js/landing.js') }}" defer></script>
 </body>
 </html>

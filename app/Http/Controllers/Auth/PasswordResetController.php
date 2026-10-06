@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConfiguracionInstitucion;
 use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class PasswordResetController extends Controller
 
     public function solicitarForm(): View
     {
-        return view('auth.recuperar-email');
+        return view('auth.recuperar-email', ['config' => ConfiguracionInstitucion::first()]);
     }
 
     public function solicitar(Request $request): RedirectResponse
@@ -67,6 +68,7 @@ class PasswordResetController extends Controller
         return view('auth.recuperar-verificar', [
             'email' => session('password_reset_email'),
             'codigoDemo' => session('password_reset_codigo_demo'),
+            'config' => ConfiguracionInstitucion::first(),
         ]);
     }
 
@@ -96,7 +98,7 @@ class PasswordResetController extends Controller
             return redirect()->route('password.solicitar');
         }
 
-        return view('auth.recuperar-clave');
+        return view('auth.recuperar-clave', ['config' => ConfiguracionInstitucion::first()]);
     }
 
     public function nueva(Request $request): RedirectResponse

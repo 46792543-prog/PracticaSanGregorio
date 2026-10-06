@@ -62,7 +62,7 @@
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">DIRECCIÓN</label>
-                        <input type="text" name="direccion" data-solo="alfanumerico" data-max-len="20" maxlength="20"
+                        <input type="text" name="direccion" data-solo="direccion" data-max-len="100" maxlength="100"
                                value="{{ old('direccion', $configuracion->direccion ?? '') }}"
                                class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
                     </div>
@@ -86,6 +86,49 @@
                         <input type="email" name="email_contacto" maxlength="40"
                                value="{{ old('email_contacto', $configuracion->email_contacto ?? '') }}"
                                class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">HORARIOS DE ATENCIÓN</label>
+                        <input type="text" name="horario_atencion" maxlength="60" placeholder="Ej: Lunes a viernes, 14:00 a 22:00"
+                               value="{{ old('horario_atencion', $configuracion->horario_atencion ?? '') }}"
+                               class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                        <p class="text-[11px] text-slate-400 mt-1">Se muestra en la sección "Ubicación" de la página pública (landing).</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-5 mt-2 mb-4">
+                    <p class="text-xs font-bold text-slate-600 mb-1">NÚMEROS DESTACADOS EN LA LANDING</p>
+                    <p class="text-[11px] text-slate-400 mb-3">Si dejás un campo vacío, se muestra el dato real calculado por el sistema.</p>
+                    <div class="grid sm:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">AÑOS DE FORMACIÓN</label>
+                            <input type="number" min="0" max="999" name="landing_anios_formacion"
+                                   value="{{ old('landing_anios_formacion', $configuracion->landing_anios_formacion ?? '') }}"
+                                   placeholder="{{ $carrera->duracion_anos ?? 3 }}"
+                                   class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">DOCENTES ACTIVOS</label>
+                            <input type="number" min="0" max="999" name="landing_docentes_cantidad"
+                                   value="{{ old('landing_docentes_cantidad', $configuracion->landing_docentes_cantidad ?? '') }}"
+                                   placeholder="{{ $docentesActivos ?? 0 }}"
+                                   class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">ALUMNOS CURSANDO</label>
+                            <input type="number" min="0" max="999" name="landing_alumnos_cantidad"
+                                   value="{{ old('landing_alumnos_cantidad', $configuracion->landing_alumnos_cantidad ?? '') }}"
+                                   placeholder="{{ $alumnosActivos ?? 0 }}"
+                                   class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">EGRESADOS</label>
+                            <input type="number" min="0" max="999" name="landing_egresados_cantidad"
+                                   value="{{ old('landing_egresados_cantidad', $configuracion->landing_egresados_cantidad ?? '') }}"
+                                   placeholder="120"
+                                   class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30 focus:border-[#1E4D8C]">
+                        </div>
                     </div>
                 </div>
 
@@ -111,6 +154,57 @@
                     @method('DELETE')
                     <button type="submit" class="rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm px-6 py-2.5 transition">Eliminar datos</button>
                 </form>
+            @endif
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+        <div class="bg-[#1E4D8C] px-6 py-3.5">
+            <h2 class="text-white font-bold text-sm flex items-center gap-2">🖼️ Imágenes de portada (landing)</h2>
+        </div>
+
+        <div class="p-6">
+            <p class="text-xs text-slate-500 mb-4">
+                Se muestran como carrusel de fondo en la portada de la página pública. Si no cargás ninguna, se usa un fondo de color por defecto.
+            </p>
+
+            <form method="POST" action="{{ route('director.configuracion.imagenes.store') }}" enctype="multipart/form-data">
+                @csrf
+                <label id="zona-arrastrar" for="imagenes-input"
+                       class="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center cursor-pointer transition hover:border-[#1E4D8C]/40 hover:bg-[#1E4D8C]/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" class="h-9 w-9">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                    </svg>
+                    <p class="text-sm font-semibold text-slate-600">Arrastrá imágenes acá, o hacé clic para elegirlas</p>
+                    <p class="text-[11px] text-slate-400">JPG, PNG o WEBP. Podés seleccionar varias a la vez.</p>
+                    <input id="imagenes-input" type="file" name="imagenes[]" accept="image/png,image/jpeg,image/webp" multiple class="hidden">
+                </label>
+                @error('imagenes.*')
+                    <p class="text-[11px] text-red-500 mt-2">{{ $message }}</p>
+                @enderror
+                <div id="imagenes-seleccionadas" class="text-xs text-slate-500 mt-2"></div>
+                <div class="flex justify-end mt-3">
+                    <button type="submit" class="rounded-xl bg-[#1E4D8C] hover:shadow-md text-white font-semibold text-sm px-6 py-2.5 transition">Subir imágenes</button>
+                </div>
+            </form>
+
+            @if ($imagenesLanding->isNotEmpty())
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                    @foreach ($imagenesLanding as $imagen)
+                        <div class="relative group rounded-xl overflow-hidden border border-slate-100 aspect-video">
+                            <img src="{{ $imagen->url }}" alt="" class="h-full w-full object-cover">
+                            <form method="POST" action="{{ route('director.configuracion.imagenes.destroy', $imagen) }}"
+                                  onsubmit="return confirm('¿Eliminar esta imagen de la portada?');"
+                                  class="absolute top-1.5 right-1.5">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="h-7 w-7 grid place-items-center rounded-lg bg-black/60 text-white opacity-0 group-hover:opacity-100 transition" title="Eliminar">🗑️</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-slate-400 mt-5">Todavía no cargaste imágenes de portada.</p>
             @endif
         </div>
     </div>
@@ -224,6 +318,39 @@
 
                     cerrarModal();
                 }, 'image/png');
+            });
+        })();
+
+        (function () {
+            const zona = document.getElementById('zona-arrastrar');
+            const input = document.getElementById('imagenes-input');
+            const resumen = document.getElementById('imagenes-seleccionadas');
+            if (!zona || !input) return;
+
+            function mostrarResumen() {
+                const n = input.files.length;
+                resumen.textContent = n ? `${n} imagen(es) lista(s) para subir.` : '';
+            }
+
+            input.addEventListener('change', mostrarResumen);
+
+            ['dragenter', 'dragover'].forEach(evento => {
+                zona.addEventListener(evento, e => {
+                    e.preventDefault();
+                    zona.classList.add('border-[#1E4D8C]', 'bg-[#1E4D8C]/5');
+                });
+            });
+            ['dragleave', 'drop'].forEach(evento => {
+                zona.addEventListener(evento, e => {
+                    e.preventDefault();
+                    zona.classList.remove('border-[#1E4D8C]', 'bg-[#1E4D8C]/5');
+                });
+            });
+            zona.addEventListener('drop', e => {
+                if (e.dataTransfer?.files?.length) {
+                    input.files = e.dataTransfer.files;
+                    mostrarResumen();
+                }
             });
         })();
     </script>
