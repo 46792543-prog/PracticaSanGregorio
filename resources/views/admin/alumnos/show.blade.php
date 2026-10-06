@@ -133,6 +133,33 @@
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6">
+        <h3 class="font-bold text-slate-700 mb-1">📋 Ficha de inscripción</h3>
+        <p class="text-xs text-slate-400 mb-4">Datos que completó el alumno desde su portal. Solo consulta — la edición la hace el propio alumno.</p>
+
+        @php $algunaRespuesta = $fichaRespuestas->isNotEmpty(); @endphp
+        @if (! $algunaRespuesta)
+            <p class="text-sm text-slate-400">El alumno todavía no completó su ficha de inscripción.</p>
+        @else
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-5">
+                @foreach ($fichaSecciones as $seccion)
+                    @continue($seccion->campos->isEmpty())
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">{{ $seccion->nombre }}</p>
+                        <dl class="text-sm space-y-2 text-slate-500">
+                            @foreach ($seccion->campos as $campo)
+                                <div class="flex justify-between gap-4">
+                                    <dt class="shrink-0">{{ $campo->etiqueta }}</dt>
+                                    <dd class="text-slate-700 text-right">{{ $fichaRespuestas->get($campo->id_campo)?->valor ?? '—' }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6">
         <h3 class="font-bold text-slate-700 mb-4">Seguimiento del alumno</h3>
         <form method="POST" action="{{ route('admin.alumnos.seguimiento.store', $alumno) }}" class="flex flex-col gap-2 mb-5">
             @csrf
