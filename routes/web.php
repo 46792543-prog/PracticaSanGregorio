@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarreraController;
 use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
+use App\Http\Controllers\Admin\HorarioCarreraController;
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
 use App\Http\Controllers\Admin\PanelController as AdminPanelController;
@@ -138,6 +139,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
     Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
+
+    Route::get('/horarios', [HorarioCarreraController::class, 'index'])->name('horarios.index');
+    Route::post('/horarios/modulos', [HorarioCarreraController::class, 'storeModulo'])->name('horarios.modulos.store');
+    Route::put('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'updateModulo'])->name('horarios.modulos.update');
+    Route::delete('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'destroyModulo'])->name('horarios.modulos.destroy');
+    Route::put('/horarios/modulos/{horarioModulo}/celdas', [HorarioCarreraController::class, 'storeCelda'])->name('horarios.celdas.store');
 
     Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
     Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
