@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarreraController;
 use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
+use App\Http\Controllers\Admin\FichaInscripcionController as AdminFichaInscripcionController;
 use App\Http\Controllers\Admin\HorarioCarreraController;
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Director\PanelController as DirectorPanelController;
 use App\Http\Controllers\Director\ReporteIngresosController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
+use App\Http\Controllers\FichaInscripcionController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MesaExamenController;
@@ -87,6 +89,9 @@ Route::middleware(['auth', 'alumno'])->group(function () {
 
     Route::get('/mis-datos', [PerfilController::class, 'edit'])->name('mis-datos.edit');
     Route::put('/mis-datos', [PerfilController::class, 'update'])->name('mis-datos.update');
+
+    Route::get('/mi-ficha-inscripcion', [FichaInscripcionController::class, 'edit'])->name('ficha-inscripcion.edit');
+    Route::put('/mi-ficha-inscripcion', [FichaInscripcionController::class, 'update'])->name('ficha-inscripcion.update');
 });
 
 /*
@@ -124,6 +129,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/documentacion/{persona}', [AdminDocumentacionController::class, 'show'])->name('documentacion.show');
     Route::put('/documentacion/{controlDocumentacion}', [AdminDocumentacionController::class, 'actualizar'])->name('documentacion.actualizar');
     Route::get('/documentacion/archivo/{controlDocumentacion}', [AdminDocumentacionController::class, 'descargar'])->name('documentacion.descarga');
+
+    Route::get('/ficha-inscripcion', [AdminFichaInscripcionController::class, 'index'])->name('ficha-inscripcion.index');
+    Route::post('/ficha-inscripcion/secciones', [AdminFichaInscripcionController::class, 'storeSeccion'])->name('ficha-inscripcion.secciones.store');
+    Route::put('/ficha-inscripcion/secciones/{seccion}', [AdminFichaInscripcionController::class, 'updateSeccion'])->name('ficha-inscripcion.secciones.update');
+    Route::delete('/ficha-inscripcion/secciones/{seccion}', [AdminFichaInscripcionController::class, 'destroySeccion'])->name('ficha-inscripcion.secciones.destroy');
+    Route::put('/ficha-inscripcion/secciones/{seccion}/mover', [AdminFichaInscripcionController::class, 'moverSeccion'])->name('ficha-inscripcion.secciones.mover');
+    Route::post('/ficha-inscripcion/campos', [AdminFichaInscripcionController::class, 'storeCampo'])->name('ficha-inscripcion.campos.store');
+    Route::put('/ficha-inscripcion/campos/{campo}', [AdminFichaInscripcionController::class, 'updateCampo'])->name('ficha-inscripcion.campos.update');
+    Route::put('/ficha-inscripcion/campos/{campo}/activo', [AdminFichaInscripcionController::class, 'toggleCampo'])->name('ficha-inscripcion.campos.toggle');
+    Route::put('/ficha-inscripcion/campos/{campo}/mover', [AdminFichaInscripcionController::class, 'moverCampo'])->name('ficha-inscripcion.campos.mover');
+    Route::delete('/ficha-inscripcion/campos/{campo}', [AdminFichaInscripcionController::class, 'destroyCampo'])->name('ficha-inscripcion.campos.destroy');
 
     Route::get('/carreras', [CarreraController::class, 'index'])->name('carreras.index');
     Route::get('/carreras/nueva', [CarreraController::class, 'create'])->name('carreras.create');
