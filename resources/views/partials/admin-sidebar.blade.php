@@ -5,6 +5,7 @@
         ['ruta' => 'admin.panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
         ['ruta' => 'admin.alertas.index', 'texto' => 'Central de Alertas', 'icono' => 'bell', 'badge' => $alertasBadge],
         ['ruta' => 'admin.alumnos.index', 'texto' => 'Alumnos', 'icono' => 'users'],
+        ['ruta' => 'admin.ficha-inscripcion.index', 'texto' => 'Ficha de Inscripción', 'icono' => 'clipboard'],
         ['ruta' => 'admin.profesores.index', 'texto' => 'Profesores', 'icono' => 'briefcase'],
         ['ruta' => 'admin.carreras.index', 'texto' => 'Carreras y planes', 'icono' => 'cap'],
         ['ruta' => 'admin.horarios.index', 'texto' => 'Horarios de Carrera', 'icono' => 'clock'],
