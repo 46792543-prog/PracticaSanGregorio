@@ -21,8 +21,15 @@
     ];
 @endphp
 
-<aside class="w-72 shrink-0 bg-[#16305a] text-white flex flex-col">
-    <div class="px-6 py-7 text-center border-b border-white/10">
+<aside id="sidebar-alumno"
+       class="w-72 shrink-0 bg-[#16305a] text-white flex flex-col fixed md:static inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+    <div class="px-6 py-7 text-center border-b border-white/10 relative">
+        <button type="button" onclick="cerrarSidebarAlumno()" aria-label="Cerrar menú"
+                class="md:hidden absolute top-3 right-3 p-1.5 rounded-lg text-blue-200 hover:bg-white/10 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+        </button>
         <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 ring-2 ring-amber-400 overflow-hidden">
             @if ($configInstitucion?->logo_url)
                 <img src="{{ $configInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
@@ -37,10 +44,10 @@
         <p class="text-[11px] tracking-wide text-amber-400 font-semibold mt-1">PORTAL DEL ALUMNO</p>
     </div>
 
-    <nav class="flex-1 px-3 py-5 space-y-1">
+    <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         @foreach ($enlaces as $enlace)
             @php $activo = request()->routeIs($enlace['ruta']); @endphp
-            <a href="{{ route($enlace['ruta']) }}"
+            <a href="{{ route($enlace['ruta']) }}" onclick="cerrarSidebarAlumno()"
                class="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition
                       {{ $activo ? 'bg-amber-500 text-white shadow' : 'text-blue-100 hover:bg-white/10' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5 shrink-0">
