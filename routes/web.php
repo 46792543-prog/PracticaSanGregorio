@@ -20,6 +20,7 @@ use App\Http\Controllers\Director\AlertaController;
 use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
+use App\Http\Controllers\Director\PagoDocenteController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
@@ -210,6 +211,14 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
     Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');
     Route::delete('/configuracion/cortes/{anio}', [DirectorAnioLectivoController::class, 'destroy'])->name('configuracion.cortes.destroy');
+
+    Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
+    Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
+    Route::put('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'update'])->name('pagos-docentes.update');
+    Route::delete('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'destroy'])->name('pagos-docentes.destroy');
+    Route::put('/pagos-docentes/{pagoDocente}/estado', [PagoDocenteController::class, 'actualizarEstado'])->name('pagos-docentes.estado');
+    Route::post('/pagos-docentes/metodos-pago', [PagoDocenteController::class, 'storeMetodoPago'])->name('pagos-docentes.metodos-pago.store');
+    Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 
     Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 });
