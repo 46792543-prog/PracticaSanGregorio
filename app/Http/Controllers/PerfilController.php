@@ -45,8 +45,8 @@ class PerfilController extends Controller
         $alumno = $usuario->persona;
 
         $datos = $request->validate([
-            'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
-            'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+            'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
+            'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')->ignore($alumno->id_persona, 'id_persona')],
             'fecha_nacimiento' => ['nullable', 'date'],
             'telefono' => ['nullable', 'string', 'max:15', 'regex:/^[0-9+\-\s()]+$/'],
