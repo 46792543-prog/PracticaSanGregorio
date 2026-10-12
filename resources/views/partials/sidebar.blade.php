@@ -21,45 +21,27 @@
     ];
 @endphp
 
-<aside class="w-72 shrink-0 bg-[#16305a] text-white flex flex-col">
-    <div class="px-6 py-7 text-center border-b border-white/10">
-        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 ring-2 ring-amber-400 overflow-hidden">
-            @if ($configInstitucion?->logo_url)
-                <img src="{{ $configInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
-            @else
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" class="h-7 w-7">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
-                </svg>
-            @endif
-        </div>
-        <p class="font-bold text-sm leading-tight">{{ $configInstitucion?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</p>
-        <p class="text-[11px] tracking-wide text-amber-400 font-semibold mt-1">PORTAL DEL ALUMNO</p>
-    </div>
+<aside class="sg-sidebar w-[280px] shrink-0 text-white flex flex-col lg:sticky lg:top-0 lg:h-screen overflow-hidden">
+    @include('partials.sidebar.decoracion')
 
-    <nav class="flex-1 px-3 py-5 space-y-1">
+    @include('partials.sidebar.marca', ['etiqueta' => 'Portal del alumno'])
+
+    <nav class="sg-sidebar__nav relative flex-1 px-4 py-5 space-y-1 overflow-y-auto">
+        <p class="px-3 pb-2 text-[10px] font-bold tracking-[.16em] text-[#8FD3F8]/60 uppercase">Mi cursada</p>
         @foreach ($enlaces as $enlace)
-            @php $activo = request()->routeIs($enlace['ruta']); @endphp
-            <a href="{{ route($enlace['ruta']) }}"
-               class="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition
-                      {{ $activo ? 'bg-amber-500 text-white shadow' : 'text-blue-100 hover:bg-white/10' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5 shrink-0">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos[$enlace['icono']] }}" />
-                </svg>
-                {{ $enlace['texto'] }}
-            </a>
+            @include('partials.sidebar.enlace', [
+                'href' => route($enlace['ruta']),
+                'texto' => $enlace['texto'],
+                'icono' => $iconos[$enlace['icono']],
+                'activo' => request()->routeIs($enlace['ruta']),
+                'badge' => null,
+            ])
         @endforeach
     </nav>
 
-    <div class="px-3 py-4 border-t border-white/10">
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-blue-100 hover:bg-white/10">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 12H8.25m9.75 0-3-3m3 3-3 3" />
-                </svg>
-                Cerrar sesión
-            </button>
-        </form>
-    </div>
+    @include('partials.sidebar.usuario', [
+        'nombre' => auth()->user()->nombre . ' ' . auth()->user()->apellido,
+        'detalle' => 'Alumno',
+        'iniciales' => mb_substr(auth()->user()->nombre, 0, 1) . mb_substr(auth()->user()->apellido, 0, 1),
+    ])
 </aside>

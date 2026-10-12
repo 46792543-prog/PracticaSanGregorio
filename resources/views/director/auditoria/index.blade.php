@@ -5,87 +5,88 @@
 
 @section('contenido')
     @php
-        $colores = [
-            'inscripcion' => 'bg-emerald-50 text-emerald-700',
-            'baja_alumno' => 'bg-rose-50 text-rose-600',
-            'caja' => 'bg-amber-50 text-amber-700',
-            'documentacion' => 'bg-blue-50 text-blue-700',
-            'baja_mesa' => 'bg-rose-50 text-rose-600',
-            'acta' => 'bg-violet-50 text-violet-700',
-            'configuracion' => 'bg-slate-100 text-slate-600',
-            'baja_profesor' => 'bg-rose-50 text-rose-600',
-            'reactivacion_profesor' => 'bg-emerald-50 text-emerald-700',
+        $estilos = [
+            'inscripcion' => ['verde', 'user-plus'],
+            'baja_alumno' => ['rojo', 'user-minus'],
+            'caja' => ['amarillo', 'banknotes'],
+            'documentacion' => ['azul', 'folder'],
+            'baja_mesa' => ['rojo', 'x-circle'],
+            'acta' => ['violeta', 'document-check'],
+            'configuracion' => ['gris', 'settings'],
+            'baja_profesor' => ['rojo', 'briefcase'],
+            'reactivacion_profesor' => ['verde', 'refresh'],
         ];
     @endphp
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="flex items-center justify-between gap-4 flex-wrap px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-transparent">
-            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">🕵️ Línea de tiempo de acciones</h3>
+    <x-sg.encabezado titulo="Auditoría" subtitulo="Registro de quién hizo qué en el sistema" eyebrow="Control" icono="shield" />
+
+    <div class="sg-card sg-revelar overflow-hidden">
+        <div class="sg-card__head">
+            <div class="sg-card__titulo">
+                <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="clock" /></span>
+                <div><h3>Línea de tiempo de acciones</h3><p>Las más recientes primero</p></div>
+            </div>
         </div>
 
-        <form method="GET" class="flex flex-wrap gap-3 px-6 py-4 border-b border-slate-100">
-            <select name="tipo" onchange="this.form.submit()" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                <option value="">Todos los tipos</option>
-                @foreach ($tipos as $clave => $label)
-                    <option value="{{ $clave }}" @selected($filtros['tipo'] === $clave)>{{ $label }}</option>
-                @endforeach
-            </select>
-            <input type="date" name="desde" value="{{ $filtros['desde'] }}" placeholder="Desde"
-                   class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
-            <input type="date" name="hasta" value="{{ $filtros['hasta'] }}" placeholder="Hasta"
-                   class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
-            <button class="rounded-xl bg-[#1E4D8C] text-white text-sm font-semibold px-4">Filtrar</button>
+        <form method="GET" class="flex flex-wrap items-end gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div>
+                <label class="sg-label">Tipo</label>
+                <select name="tipo" onchange="this.form.submit()" class="sg-input w-auto min-w-[200px]">
+                    <option value="">Todos los tipos</option>
+                    @foreach ($tipos as $clave => $label)
+                        <option value="{{ $clave }}" @selected($filtros['tipo'] === $clave)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="sg-label">Desde</label>
+                <input type="date" name="desde" value="{{ $filtros['desde'] }}" placeholder="Desde" class="sg-input w-auto">
+            </div>
+            <div>
+                <label class="sg-label">Hasta</label>
+                <input type="date" name="hasta" value="{{ $filtros['hasta'] }}" placeholder="Hasta" class="sg-input w-auto">
+            </div>
+            <button class="sg-btn sg-btn--azul"><x-sg.icono nombre="filter" /> Filtrar</button>
             @if ($filtros['tipo'] || $filtros['desde'] || $filtros['hasta'])
-                <a href="{{ route('director.auditoria.index') }}" class="rounded-xl border border-slate-200 text-slate-500 text-sm font-semibold px-4 py-2">Limpiar</a>
+                <a href="{{ route('director.auditoria.index') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="x" /> Limpiar</a>
             @endif
         </form>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-[11px] text-slate-400 uppercase tracking-wide bg-slate-50/80">
-                        <th class="px-6 py-3 font-semibold">Fecha y hora</th>
-                        <th class="px-6 py-3 font-semibold">Tipo</th>
-                        <th class="px-6 py-3 font-semibold">Detalle</th>
-                        <th class="px-6 py-3 font-semibold">Realizado por</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-50">
-                    @forelse ($eventos as $evento)
-                        <tr class="hover:bg-slate-50/70">
-                            <td class="px-6 py-3 text-slate-500 whitespace-nowrap">
-                                {{ $evento['fecha']?->format('d/m/Y') }}
-                                <span class="text-slate-400">· {{ $evento['fecha']?->format('H:i') }}</span>
-                            </td>
-                            <td class="px-6 py-3">
-                                <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $colores[$evento['tipo']] }}">
-                                    {{ $evento['tipoLabel'] }}
+        <ol class="px-6 py-5 sg-filas">
+            @forelse ($eventos as $evento)
+                @php [$tono, $icono] = $estilos[$evento['tipo']] ?? ['gris', 'info']; @endphp
+                <li class="relative flex gap-4 pb-6 last:pb-1">
+                    @unless ($loop->last)
+                        <span class="absolute left-[19px] top-11 bottom-0 w-px bg-gradient-to-b from-slate-200 to-slate-100"></span>
+                    @endunless
+                    <span class="sg-chip sg-chip--{{ $tono }} relative z-10 ring-4 ring-white"><x-sg.icono :nombre="$icono" class="h-[18px] w-[18px]" /></span>
+                    <div class="flex-1 min-w-0 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-sm transition-all px-4 py-3">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <span class="sg-badge sg-badge--{{ $tono }}">{{ $evento['tipoLabel'] }}</span>
+                            <span class="text-xs text-slate-400 flex items-center gap-1.5">
+                                <x-sg.icono nombre="clock" class="h-3.5 w-3.5" />
+                                {{ $evento['fecha']?->format('d/m/Y') }} · {{ $evento['fecha']?->format('H:i') }}
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-700 mt-2">{{ $evento['descripcion'] }}</p>
+                        @if ($evento['actor'])
+                            <div class="flex items-center gap-2 mt-2.5">
+                                <span class="sg-avatar !h-6 !w-6 !rounded-md !text-[9px]">{{ mb_substr($evento['actor']->nombre, 0, 1) }}{{ mb_substr($evento['actor']->apellido, 0, 1) }}</span>
+                                <span class="text-slate-500 text-xs">{{ $evento['actor']->nombre }} {{ $evento['actor']->apellido }}</span>
+                                <span class="sg-badge sg-badge--sin-punto !py-0.5 {{ $evento['actor']->usuario?->esDirector() ? 'sg-badge--amarillo' : 'sg-badge--gris' }}">
+                                    {{ $evento['actor']->usuario?->esDirector() ? 'Dir.' : 'Sec.' }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-3 text-slate-700">{{ $evento['descripcion'] }}</td>
-                            <td class="px-6 py-3">
-                                @if ($evento['actor'])
-                                    <span class="inline-flex items-center gap-1.5">
-                                        <span class="h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold grid place-items-center">{{ mb_substr($evento['actor']->nombre, 0, 1) }}{{ mb_substr($evento['actor']->apellido, 0, 1) }}</span>
-                                        <span class="text-slate-600 text-xs">{{ $evento['actor']->nombre }} {{ $evento['actor']->apellido }}</span>
-                                        <span class="text-[10px] font-semibold rounded px-1.5 py-0.5 {{ $evento['actor']->usuario?->esDirector() ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500' }}">
-                                            {{ $evento['actor']->usuario?->esDirector() ? 'Dir.' : 'Sec.' }}
-                                        </span>
-                                    </span>
-                                @else
-                                    <span class="text-slate-300">—</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="px-6 py-10 text-center text-slate-400">No hay acciones registradas con estos filtros.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </div>
+                        @endif
+                    </div>
+                </li>
+            @empty
+                <x-sg.vacio icono="shield" titulo="Sin registros">No hay acciones registradas con estos filtros.</x-sg.vacio>
+            @endforelse
+        </ol>
 
-        <div class="px-6 py-4 border-t border-slate-100">
-            {{ $eventos->links() }}
-        </div>
+        @if ($eventos->hasPages())
+            <div class="sg-card__foot">{{ $eventos->links() }}</div>
+        @endif
     </div>
 @endsection

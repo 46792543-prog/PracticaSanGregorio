@@ -7,7 +7,7 @@
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1e293b; }
         .header { display: table; width: 100%; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 14px; }
         .header .logo { display: table-cell; width: 40px; }
-        .header .logo span { display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; border-radius: 50%; background: #1E4D8C; color: #fff; font-weight: bold; font-size: 10px; }
+        .header .logo span { display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; border-radius: 50%; background: #0B3D91; color: #fff; font-weight: bold; font-size: 10px; }
         .header .info { display: table-cell; vertical-align: middle; padding-left: 8px; }
         .header .info p { margin: 0; }
         .header .info .institucion { font-weight: bold; font-size: 13px; }
@@ -20,7 +20,7 @@
         table.resumen td.label { color: #64748b; text-transform: uppercase; font-size: 9px; }
         table.resumen td.ingresos { color: #059669; font-weight: bold; }
         table.resumen td.gastos { color: #e11d48; font-weight: bold; }
-        table.resumen td.saldo { color: #1E4D8C; font-weight: bold; }
+        table.resumen td.saldo { color: #0B3D91; font-weight: bold; }
 
         table.movimientos { width: 100%; border-collapse: collapse; font-size: 9.5px; }
         table.movimientos th, table.movimientos td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }

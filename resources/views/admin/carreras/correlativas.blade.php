@@ -3,98 +3,104 @@
 @section('titulo', 'Régimen de Correlatividades')
 
 @section('contenido')
-    <p class="text-sm text-slate-400 mb-4">
-        <a href="{{ route('admin.carreras.index') }}" class="hover:underline">Carreras y planes</a> /
-        <span class="text-blue-600 font-semibold">{{ $carrera->nombre_carrera }}</span> / Régimen de Correlatividades
-    </p>
+    <x-sg.encabezado titulo="Régimen de Correlatividades" :subtitulo="$carrera->nombre_carrera" eyebrow="Carreras y planes" icono="link">
+        <a href="{{ route('admin.carreras.materias', $carrera) }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Materias</a>
+        <a href="{{ route('admin.carreras.plan', $carrera) }}" class="sg-btn sg-btn--primario"><x-sg.icono nombre="eye" /> Ver plan de estudio</a>
+    </x-sg.encabezado>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-        <h2 class="font-bold text-slate-800 mb-1">Matriz de Correlatividades de Materias</h2>
-        <p class="text-sm text-slate-400 mb-6">Defina qué asignaturas son prerrequisitos de aprobación o regularidad para avanzar.</p>
-
-        <form method="POST" action="{{ route('admin.carreras.correlativas.store', $carrera) }}" class="grid sm:grid-cols-3 gap-4 items-start mb-8">
-            @csrf
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CURSANTE / DESTINO</label>
-                <select id="select-materia-principal" name="id_materia_principal" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
-                    @foreach ($materias as $materia)
-                        <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA CORRELATIVA / REQUERIDA</label>
-                <div class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm max-h-40 overflow-y-auto space-y-1.5">
-                    @foreach ($materias as $materia)
-                        <label class="checkbox-requisito-label flex items-center gap-2 font-normal text-slate-700">
-                            <input type="checkbox" name="id_materia_requisito[]" value="{{ $materia->id_materia }}" class="checkbox-requisito h-4 w-4 rounded">
-                            {{ $materia->nombre }}
-                        </label>
-                    @endforeach
+    <div class="grid gap-6 xl:grid-cols-5 items-start">
+        <div class="sg-card sg-revelar xl:col-span-2 border-t-4 border-t-[#FFC107]">
+            <div class="sg-card__head">
+                <div class="sg-card__titulo">
+                    <span class="sg-chip sg-chip--amarillo"><x-sg.icono nombre="plus" /></span>
+                    <div><h3>Nueva correlativa</h3><p>Prerrequisitos de aprobación o regularidad</p></div>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">Tildá una o más materias.</p>
             </div>
-            <div class="flex items-center gap-6">
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                    <input type="checkbox" name="requiere_regularizada" value="1" class="h-4 w-4 rounded"> Para cursar
-                </label>
-                <label class="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                    <input type="checkbox" name="requiere_aprobada" value="1" class="h-4 w-4 rounded"> Para rendir
-                </label>
+            <form method="POST" action="{{ route('admin.carreras.correlativas.store', $carrera) }}" class="sg-card__body space-y-5">
+                @csrf
+                <div>
+                    <label class="sg-label">Materia cursante / destino</label>
+                    <select id="select-materia-principal" name="id_materia_principal" required class="sg-input w-full">
+                        @foreach ($materias as $materia)
+                            <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="sg-label">Materia correlativa / requerida</label>
+                    <div class="w-full rounded-xl border-[1.5px] border-slate-200 p-2 text-sm max-h-52 overflow-y-auto space-y-1">
+                        @foreach ($materias as $materia)
+                            <label class="checkbox-requisito-label flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-normal text-slate-700 cursor-pointer hover:bg-slate-50 has-[:checked]:bg-blue-50 has-[:checked]:text-[#0B3D91]">
+                                <input type="checkbox" name="id_materia_requisito[]" value="{{ $materia->id_materia }}" class="checkbox-requisito h-4 w-4 rounded">
+                                {{ $materia->nombre }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="sg-ayuda">Tildá una o más materias.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2.5 rounded-xl border-[1.5px] border-slate-200 px-3 py-3 text-sm font-semibold text-slate-600 cursor-pointer has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700">
+                        <input type="checkbox" name="requiere_regularizada" value="1" class="h-4 w-4 rounded"> Para cursar
+                    </label>
+                    <label class="flex items-center gap-2.5 rounded-xl border-[1.5px] border-slate-200 px-3 py-3 text-sm font-semibold text-slate-600 cursor-pointer has-[:checked]:border-[#4FC3F7] has-[:checked]:bg-blue-50 has-[:checked]:text-[#0B3D91]">
+                        <input type="checkbox" name="requiere_aprobada" value="1" class="h-4 w-4 rounded"> Para rendir
+                    </label>
+                </div>
+                <button type="submit" class="sg-btn sg-btn--azul w-full"><x-sg.icono nombre="check" /> Guardar correlativa</button>
+            </form>
+        </div>
+
+        <div class="sg-card sg-revelar xl:col-span-3 overflow-hidden">
+            <div class="sg-card__head">
+                <div class="sg-card__titulo">
+                    <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="table" /></span>
+                    <div><h3>Matriz de correlatividades</h3><p>Afectan las condiciones de inscripción a examen del alumno</p></div>
+                </div>
             </div>
-            <div class="sm:col-span-3">
-                <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white font-semibold text-sm px-6 py-2.5">Guardar correlativa</button>
+            <div class="overflow-x-auto">
+                <table class="sg-tabla">
+                    <thead>
+                        <tr>
+                            <th>Materia</th>
+                            <th>Requiere</th>
+                            <th>Para cursar</th>
+                            <th>Para rendir</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody class="sg-filas">
+                        @forelse ($correlativas as $correlativa)
+                            <tr>
+                                <td class="font-semibold !text-slate-800">{{ $correlativa->materiaPrincipal->nombre }}</td>
+                                <td><span class="inline-flex items-center gap-1.5"><x-sg.icono nombre="link" class="h-3.5 w-3.5 text-[#4FC3F7]" />{{ $correlativa->materiaRequisito->nombre }}</span></td>
+                                <td>
+                                    @if ($correlativa->requiere_regularizada)
+                                        <span class="sg-badge sg-badge--verde">Regularizada</span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($correlativa->requiere_aprobada)
+                                        <span class="sg-badge sg-badge--azul">Aprobada</span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    <form method="POST" action="{{ route('admin.carreras.correlativas.destroy', [$correlativa->id_materia_principal, $correlativa->id_materia_requisito]) }}" onsubmit="return confirm('¿Quitar esta correlativa?');">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="sg-btn sg-btn--peligro sg-btn--icono" title="Quitar"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5"><x-sg.vacio icono="link">Todavía no se cargaron correlativas.</x-sg.vacio></td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        </form>
-
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-xs text-slate-400 uppercase border-b border-slate-100">
-                    <th class="py-2 pr-4">Materia</th>
-                    <th class="py-2 pr-4">Materia requerida (correlativa)</th>
-                    <th class="py-2 pr-4">Requisito cursar</th>
-                    <th class="py-2 pr-4">Requisito rendir</th>
-                    <th class="py-2 pr-4">Quitar</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse ($correlativas as $correlativa)
-                    <tr>
-                        <td class="py-3 pr-4 font-semibold text-slate-700">{{ $correlativa->materiaPrincipal->nombre }}</td>
-                        <td class="py-3 pr-4 text-slate-600">{{ $correlativa->materiaRequisito->nombre }}</td>
-                        <td class="py-3 pr-4">
-                            @if ($correlativa->requiere_regularizada)
-                                <span class="text-xs font-semibold rounded-full px-3 py-1 bg-green-100 text-green-700">Regularizada</span>
-                            @else
-                                <span class="text-slate-300">—</span>
-                            @endif
-                        </td>
-                        <td class="py-3 pr-4">
-                            @if ($correlativa->requiere_aprobada)
-                                <span class="text-xs font-semibold rounded-full px-3 py-1 bg-blue-100 text-blue-700">Aprobada</span>
-                            @else
-                                <span class="text-slate-300">—</span>
-                            @endif
-                        </td>
-                        <td class="py-3 pr-4">
-                            <form method="POST" action="{{ route('admin.carreras.correlativas.destroy', [$correlativa->id_materia_principal, $correlativa->id_materia_requisito]) }}" onsubmit="return confirm('¿Quitar esta correlativa?');">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="h-7 w-7 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">✕</button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" class="py-6 text-center text-slate-400">Todavía no se cargaron correlativas.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        <p class="text-xs text-slate-400 mt-4">Las correlatividades afectarán las condiciones de inscripción a examen del alumno.</p>
-    </div>
-
-    <div class="flex justify-end gap-3">
-        <a href="{{ route('admin.carreras.materias', $carrera) }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">← Volver</a>
-        <a href="{{ route('admin.carreras.plan', $carrera) }}" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow transition text-white font-semibold text-sm px-6 py-2.5">Ver plan de estudio</a>
+        </div>
     </div>
 
     <script>

@@ -3,84 +3,103 @@
 @section('titulo', 'Revisión de documentación')
 
 @section('contenido')
-    <p class="text-sm text-slate-400 mb-4">
-        <a href="{{ route('admin.documentacion.index') }}" class="hover:underline">Alumnos</a> ›
-        <span class="text-slate-600">{{ $alumno->nombre }} {{ $alumno->apellido }}</span> › Documentación
-    </p>
-
     @php
         $obligatorios = $documentos->where('obligatorio', true);
         $estadoGeneral = $obligatorios->contains(fn ($d) => ($d->controlDocumentacion->first()->estadoDocumento->nombre_estado ?? 'Pendiente') !== 'Aprobado') ? 'Pendiente de aprobación' : 'Documentación completa';
+        $aprobados = $documentos->filter(fn ($d) => ($d->controlDocumentacion->first()->estadoDocumento->nombre_estado ?? 'Pendiente') === 'Aprobado')->count();
     @endphp
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
-        <div class="flex items-center gap-4">
-            <span class="h-14 w-14 rounded-full bg-blue-100 text-blue-700 font-bold grid place-items-center">
-                {{ mb_substr($alumno->nombre, 0, 1) }}{{ mb_substr($alumno->apellido, 0, 1) }}
-            </span>
-            <div>
-                <h1 class="font-bold text-lg text-slate-800">{{ $alumno->nombre }} {{ $alumno->apellido }}</h1>
-                <p class="text-sm text-slate-400">DNI {{ $alumno->dni }} · {{ $carrera?->nombre }}</p>
+    <a href="{{ route('admin.documentacion.index') }}" class="sg-link mb-4 sg-revelar"><x-sg.icono nombre="arrow-left" class="!h-4 !w-4" /> Volver a documentación</a>
+
+    <section class="sg-card sg-revelar p-6 mb-6">
+        <div class="flex items-center justify-between flex-wrap gap-5">
+            <div class="flex items-center gap-4">
+                <span class="sg-avatar sg-avatar--grande sg-avatar--marca">
+                    {{ mb_substr($alumno->nombre, 0, 1) }}{{ mb_substr($alumno->apellido, 0, 1) }}
+                </span>
+                <div>
+                    <p class="sg-eyebrow">Revisión de documentación</p>
+                    <h1 class="font-display font-extrabold text-xl text-slate-900 mt-0.5">{{ $alumno->nombre }} {{ $alumno->apellido }}</h1>
+                    <p class="text-sm text-slate-500">DNI {{ $alumno->dni }} · {{ $carrera?->nombre }}</p>
+                </div>
+            </div>
+            <div class="text-right min-w-[220px]">
+                <span class="sg-badge {{ $estadoGeneral === 'Documentación completa' ? 'sg-badge--verde' : 'sg-badge--amarillo' }} text-sm px-4 py-2">
+                    {{ $estadoGeneral }}
+                </span>
+                @if ($documentos->count() > 0)
+                    <div class="sg-progreso mt-3"><span style="width: {{ round($aprobados / $documentos->count() * 100) }}%"></span></div>
+                    <p class="text-xs text-slate-400 mt-1.5">{{ $aprobados }} de {{ $documentos->count() }} documentos aprobados</p>
+                @endif
             </div>
         </div>
-        <span class="text-sm font-semibold rounded-full px-4 py-2 {{ $estadoGeneral === 'Documentación completa' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }}">
-            {{ $estadoGeneral }}
-        </span>
+    </section>
+
+    <div class="sg-seccion-titulo sg-revelar">
+        <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="document" /></span>
+        <h2>Documentos enviados</h2>
     </div>
 
-    <p class="text-xs font-semibold text-slate-400 uppercase mb-3">Documentos enviados</p>
-
-    <div class="space-y-3">
+    <div class="grid gap-4 md:grid-cols-2" data-sg-escalonar>
         @foreach ($documentos as $documento)
             @php $docAlumno = $documento->controlDocumentacion->first(); $estado = $docAlumno->estadoDocumento->nombre_estado ?? 'Pendiente'; @endphp
-            <div @class([
-                    'bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center justify-between gap-4 border-l-4',
-                    'border-amber-400' => $estado === 'Entregado',
-                    'border-green-500' => $estado === 'Aprobado',
-                    'border-red-400' => in_array($estado, ['Pendiente', 'Rechazado']),
-                ])>
-                <div>
-                    <p class="font-semibold text-slate-700">{{ $documento->nombre }}</p>
-                    <p class="text-xs text-slate-400">
-                        {{ $documento->obligatorio ? 'Obligatorio' : 'Opcional' }}
-                        @if ($docAlumno?->fecha_aprobacion) · Aprobado el {{ \App\Support\FechaEsp::corta($docAlumno->fecha_aprobacion) }} @endif
-                    </p>
-                    @if ($docAlumno?->archivo_path)
-                        <a href="{{ route('admin.documentacion.descarga', $docAlumno) }}" class="text-xs text-[#1E4D8C] font-semibold hover:underline">
-                            📄 Descargar {{ $docAlumno->archivo_nombre_original }}
-                        </a>
-                    @endif
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
+            <div class="sg-card sg-card--hover p-5 overflow-hidden">
+                <span @class([
+                        'absolute inset-y-0 left-0 w-1.5',
+                        'bg-amber-400' => $estado === 'Entregado',
+                        'bg-emerald-500' => $estado === 'Aprobado',
+                        'bg-rose-400' => in_array($estado, ['Pendiente', 'Rechazado']),
+                    ])></span>
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <span @class([
+                                'sg-chip',
+                                'sg-chip--amarillo' => $estado === 'Entregado',
+                                'sg-chip--verde' => $estado === 'Aprobado',
+                                'sg-chip--gris' => $estado === 'Pendiente',
+                                'sg-chip--rojo' => $estado === 'Rechazado',
+                            ])>
+                            <x-sg.icono :nombre="$estado === 'Aprobado' ? 'document-check' : 'document'" />
+                        </span>
+                        <div class="min-w-0">
+                            <p class="font-semibold text-slate-800">{{ $documento->nombre }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                {{ $documento->obligatorio ? 'Obligatorio' : 'Opcional' }}
+                                @if ($docAlumno?->fecha_aprobacion) · Aprobado el {{ \App\Support\FechaEsp::corta($docAlumno->fecha_aprobacion) }} @endif
+                            </p>
+                            @if ($docAlumno?->archivo_path)
+                                <a href="{{ route('admin.documentacion.descarga', $docAlumno) }}" class="sg-link mt-2">
+                                    <x-sg.icono nombre="download" /> {{ $docAlumno->archivo_nombre_original }}
+                                </a>
+                            @endif
+                        </div>
+                    </div>
                     <span @class([
-                            'text-xs font-semibold rounded-full px-3 py-1.5',
-                            'bg-slate-100 text-slate-400' => $estado === 'Pendiente',
-                            'bg-amber-100 text-amber-700' => $estado === 'Entregado',
-                            'bg-green-100 text-green-700' => $estado === 'Aprobado',
-                            'bg-red-100 text-red-600' => $estado === 'Rechazado',
+                            'sg-badge shrink-0',
+                            'sg-badge--gris' => $estado === 'Pendiente',
+                            'sg-badge--amarillo' => $estado === 'Entregado',
+                            'sg-badge--verde' => $estado === 'Aprobado',
+                            'sg-badge--rojo' => $estado === 'Rechazado',
                         ])>
                         {{ $estado === 'Pendiente' ? 'Sin entregar' : $estado }}
                     </span>
+                </div>
 
-                    @if ($docAlumno && $estado === 'Entregado')
-                        <form method="POST" action="{{ route('admin.documentacion.actualizar', $docAlumno) }}">
-                            @csrf @method('PUT')
-                            <input type="hidden" name="estado" value="Aprobado">
-                            <button type="submit" class="text-xs font-semibold rounded-lg bg-green-600 text-white px-3 py-1.5">Aprobar</button>
-                        </form>
+                @if ($docAlumno && $estado === 'Entregado')
+                    <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
                         <form method="POST" action="{{ route('admin.documentacion.actualizar', $docAlumno) }}">
                             @csrf @method('PUT')
                             <input type="hidden" name="estado" value="Rechazado">
-                            <button type="submit" class="text-xs font-semibold rounded-lg bg-red-500 text-white px-3 py-1.5">Rechazar</button>
+                            <button type="submit" class="sg-btn sg-btn--peligro sg-btn--chico"><x-sg.icono nombre="x" /> Rechazar</button>
                         </form>
-                    @endif
-                </div>
+                        <form method="POST" action="{{ route('admin.documentacion.actualizar', $docAlumno) }}">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="estado" value="Aprobado">
+                            <button type="submit" class="sg-btn sg-btn--verde sg-btn--chico"><x-sg.icono nombre="check" /> Aprobar</button>
+                        </form>
+                    </div>
+                @endif
             </div>
         @endforeach
-    </div>
-
-    <div class="mt-6">
-        <a href="{{ route('admin.documentacion.index') }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">Volver</a>
     </div>
 @endsection

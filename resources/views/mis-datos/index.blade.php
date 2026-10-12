@@ -104,7 +104,7 @@
                         </div>
 
                         @if ($documento->miEntrega?->archivo_path)
-                            <a href="{{ route('documentacion.descarga', $documento->miEntrega) }}" class="text-xs text-[#1E4D8C] font-semibold hover:underline mt-1 inline-block">
+                            <a href="{{ route('documentacion.descarga', $documento->miEntrega) }}" class="text-xs text-[#0B3D91] font-semibold hover:underline mt-1 inline-block">
                                 📄 {{ $documento->miEntrega->archivo_nombre_original }}
                             </a>
                         @endif
