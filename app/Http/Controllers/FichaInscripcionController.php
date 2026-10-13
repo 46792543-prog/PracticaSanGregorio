@@ -16,7 +16,7 @@ class FichaInscripcionController extends Controller
         $alumno = Auth::user()->persona;
 
         $secciones = FichaSeccion::where('activo', true)
-            ->with(['campos' => fn ($q) => $q->where('activo', true)])
+            ->with(['campos' => fn ($q) => $q->where('activo', true)->with('opciones')])
             ->orderBy('orden')
             ->get();
 
@@ -35,7 +35,7 @@ class FichaInscripcionController extends Controller
         $alumno = Auth::user()->persona;
 
         $campos = FichaSeccion::where('activo', true)
-            ->with(['campos' => fn ($q) => $q->where('activo', true)])
+            ->with(['campos' => fn ($q) => $q->where('activo', true)->with('opciones')])
             ->orderBy('orden')
             ->get()
             ->pluck('campos')
@@ -49,7 +49,7 @@ class FichaInscripcionController extends Controller
             $reglas[$nombre][] = match ($campo->tipo) {
                 'numero' => 'numeric',
                 'fecha' => 'date',
-                'seleccion' => 'in:' . implode(',', $campo->opciones ?? []),
+                'seleccion' => 'in:' . $campo->opciones->pluck('valor')->implode(','),
                 'si_no' => 'in:Sí,No',
                 default => 'string',
             };

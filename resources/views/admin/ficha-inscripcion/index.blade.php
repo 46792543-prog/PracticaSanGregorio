@@ -49,7 +49,7 @@
                                 'id_seccion' => $campo->id_seccion,
                                 'etiqueta' => $campo->etiqueta,
                                 'tipo' => $campo->tipo,
-                                'opciones' => $campo->opciones ? implode("\n", $campo->opciones) : '',
+                                'opciones' => $campo->opciones->pluck('valor')->implode("\n"),
                                 'obligatorio' => $campo->obligatorio,
                             ];
                         @endphp
