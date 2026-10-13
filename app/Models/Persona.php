@@ -70,6 +70,11 @@ class Persona extends Model
         return $this->hasMany(Equivalencia::class, 'id_persona_alumno', 'id_persona');
     }
 
+    public function fichaRespuestas()
+    {
+        return $this->hasMany(FichaRespuesta::class, 'id_persona_alumno', 'id_persona');
+    }
+
     /**
      * Estado mes a mes (pagado o no) del ciclo lectivo activo, desde marzo
      * (o desde que se inscribió, si fue después) hasta $hastaMes — sin

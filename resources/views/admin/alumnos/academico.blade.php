@@ -33,40 +33,23 @@
                         </select>
                     </div>
                     <div>
-                        <label class="sg-label">AÑO LECTIVO *</label>
+                        <label class="sg-label">CORTE (AÑO LECTIVO) *</label>
                         <select name="anio_lectivo_id" required class="sg-input w-full">
                             @foreach ($aniosLectivos as $anio)
-                                <option value="{{ $anio->id_anio_lectivo }}" @selected(($academicos['anio_lectivo_id'] ?? null) == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>
+                                <option value="{{ $anio->id_anio_lectivo }}" @selected(($academicos['anio_lectivo_id'] ?? $corteActivoId) == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
-                <div class="grid sm:grid-cols-3 gap-4 mb-6">
-                    <div>
-                        <label class="sg-label">AÑO QUE CURSA *</label>
-                        <select name="anio_cursada_id" required class="sg-input w-full">
-                            @foreach ($aniosCursada as $anioCursada)
-                                <option value="{{ $anioCursada->id_anio_cursada }}" @selected(($academicos['anio_cursada_id'] ?? null) == $anioCursada->id_anio_cursada)>{{ $anioCursada->nombre_anio }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="sg-label">TURNO *</label>
-                        <select name="turno_cursada_id" required class="sg-input w-full">
-                            @foreach ($turnos as $turno)
-                                <option value="{{ $turno->id_turno_cursada }}" @selected(($academicos['turno_cursada_id'] ?? null) == $turno->id_turno_cursada)>{{ $turno->nombre_turno }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="sg-label">CONDICIÓN DE INGRESO *</label>
-                        <select name="condicion_id" required class="sg-input w-full">
-                            @foreach ($condiciones as $condicion)
-                                <option value="{{ $condicion->id_condicion }}" @selected(($academicos['condicion_id'] ?? null) == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="mb-6">
+                    <label class="sg-label">AÑO AL QUE INGRESA *</label>
+                    <select name="anio_cursada_id" required class="sg-input w-full">
+                        @foreach ($aniosCursada as $anioCursada)
+                            <option value="{{ $anioCursada->id_anio_cursada }}" @selected(($academicos['anio_cursada_id'] ?? null) == $anioCursada->id_anio_cursada)>{{ $anioCursada->nombre_anio }}</option>
+                        @endforeach
+                    </select>
                 </div>
+                <p class="text-xs text-slate-400 mb-6">El turno de cursada se asigna más adelante, una vez que el alumno complete su ficha de inscripción.</p>
 
                 <div class="flex justify-between gap-3 pt-5 mt-2 border-t border-slate-100">
                     <a href="{{ route('admin.alumnos.create') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver</a>

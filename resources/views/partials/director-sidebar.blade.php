@@ -9,6 +9,7 @@
         ['ruta' => 'director.cuotas.index', 'texto' => 'Registrar Cuotas', 'icono' => 'card', 'badge' => $cuotasPendientesBadge],
         ['ruta' => 'director.pagos.index', 'texto' => 'Estado de Pagos', 'icono' => 'chart'],
         ['ruta' => 'director.caja.index', 'texto' => 'Libro de caja', 'icono' => 'book'],
+        ['ruta' => 'director.pagos-docentes.index', 'texto' => 'Pago de Docentes', 'icono' => 'card'],
         ['ruta' => 'director.reportes.ingresos.index', 'texto' => 'Reporte de Ingresos', 'icono' => 'report'],
         ['ruta' => 'director.auditoria.index', 'texto' => 'Auditoría', 'icono' => 'audit'],
         ['ruta' => 'director.configuracion.index', 'texto' => 'Configuración', 'icono' => 'settings'],

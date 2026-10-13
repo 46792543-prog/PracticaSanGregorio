@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\CarreraController;
 use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
+use App\Http\Controllers\Admin\FichaInscripcionController as AdminFichaInscripcionController;
+use App\Http\Controllers\Admin\HorarioCarreraController;
 use App\Http\Controllers\Admin\InscripcionAdminController;
 use App\Http\Controllers\Admin\MesaController;
 use App\Http\Controllers\Admin\PanelController as AdminPanelController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\Director\AlertaController;
 use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
 use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
+use App\Http\Controllers\Director\PagoDocenteController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
@@ -27,6 +30,7 @@ use App\Http\Controllers\Director\PanelController as DirectorPanelController;
 use App\Http\Controllers\Director\ReporteIngresosController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
+use App\Http\Controllers\FichaInscripcionController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\MesaExamenController;
@@ -85,6 +89,9 @@ Route::middleware(['auth', 'alumno'])->group(function () {
 
     Route::get('/mis-datos', [PerfilController::class, 'edit'])->name('mis-datos.edit');
     Route::put('/mis-datos', [PerfilController::class, 'update'])->name('mis-datos.update');
+
+    Route::get('/mi-ficha-inscripcion', [FichaInscripcionController::class, 'edit'])->name('ficha-inscripcion.edit');
+    Route::put('/mi-ficha-inscripcion', [FichaInscripcionController::class, 'update'])->name('ficha-inscripcion.update');
 });
 
 /*
@@ -123,6 +130,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::put('/documentacion/{controlDocumentacion}', [AdminDocumentacionController::class, 'actualizar'])->name('documentacion.actualizar');
     Route::get('/documentacion/archivo/{controlDocumentacion}', [AdminDocumentacionController::class, 'descargar'])->name('documentacion.descarga');
 
+    Route::get('/ficha-inscripcion', [AdminFichaInscripcionController::class, 'index'])->name('ficha-inscripcion.index');
+    Route::post('/ficha-inscripcion/secciones', [AdminFichaInscripcionController::class, 'storeSeccion'])->name('ficha-inscripcion.secciones.store');
+    Route::put('/ficha-inscripcion/secciones/{seccion}', [AdminFichaInscripcionController::class, 'updateSeccion'])->name('ficha-inscripcion.secciones.update');
+    Route::delete('/ficha-inscripcion/secciones/{seccion}', [AdminFichaInscripcionController::class, 'destroySeccion'])->name('ficha-inscripcion.secciones.destroy');
+    Route::put('/ficha-inscripcion/secciones/{seccion}/mover', [AdminFichaInscripcionController::class, 'moverSeccion'])->name('ficha-inscripcion.secciones.mover');
+    Route::post('/ficha-inscripcion/campos', [AdminFichaInscripcionController::class, 'storeCampo'])->name('ficha-inscripcion.campos.store');
+    Route::put('/ficha-inscripcion/campos/{campo}', [AdminFichaInscripcionController::class, 'updateCampo'])->name('ficha-inscripcion.campos.update');
+    Route::put('/ficha-inscripcion/campos/{campo}/activo', [AdminFichaInscripcionController::class, 'toggleCampo'])->name('ficha-inscripcion.campos.toggle');
+    Route::put('/ficha-inscripcion/campos/{campo}/mover', [AdminFichaInscripcionController::class, 'moverCampo'])->name('ficha-inscripcion.campos.mover');
+    Route::delete('/ficha-inscripcion/campos/{campo}', [AdminFichaInscripcionController::class, 'destroyCampo'])->name('ficha-inscripcion.campos.destroy');
+
     Route::get('/carreras', [CarreraController::class, 'index'])->name('carreras.index');
     Route::get('/carreras/nueva', [CarreraController::class, 'create'])->name('carreras.create');
     Route::post('/carreras', [CarreraController::class, 'store'])->name('carreras.store');
@@ -137,6 +155,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
     Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
+
+    Route::get('/horarios', [HorarioCarreraController::class, 'index'])->name('horarios.index');
+    Route::post('/horarios/modulos', [HorarioCarreraController::class, 'storeModulo'])->name('horarios.modulos.store');
+    Route::put('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'updateModulo'])->name('horarios.modulos.update');
+    Route::delete('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'destroyModulo'])->name('horarios.modulos.destroy');
+    Route::put('/horarios/modulos/{horarioModulo}/celdas', [HorarioCarreraController::class, 'storeCelda'])->name('horarios.celdas.store');
 
     Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
     Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
@@ -214,6 +238,14 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
     Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');
     Route::delete('/configuracion/cortes/{anio}', [DirectorAnioLectivoController::class, 'destroy'])->name('configuracion.cortes.destroy');
+
+    Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
+    Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
+    Route::put('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'update'])->name('pagos-docentes.update');
+    Route::delete('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'destroy'])->name('pagos-docentes.destroy');
+    Route::put('/pagos-docentes/{pagoDocente}/estado', [PagoDocenteController::class, 'actualizarEstado'])->name('pagos-docentes.estado');
+    Route::post('/pagos-docentes/metodos-pago', [PagoDocenteController::class, 'storeMetodoPago'])->name('pagos-docentes.metodos-pago.store');
+    Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 
     Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
 });

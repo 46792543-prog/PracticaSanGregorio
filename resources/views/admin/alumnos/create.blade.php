@@ -30,44 +30,21 @@
                     </div>
                     <div>
                         <label class="sg-label">APELLIDO *</label>
-                        <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" value="{{ old('apellido', $datos['apellido'] ?? '') }}" required placeholder="Ej: González"
+                        <input type="text" data-solo="letras" data-max-len="50" maxlength="50" name="apellido" value="{{ old('apellido', $datos['apellido'] ?? '') }}" required placeholder="Ej: González"
                                class="sg-input w-full">
                     </div>
                     <div>
                         <label class="sg-label">NOMBRE *</label>
-                        <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" value="{{ old('nombre', $datos['nombre'] ?? '') }}" required placeholder="Ej: Lucas Andrés"
+                        <input type="text" data-solo="letras" data-max-len="50" maxlength="50" name="nombre" value="{{ old('nombre', $datos['nombre'] ?? '') }}" required placeholder="Ej: Lucas Andrés"
                                class="sg-input w-full">
                     </div>
                 </div>
-                <div class="grid sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="sg-label">FECHA DE NACIMIENTO *</label>
-                        <input type="date" name="fecha_nacimiento" value="{{ old('fecha_nacimiento', $datos['fecha_nacimiento'] ?? '') }}" max="{{ now()->subYears(17)->toDateString() }}" required
-                               class="sg-input w-full">
-                    </div>
-                    <div>
-                        <label class="sg-label">TELÉFONO</label>
-                        <input type="text" data-solo="telefono" maxlength="20" name="telefono" value="{{ old('telefono', $datos['telefono'] ?? '') }}" placeholder="Ej: +54 388 412-5678"
-                               class="sg-input w-full">
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="sg-label">DIRECCIÓN</label>
-                    <input type="text" maxlength="250" name="direccion" value="{{ old('direccion', $datos['direccion'] ?? '') }}" placeholder="Calle, número, barrio, localidad"
+                <div class="mb-6">
+                    <label class="sg-label">EMAIL *</label>
+                    <input type="email" maxlength="100" name="email" value="{{ old('email', $datos['email'] ?? '') }}" required placeholder="alumno@email.com"
                            class="sg-input w-full">
                 </div>
-                <div class="grid sm:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="sg-label">EMAIL *</label>
-                        <input type="email" maxlength="100" name="email" value="{{ old('email', $datos['email'] ?? '') }}" required placeholder="alumno@email.com"
-                               class="sg-input w-full">
-                    </div>
-                    <div>
-                        <label class="sg-label">LOCALIDAD</label>
-                        <input type="text" data-solo="letras" maxlength="100" name="localidad" value="{{ old('localidad', $datos['localidad'] ?? '') }}" placeholder="Ej: San Pedro de Jujuy"
-                               class="sg-input w-full">
-                    </div>
-                </div>
+                <p class="text-xs text-slate-400 mb-6">El resto de los datos personales (fecha de nacimiento, contacto, domicilio, etc.) los va a completar el alumno desde su propio portal, en "Mi ficha de inscripción".</p>
 
                 <div class="flex justify-between gap-3 pt-5 mt-2 border-t border-slate-100">
                     <a href="{{ route('admin.alumnos.index') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver</a>

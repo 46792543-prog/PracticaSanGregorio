@@ -184,6 +184,30 @@
         </div>
     </x-sg.tarjeta>
 
+    <x-sg.tarjeta titulo="Ficha de inscripción" subtitulo="Datos que completó el alumno desde su portal — solo consulta, la edición la hace el propio alumno" icono="document" tono="azul">
+        @php $algunaRespuesta = $fichaRespuestas->isNotEmpty(); @endphp
+        @if (! $algunaRespuesta)
+            <x-sg.vacio icono="document">El alumno todavía no completó su ficha de inscripción.</x-sg.vacio>
+        @else
+            <div class="grid md:grid-cols-2 gap-x-8 gap-y-5">
+                @foreach ($fichaSecciones as $seccion)
+                    @continue($seccion->campos->isEmpty())
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">{{ $seccion->nombre }}</p>
+                        <dl class="text-sm space-y-2 text-slate-500">
+                            @foreach ($seccion->campos as $campo)
+                                <div class="flex justify-between gap-4">
+                                    <dt class="shrink-0">{{ $campo->etiqueta }}</dt>
+                                    <dd class="text-slate-700 text-right">{{ $fichaRespuestas->get($campo->id_campo)?->valor ?? '—' }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </x-sg.tarjeta>
+
     <x-sg.tarjeta titulo="Seguimiento del alumno" subtitulo="Notas internas de Secretaría" icono="pencil" tono="violeta">
         <form method="POST" action="{{ route('admin.alumnos.seguimiento.store', $alumno) }}" class="flex flex-col gap-3 mb-6">
             @csrf
