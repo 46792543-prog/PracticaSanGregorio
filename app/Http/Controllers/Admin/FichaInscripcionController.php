@@ -16,7 +16,7 @@ class FichaInscripcionController extends Controller
 
     public function index(): View
     {
-        $secciones = FichaSeccion::with('campos')->orderBy('orden')->get();
+        $secciones = FichaSeccion::with('campos.opciones')->orderBy('orden')->get();
 
         return view('admin.ficha-inscripcion.index', [
             'secciones' => $secciones,
@@ -80,18 +80,36 @@ class FichaInscripcionController extends Controller
     {
         $data = $this->validarCampo($request);
 
+        $opciones = $data['opciones'];
+        unset($data['opciones']);
+
         $siguienteOrden = (int) (FichaCampo::where('id_seccion', $data['id_seccion'])->max('orden') ?? 0) + 1;
 
-        FichaCampo::create([...$data, 'orden' => $siguienteOrden]);
+        $campo = FichaCampo::create([...$data, 'orden' => $siguienteOrden]);
+        $this->sincronizarOpciones($campo, $opciones);
 
         return back()->with('status', 'Se agregó el campo correctamente.');
     }
 
     public function updateCampo(Request $request, FichaCampo $campo): RedirectResponse
     {
-        $campo->update($this->validarCampo($request));
+        $data = $this->validarCampo($request);
+        $opciones = $data['opciones'];
+        unset($data['opciones']);
+
+        $campo->update($data);
+        $this->sincronizarOpciones($campo, $opciones);
 
         return back()->with('status', 'Se actualizó el campo correctamente.');
+    }
+
+    private function sincronizarOpciones(FichaCampo $campo, array $opciones): void
+    {
+        $campo->opciones()->delete();
+
+        foreach ($opciones as $i => $valor) {
+            $campo->opciones()->create(['valor' => $valor, 'orden' => $i + 1]);
+        }
     }
 
     public function toggleCampo(FichaCampo $campo): RedirectResponse
@@ -144,7 +162,7 @@ class FichaInscripcionController extends Controller
                 ->values()
                 ->all();
         } else {
-            $data['opciones'] = null;
+            $data['opciones'] = [];
         }
 
         return $data;

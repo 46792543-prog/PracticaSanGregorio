@@ -63,15 +63,18 @@ class FichaInscripcionSeeder extends Seeder
         $seccion = FichaSeccion::firstOrCreate(['nombre' => $nombre], ['orden' => $orden]);
 
         foreach ($campos as $i => $campo) {
-            FichaCampo::firstOrCreate(
+            $fichaCampo = FichaCampo::firstOrCreate(
                 ['id_seccion' => $seccion->id_seccion, 'etiqueta' => $campo['etiqueta']],
                 [
                     'tipo' => $campo['tipo'],
-                    'opciones' => $campo['opciones'] ?? null,
                     'obligatorio' => false,
                     'orden' => $i + 1,
                 ]
             );
+
+            foreach ($campo['opciones'] ?? [] as $j => $valor) {
+                $fichaCampo->opciones()->firstOrCreate(['valor' => $valor], ['orden' => $j + 1]);
+            }
         }
     }
 }
