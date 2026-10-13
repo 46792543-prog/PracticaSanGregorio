@@ -3,102 +3,95 @@
 @section('titulo', 'Documentación requerida')
 
 @section('contenido')
-    <div class="mb-6">
-        <h1 class="text-xl font-bold text-slate-800">Buen día, {{ auth()->user()->nombre }} 👋</h1>
-        <p class="text-sm text-slate-400">{{ \App\Support\FechaEsp::larga(now()) }}</p>
+    <x-sg.encabezado titulo="Documentación requerida" subtitulo="Revisión de la documentación entregada por los alumnos" eyebrow="Documentación" icono="folder">
+        <a href="{{ route('admin.documentacion.requisitos') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="settings" /> Requisitos</a>
+    </x-sg.encabezado>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" data-sg-escalonar>
+        <x-sg.stat etiqueta="Alumnos totales" :valor="$totales['total']" icono="users" tono="azul" />
+        <x-sg.stat etiqueta="Pendientes" :valor="$totales['pendientes']" icono="alert" tono="rojo" />
+        <x-sg.stat etiqueta="En revisión" :valor="$totales['en_revision']" icono="clock" tono="amarillo" />
+        <x-sg.stat etiqueta="Completos" :valor="$totales['completos']" icono="check-circle" tono="verde" />
     </div>
 
-    <div class="bg-blue-50 rounded-xl px-6 py-4 mb-6">
-        <h2 class="font-bold text-[#1E4D8C]">📎 Documentación requerida — Revisión de alumnos</h2>
-    </div>
-
-    <div class="grid sm:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-            <p class="text-xs font-semibold text-slate-400 uppercase">Alumnos totales</p>
-            <p class="text-2xl font-bold text-slate-800">{{ $totales['total'] }}</p>
-        </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-            <p class="text-xs font-semibold text-slate-400 uppercase">Pendientes</p>
-            <p class="text-2xl font-bold text-red-500">{{ $totales['pendientes'] }}</p>
-        </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-            <p class="text-xs font-semibold text-slate-400 uppercase">En revisión</p>
-            <p class="text-2xl font-bold text-amber-500">{{ $totales['en_revision'] }}</p>
-        </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-            <p class="text-xs font-semibold text-slate-400 uppercase">Completos</p>
-            <p class="text-2xl font-bold text-green-600">{{ $totales['completos'] }}</p>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
-        <div class="flex flex-wrap items-center gap-3 p-4 border-b border-slate-100">
-            <form method="GET" class="flex-1 min-w-[200px] flex gap-2">
-                <input type="text" name="q" value="{{ $busqueda }}" placeholder="🔍 Buscar alumno..." maxlength="25"
-                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
-                       class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm">
+    <div class="sg-card sg-revelar overflow-hidden">
+        <div class="flex flex-wrap items-center gap-3 p-4 border-b border-slate-100 bg-slate-50/60">
+            <form method="GET" class="flex-1 min-w-[220px] flex gap-2">
+                <div class="sg-campo-icono flex-1">
+                    <x-sg.icono nombre="search" />
+                    <input type="text" name="q" value="{{ $busqueda }}" placeholder="Buscar alumno..." maxlength="25"
+                           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
+                           class="sg-input w-full">
+                </div>
                 <input type="hidden" name="filtro" value="{{ $filtro }}">
-                <button type="submit" class="rounded-lg bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-sm font-semibold px-4 py-2 whitespace-nowrap">Buscar</button>
+                <button type="submit" class="sg-btn sg-btn--azul whitespace-nowrap">Buscar</button>
             </form>
-            <div class="flex gap-2">
+            <div class="inline-flex gap-1 rounded-xl bg-white border border-slate-200 p-1">
                 @foreach (['todos' => 'Todos', 'pendientes' => 'Pendientes', 'completos' => 'Completos'] as $valor => $texto)
                     <a href="{{ route('admin.documentacion.index', ['filtro' => $valor, 'q' => $busqueda]) }}"
-                       class="text-sm font-semibold px-4 py-2 rounded-lg {{ $filtro === $valor ? 'bg-[#1E4D8C] text-white' : 'bg-slate-100 text-slate-600' }}">
+                       class="text-sm font-semibold px-4 py-1.5 rounded-lg transition-all {{ $filtro === $valor ? 'bg-[#0B3D91] text-white shadow-sm' : 'text-slate-500 hover:text-[#0B3D91]' }}">
                         {{ $texto }}
                     </a>
                 @endforeach
             </div>
         </div>
 
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="sg-tabla">
             <thead>
-                <tr class="text-left text-xs text-slate-400 uppercase">
-                    <th class="px-6 py-3 font-semibold">Alumno</th>
-                    <th class="px-6 py-3 font-semibold">Documentos</th>
-                    <th class="px-6 py-3 font-semibold">Estado</th>
-                    <th class="px-6 py-3 font-semibold">Acción</th>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Documentos</th>
+                    <th>Estado</th>
+                    <th class="text-right">Acción</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="sg-filas">
                 @forelse ($alumnos as $alumno)
                     @php
                         $inscripcion = $alumno->inscripcionesCarrera->first();
-                        $badges = ['Pendiente' => 'bg-red-50 text-red-500', 'Entregado' => 'bg-amber-50 text-amber-600', 'Aprobado' => 'bg-green-50 text-green-600', 'Rechazado' => 'bg-red-50 text-red-500'];
+                        $badges = ['Pendiente' => 'bg-red-50 text-red-600 ring-red-100', 'Entregado' => 'bg-amber-50 text-amber-700 ring-amber-100', 'Aprobado' => 'bg-emerald-50 text-emerald-700 ring-emerald-100', 'Rechazado' => 'bg-red-50 text-red-600 ring-red-100'];
                         $estadoTexto = ['pendiente' => 'Pendiente', 'revision' => 'En revisión', 'sin_enviar' => 'Sin enviar', 'completo' => 'Completo'];
-                        $estadoBadge = ['pendiente' => 'bg-amber-100 text-amber-700', 'revision' => 'bg-blue-100 text-blue-700', 'sin_enviar' => 'bg-red-100 text-red-600', 'completo' => 'bg-green-100 text-green-700'];
+                        $estadoBadge = ['pendiente' => 'sg-badge--amarillo', 'revision' => 'sg-badge--azul', 'sin_enviar' => 'sg-badge--rojo', 'completo' => 'sg-badge--verde'];
                     @endphp
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-6 py-4">
-                            <p class="font-semibold text-slate-700">{{ $alumno->nombre }} {{ $alumno->apellido }}</p>
-                            <p class="text-xs text-slate-400">{{ $inscripcion?->anioCursada?->nombre_anio }} · {{ $inscripcion?->carrera?->nombre }}</p>
+                    <tr>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <span class="sg-avatar">{{ mb_substr($alumno->nombre, 0, 1) }}{{ mb_substr($alumno->apellido, 0, 1) }}</span>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-slate-800">{{ $alumno->nombre }} {{ $alumno->apellido }}</p>
+                                    <p class="text-xs text-slate-400">{{ $inscripcion?->anioCursada?->nombre_anio }} · {{ $inscripcion?->carrera?->nombre }}</p>
+                                </div>
+                            </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex gap-1 flex-wrap">
+                        <td>
+                            <div class="flex gap-1.5 flex-wrap">
                                 @foreach ($alumno->documentacion as $doc)
                                     @php $nombreEstado = $doc->estadoDocumento->nombre_estado ?? 'Pendiente'; @endphp
-                                    <span class="text-xs px-2 py-0.5 rounded {{ $badges[$nombreEstado] ?? 'bg-slate-50 text-slate-500' }}">
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg ring-1 {{ $badges[$nombreEstado] ?? 'bg-slate-50 text-slate-500 ring-slate-100' }}" title="{{ $doc->documentoRequisito->nombre }}">
+                                        <x-sg.icono :nombre="$nombreEstado === 'Aprobado' ? 'check' : (in_array($nombreEstado, ['Pendiente', 'Rechazado']) ? 'x' : 'clock')" class="h-3 w-3" trazo="2.5" />
                                         {{ \Illuminate\Support\Str::limit($doc->documentoRequisito->nombre, 8, '') }}
-                                        {{ $nombreEstado === 'Aprobado' ? '✓' : (in_array($nombreEstado, ['Pendiente', 'Rechazado']) ? '✗' : '⏳') }}
                                     </span>
                                 @endforeach
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="text-xs font-semibold rounded-full px-3 py-1 {{ $estadoBadge[$alumno->estado_documentacion] }}">
+                        <td>
+                            <span class="sg-badge {{ $estadoBadge[$alumno->estado_documentacion] }}">
                                 {{ $estadoTexto[$alumno->estado_documentacion] }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.documentacion.show', $alumno) }}" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white text-xs font-semibold px-4 py-2">Revisar</a>
+                        <td class="text-right">
+                            <a href="{{ route('admin.documentacion.show', $alumno) }}" class="sg-btn sg-btn--suave sg-btn--chico">Revisar <x-sg.icono nombre="arrow-right" class="sg-flecha" /></a>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-6 py-8 text-center text-slate-400">No hay alumnos para mostrar.</td></tr>
+                    <tr><td colspan="4"><x-sg.vacio icono="folder" titulo="Sin resultados">No hay alumnos para mostrar.</x-sg.vacio></td></tr>
                 @endforelse
             </tbody>
         </table>
-        <div class="px-6 py-4 border-t border-slate-100">
-            {{ $alumnos->links() }}
         </div>
+        @if ($alumnos->hasPages())
+            <div class="sg-card__foot">{{ $alumnos->links() }}</div>
+        @endif
     </div>
 @endsection

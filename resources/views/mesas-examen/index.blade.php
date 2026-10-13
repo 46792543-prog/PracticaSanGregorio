@@ -27,7 +27,7 @@
             @php $bloqueada = (bool) $mesa->bloqueo || $cuotasEstado !== 'al_dia'; @endphp
             <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col {{ $bloqueada ? 'opacity-70' : '' }}">
                 <div class="flex items-start justify-between mb-4">
-                    <div class="h-14 w-14 rounded-lg bg-[#16305a] text-white flex flex-col items-center justify-center leading-none">
+                    <div class="h-14 w-14 rounded-lg bg-[#0B3D91] text-white flex flex-col items-center justify-center leading-none">
                         <span class="text-lg font-bold">{{ $mesa->fecha_examen->format('d') }}</span>
                         <span class="text-[10px] uppercase">{{ \App\Support\FechaEsp::mesAbrev($mesa->fecha_examen) }}</span>
                     </div>
