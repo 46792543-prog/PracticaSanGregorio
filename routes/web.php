@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ActaController;
 use App\Http\Controllers\Admin\AlertaController as AdminAlertaController;
 use App\Http\Controllers\Admin\AlumnoController;
+use App\Http\Controllers\Admin\HistorialPrevioController;
 use App\Http\Controllers\Admin\CarreraController;
 use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
@@ -112,6 +113,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/academico', [AlumnoController::class, 'academicoStore'])->name('alumnos.academico.store');
     Route::get('/alumnos/nuevo/acceso', [AlumnoController::class, 'acceso'])->name('alumnos.acceso');
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
+    Route::get('/alumnos/historial/cargar', [HistorialPrevioController::class, 'index'])->name('alumnos.historial-previo.index');
+    Route::post('/alumnos/historial/cargar', [HistorialPrevioController::class, 'store'])->name('alumnos.historial-previo.store');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
