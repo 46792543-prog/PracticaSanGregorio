@@ -15,14 +15,12 @@ class FichaCampo extends Model
         'id_seccion',
         'etiqueta',
         'tipo',
-        'opciones',
         'obligatorio',
         'orden',
         'activo',
     ];
 
     protected $casts = [
-        'opciones' => 'array',
         'obligatorio' => 'boolean',
         'activo' => 'boolean',
     ];
@@ -35,5 +33,10 @@ class FichaCampo extends Model
     public function respuestas(): HasMany
     {
         return $this->hasMany(FichaRespuesta::class, 'id_campo', 'id_campo');
+    }
+
+    public function opciones(): HasMany
+    {
+        return $this->hasMany(FichaCampoOpcion::class, 'id_campo', 'id_campo')->orderBy('orden');
     }
 }

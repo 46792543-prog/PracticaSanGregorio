@@ -28,6 +28,7 @@ use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
 use App\Http\Controllers\Director\ReporteIngresosController;
+use App\Http\Controllers\Director\UsuarioController as DirectorUsuarioController;
 use App\Http\Controllers\DocumentacionController;
 use App\Http\Controllers\EstadoAcademicoController;
 use App\Http\Controllers\FichaInscripcionController;
@@ -248,4 +249,8 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 
     Route::get('/auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');
+
+    Route::get('/usuarios', [DirectorUsuarioController::class, 'index'])->name('usuarios.index');
+    Route::get('/usuarios/nuevo', [DirectorUsuarioController::class, 'create'])->name('usuarios.create');
+    Route::post('/usuarios/nuevo', [DirectorUsuarioController::class, 'store'])->name('usuarios.store');
 });
