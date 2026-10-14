@@ -93,6 +93,7 @@
         var etiquetas = ['Escribí una contraseña', 'Débil', 'Aceptable', 'Buena', 'Muy segura'];
         var pruebas = {
             largo: function (v) { return v.length >= 8; },
+            letra: function (v) { return /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(v); },
             mayus: function (v) { return /[A-ZÁÉÍÓÚÑ]/.test(v) && /[a-záéíóúñ]/.test(v); },
             numero: function (v) { return /\d/.test(v); },
             simbolo: function (v) { return /[^A-Za-z0-9ÁÉÍÓÚÑáéíóúñ]/.test(v); },

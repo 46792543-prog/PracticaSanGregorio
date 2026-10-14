@@ -58,8 +58,9 @@
 
         <ul class="acc-requisitos">
             <li data-acc-regla="largo">Mínimo 8 caracteres</li>
+            <li data-acc-regla="letra">Al menos una letra</li>
+            <li data-acc-regla="numero">Al menos un número</li>
             <li data-acc-regla="mayus">Mayúsculas y minúsculas (recomendado)</li>
-            <li data-acc-regla="numero">Al menos un número (recomendado)</li>
             <li data-acc-regla="simbolo">Al menos un símbolo (recomendado)</li>
         </ul>
 

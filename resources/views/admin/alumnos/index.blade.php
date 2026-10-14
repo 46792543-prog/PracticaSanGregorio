@@ -4,6 +4,9 @@
 
 @section('contenido')
     <x-sg.encabezado titulo="Alumnos Registrados" subtitulo="Listado completo por carrera — Corte {{ $corteActivo?->anio ?? now()->year }}" eyebrow="Gestión académica" icono="users">
+        <a href="{{ route('admin.alumnos.historial-previo.index') }}" class="sg-btn sg-btn--borde">
+            <x-sg.icono nombre="book" /> Cargar historial previo
+        </a>
         <a href="{{ route('admin.alumnos.create') }}" class="sg-btn sg-btn--primario">
             <x-sg.icono nombre="user-plus" /> Registrar nuevo alumno
         </a>
