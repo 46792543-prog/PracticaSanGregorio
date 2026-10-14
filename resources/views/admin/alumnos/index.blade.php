@@ -29,12 +29,17 @@
             <h1 class="text-xl font-bold text-slate-800 tracking-tight">Alumnos Registrados</h1>
             <p class="text-sm text-slate-400 mt-0.5">Listado completo por carrera — Corte {{ $corteActivo?->anio ?? now()->year }}</p>
         </div>
-        <a href="{{ route('admin.alumnos.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-[#D4A017] hover:brightness-105 text-[#122a52] font-bold text-sm px-5 py-3 shadow-md shadow-black/5 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Registrar nuevo alumno
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.alumnos.historial-previo.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-5 py-3 hover:bg-[#1E4D8C]/5 transition">
+                Cargar historial previo
+            </a>
+            <a href="{{ route('admin.alumnos.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-[#D4A017] hover:brightness-105 text-[#122a52] font-bold text-sm px-5 py-3 shadow-md shadow-black/5 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="h-4 w-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Registrar nuevo alumno
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -31,22 +31,25 @@
             @csrf
             <div class="landing-form__campo">
                 <label for="rec-password">Contraseña nueva</label>
-                <div class="landing-input-icono">
+                <div class="landing-input-icono landing-input-icono--clave">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
                     <input id="rec-password" type="password" name="password" minlength="8" maxlength="100" required autofocus>
+                    @include('auth.partials.toggle-clave', ['objetivo' => 'rec-password'])
                 </div>
             </div>
             <div class="landing-form__campo">
                 <label for="rec-password-confirm">Confirmar contraseña</label>
-                <div class="landing-input-icono">
+                <div class="landing-input-icono landing-input-icono--clave">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
                     <input id="rec-password-confirm" type="password" name="password_confirmation" minlength="8" maxlength="100" required placeholder="Repetí tu nueva contraseña">
+                    @include('auth.partials.toggle-clave', ['objetivo' => 'rec-password-confirm'])
                 </div>
             </div>
 
-            <ul style="font-size:.78rem;color:var(--landing-texto-suave);background:var(--landing-celeste-claro);border-radius:12px;padding:12px 16px;display:grid;gap:4px;list-style:none;">
-                <li>• Mínimo 8 caracteres</li>
-                <li>• Recomendado: combiná mayúsculas, números y símbolos</li>
+            <ul class="landing-reglas-clave" data-landing-reglas-clave>
+                <li data-regla="longitud">Mínimo 8 caracteres</li>
+                <li data-regla="letra">Al menos una letra</li>
+                <li data-regla="numero">Al menos un número</li>
             </ul>
 
             <button type="submit" class="landing-btn landing-btn--primario landing-btn--bloque">Guardar nueva contraseña →</button>

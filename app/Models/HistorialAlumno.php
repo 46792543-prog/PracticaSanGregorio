@@ -17,12 +17,14 @@ class HistorialAlumno extends Model
         'id_anio_lectivo',
         'id_condicion',
         'nota_cursada',
+        'veces_rendida',
         'fecha_ultima_modificacion',
         'anios_plazo_regularidad',
     ];
 
     protected $casts = [
         'nota_cursada' => 'decimal:2',
+        'veces_rendida' => 'integer',
         'fecha_ultima_modificacion' => 'date',
         'anios_plazo_regularidad' => 'integer',
     ];
