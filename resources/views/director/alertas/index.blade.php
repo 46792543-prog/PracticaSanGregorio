@@ -5,62 +5,55 @@
 
 @section('contenido')
     @php
-        $colores = [
-            'cuota_vencida' => 'bg-rose-50 text-rose-600',
-            'baja_alumno' => 'bg-amber-50 text-amber-700',
-            'baja_profesor' => 'bg-amber-50 text-amber-700',
-        ];
-        $iconosPorTipo = [
-            'cuota_vencida' => '💸',
-            'baja_alumno' => '🚪',
-            'baja_profesor' => '🚪',
+        $estilos = [
+            'cuota_vencida' => ['icono' => 'banknotes', 'tono' => 'rojo', 'etiqueta' => 'Cuota vencida'],
+            'baja_alumno' => ['icono' => 'user-minus', 'tono' => 'amarillo', 'etiqueta' => 'Baja de alumno'],
+            'baja_profesor' => ['icono' => 'briefcase', 'tono' => 'amarillo', 'etiqueta' => 'Baja de profesor'],
         ];
     @endphp
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="flex items-center justify-between gap-4 flex-wrap px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-rose-50 to-transparent">
-            <h3 class="font-bold text-slate-700 text-sm flex items-center gap-2">🔔 Alertas activas ({{ $alertas->total() }})</h3>
-        </div>
+    <x-sg.encabezado titulo="Central de Alertas" subtitulo="Cuotas vencidas y bajas recientes que requieren atención" eyebrow="Seguimiento" icono="bell-alert">
+        <span class="sg-badge sg-badge--rojo text-sm px-4 py-2">{{ $alertas->total() }} {{ $alertas->total() === 1 ? 'alerta activa' : 'alertas activas' }}</span>
+    </x-sg.encabezado>
 
-        <form method="GET" class="flex flex-wrap gap-3 px-6 py-4 border-b border-slate-100">
-            <select name="tipo" onchange="this.form.submit()" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+    <x-sg.tarjeta :cuerpo="false">
+        <form method="GET" class="flex flex-wrap items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-[1.25rem]">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2"><x-sg.icono nombre="filter" class="h-4 w-4" /> Filtrar</span>
+            <select name="tipo" onchange="this.form.submit()" class="sg-input w-auto min-w-[220px] py-2">
                 <option value="">Todos los tipos</option>
                 @foreach ($tipos as $clave => $label)
                     <option value="{{ $clave }}" @selected($tipo === $clave)>{{ $label }}</option>
                 @endforeach
             </select>
             @if ($tipo)
-                <a href="{{ route('director.alertas.index') }}" class="rounded-xl border border-slate-200 text-slate-500 text-sm font-semibold px-4 py-2">Limpiar</a>
+                <a href="{{ route('director.alertas.index') }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="x" /> Limpiar</a>
             @endif
         </form>
 
-        <div class="divide-y divide-slate-50">
+        <div class="sg-lista sg-filas">
             @forelse ($alertas as $alerta)
-                <a href="{{ $alerta['ruta'] }}" class="flex items-start gap-4 px-6 py-4 hover:bg-slate-50/70 transition">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg {{ $colores[$alerta['tipo']] }}">
-                        {{ $iconosPorTipo[$alerta['tipo']] }}
-                    </span>
+                @php $e = $estilos[$alerta['tipo']]; @endphp
+                <a href="{{ $alerta['ruta'] }}" class="sg-fila group py-4">
+                    <span class="sg-chip sg-chip--{{ $e['tono'] }}"><x-sg.icono :nombre="$e['icono']" /></span>
                     <span class="min-w-0 flex-1">
                         <span class="flex items-center gap-2 flex-wrap">
                             <span class="font-semibold text-sm text-slate-800">{{ $alerta['titulo'] }}</span>
                             @if ($alerta['severidad'] === 'alta')
-                                <span class="text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 bg-rose-100 text-rose-700">Urgente</span>
+                                <span class="sg-badge sg-badge--rojo">Urgente</span>
                             @endif
                         </span>
-                        <span class="block text-xs text-slate-500 mt-0.5">{{ $alerta['descripcion'] }}</span>
+                        <span class="block text-xs text-slate-500 mt-1">{{ $alerta['descripcion'] }}</span>
                     </span>
-                    <span class="text-slate-300 text-sm">→</span>
+                    <span class="hidden sm:inline-flex sg-badge sg-badge--gris sg-badge--sin-punto">{{ $e['etiqueta'] }}</span>
+                    <x-sg.icono nombre="chevron-right" class="sg-fila__flecha h-5 w-5" />
                 </a>
             @empty
-                <div class="px-6 py-14 text-center">
-                    <p class="text-3xl mb-2">✅</p>
-                    <p class="text-slate-500 text-sm">No hay alertas activas por el momento.</p>
-                </div>
+                <x-sg.vacio icono="check-circle" titulo="¡Todo en orden!">No hay alertas activas por el momento.</x-sg.vacio>
             @endforelse
         </div>
 
-        <div class="px-6 py-4 border-t border-slate-100">
-            {{ $alertas->links() }}
-        </div>
-    </div>
+        @if ($alertas->hasPages())
+            <x-slot:pie>{{ $alertas->links() }}</x-slot:pie>
+        @endif
+    </x-sg.tarjeta>
 @endsection

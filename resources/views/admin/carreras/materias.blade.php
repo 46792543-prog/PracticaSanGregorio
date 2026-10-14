@@ -3,27 +3,33 @@
 @section('titulo', 'Materias del plan')
 
 @section('contenido')
-    <p class="text-sm text-slate-400 mb-4">
-        <a href="{{ route('admin.carreras.index') }}" class="hover:underline">Carreras y planes</a> /
-        <span class="text-blue-600 font-semibold">{{ $carrera->nombre_carrera }}</span> / Materias
-    </p>
+    <x-sg.encabezado titulo="Materias del plan" :subtitulo="$carrera->nombre_carrera" eyebrow="Carreras y planes" icono="book">
+        <a href="{{ route('admin.carreras.index') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver</a>
+        <a href="{{ route('admin.carreras.correlativas', $carrera) }}" class="sg-btn sg-btn--primario">Configurar correlativas <x-sg.icono nombre="arrow-right" class="sg-flecha" /></a>
+    </x-sg.encabezado>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-        <h2 class="font-bold text-slate-800 mb-4">Materias cargadas ({{ $materias->count() }})</h2>
+    <div class="sg-card sg-revelar mb-6 overflow-hidden">
+        <div class="sg-card__head">
+            <div class="sg-card__titulo">
+                <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="list" /></span>
+                <h3>Materias cargadas</h3>
+            </div>
+            <span class="sg-badge sg-badge--azul">{{ $materias->count() }} materias</span>
+        </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="sg-tabla">
                 <thead>
-                    <tr class="text-left text-xs text-slate-400 uppercase border-b border-slate-100">
-                        <th class="py-2 pr-4">Orden</th>
-                        <th class="py-2 pr-4">Nombre</th>
-                        <th class="py-2 pr-4">Año</th>
-                        <th class="py-2 pr-4">Período</th>
-                        <th class="py-2 pr-4">Régimen</th>
-                        <th class="py-2 pr-4">Estado</th>
-                        <th class="py-2 pr-4"></th>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Nombre</th>
+                        <th>Año</th>
+                        <th>Período</th>
+                        <th>Régimen</th>
+                        <th>Estado</th>
+                        <th></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="sg-filas">
                     @forelse ($materias as $materia)
                         @php
                             $edicionMateriaPayload = [
@@ -36,87 +42,90 @@
                             ];
                         @endphp
                         <tr class="{{ $materia->activa ? '' : 'opacity-50' }}">
-                            <td class="py-2 pr-4 text-slate-400">{{ $materia->numero_orden }}</td>
-                            <td class="py-2 pr-4 font-semibold text-slate-700">{{ $materia->nombre }}</td>
-                            <td class="py-2 pr-4 text-slate-500">{{ $materia->anioCursada->nombre_anio }}</td>
-                            <td class="py-2 pr-4 text-slate-500">{{ $materia->periodo->nombre_periodo }}</td>
-                            <td class="py-2 pr-4 text-slate-500">{{ $materia->regimen->nombre_regimen }}</td>
-                            <td class="py-2 pr-4">
-                                <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $materia->activa ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+                            <td><span class="inline-grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">{{ $materia->numero_orden }}</span></td>
+                            <td class="font-semibold text-slate-700">{{ $materia->nombre }}</td>
+                            <td class="text-slate-500">{{ $materia->anioCursada->nombre_anio }}</td>
+                            <td class="text-slate-500">{{ $materia->periodo->nombre_periodo }}</td>
+                            <td class="text-slate-500">{{ $materia->regimen->nombre_regimen }}</td>
+                            <td>
+                                <span class="sg-badge {{ $materia->activa ? 'sg-badge--verde' : 'sg-badge--rojo' }}">
                                     {{ $materia->activa ? 'Activa' : 'Dada de baja' }}
                                 </span>
                             </td>
-                            <td class="py-2 pr-4">
+                            <td>
                                 <div class="flex items-center gap-3 text-xs font-semibold whitespace-nowrap">
-                                    <button type="button" class="text-[#1E4D8C] hover:underline" onclick='editarMateria(@json($edicionMateriaPayload))'>Editar</button>
+                                    <button type="button" class="sg-btn sg-btn--suave sg-btn--chico" onclick='editarMateria(@json($edicionMateriaPayload))'>Editar</button>
                                     @if ($materia->activa)
                                         <form method="POST" action="{{ route('admin.carreras.materias.baja', [$carrera, $materia]) }}" onsubmit="return confirm('¿Dar de baja esta materia?');">
                                             @csrf @method('PUT')
-                                            <button class="text-red-500 hover:underline">Dar de baja</button>
+                                            <button class="sg-btn sg-btn--peligro sg-btn--chico">Dar de baja</button>
                                         </form>
                                     @else
                                         <form method="POST" action="{{ route('admin.carreras.materias.reactivar', [$carrera, $materia]) }}">
                                             @csrf @method('PUT')
-                                            <button class="text-green-600 hover:underline">Reactivar</button>
+                                            <button class="sg-btn sg-btn--verde sg-btn--chico">Reactivar</button>
                                         </form>
                                     @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="py-6 text-center text-slate-400">Todavía no se cargaron materias.</td></tr>
+                        <tr><td colspan="7"><x-sg.vacio icono="book">Todavía no se cargaron materias.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <h2 id="titulo-form-materia" class="font-bold text-slate-800 mb-4">Agregar materia</h2>
+    <div class="sg-card sg-revelar p-6 border-t-4 border-t-[#FFC107]">
+        <div class="flex items-center gap-3 mb-5">
+            <span class="sg-chip sg-chip--amarillo"><x-sg.icono nombre="plus" /></span>
+            <h2 id="titulo-form-materia" class="font-display font-bold text-slate-800">Agregar materia</h2>
+        </div>
         <form id="form-materia" method="POST" action="{{ route('admin.carreras.materias.store', $carrera) }}" class="grid sm:grid-cols-6 gap-4 items-end">
             @csrf
             <input type="hidden" name="_method" id="input-materia-method" value="">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nº ORDEN</label>
+                <label class="sg-label">Nº ORDEN</label>
                 <input type="number" name="numero_orden" id="input-materia-orden" min="1" step="1" required value="{{ $materias->max('numero_orden') + 1 }}"
                        onkeydown="if (!['ArrowUp', 'ArrowDown', 'Tab'].includes(event.key)) event.preventDefault();"
                        onpaste="event.preventDefault();"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                       class="sg-input w-full">
             </div>
             <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">NOMBRE</label>
+                <label class="sg-label">NOMBRE</label>
                 <input type="text" maxlength="150" name="nombre" id="input-materia-nombre" required
                        oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                       class="sg-input w-full">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">AÑO</label>
-                <select name="id_anio_cursada" id="input-materia-anio" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <label class="sg-label">AÑO</label>
+                <select name="id_anio_cursada" id="input-materia-anio" class="sg-input w-full">
                     @foreach ($aniosCursada as $anio)
                         <option value="{{ $anio->id_anio_cursada }}">{{ $anio->nombre_anio }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">PERÍODO</label>
-                <select name="id_periodo" id="input-materia-periodo" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <label class="sg-label">PERÍODO</label>
+                <select name="id_periodo" id="input-materia-periodo" class="sg-input w-full">
                     @foreach ($periodos as $periodo)
                         <option value="{{ $periodo->id_periodo }}">{{ $periodo->nombre_periodo }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">RÉGIMEN</label>
-                <select name="id_regimen" id="input-materia-regimen" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <label class="sg-label">RÉGIMEN</label>
+                <select name="id_regimen" id="input-materia-regimen" class="sg-input w-full">
                     @foreach ($regimenes as $regimen)
                         <option value="{{ $regimen->id_regimen }}">{{ $regimen->nombre_regimen }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="sm:col-span-6 flex items-center gap-3">
-                <span id="editando-materia-aviso" class="hidden text-xs text-amber-600 font-semibold mr-auto">✏️ Editando una materia existente — al guardar se actualizará.</span>
-                <button type="button" onclick="cancelarEdicionMateria()" class="rounded-xl border border-slate-300 text-slate-600 font-semibold text-sm px-4 py-2.5">Limpiar</button>
-                <button type="submit" id="input-materia-submit" class="flex-1 rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow transition text-white font-semibold text-sm px-4 py-2.5">+ Agregar</button>
+                <span id="editando-materia-aviso" class="hidden sg-badge sg-badge--amarillo mr-auto">Editando una materia existente — al guardar se actualizará.</span>
+                <button type="button" onclick="cancelarEdicionMateria()" class="sg-btn sg-btn--borde">Limpiar</button>
+                <button type="submit" id="input-materia-submit" class="sg-btn sg-btn--azul flex-1">+ Agregar</button>
             </div>
         </form>
     </div>
@@ -151,9 +160,4 @@
             document.getElementById('editando-materia-aviso').classList.add('hidden');
         }
     </script>
-
-    <div class="flex justify-end gap-3 mt-6">
-        <a href="{{ route('admin.carreras.index') }}" class="rounded-lg border border-[#1E4D8C] text-[#1E4D8C] font-semibold text-sm px-6 py-2.5">Volver</a>
-        <a href="{{ route('admin.carreras.correlativas', $carrera) }}" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow transition text-white font-semibold text-sm px-6 py-2.5">Configurar correlativas →</a>
-    </div>
 @endsection

@@ -38,14 +38,14 @@
                     <option value="{{ $valor }}" @selected($condicionFiltro === $valor)>{{ $texto }}</option>
                 @endforeach
             </select>
-            <button class="rounded-lg bg-[#16305a] text-white text-sm font-semibold px-5 py-2">Buscar</button>
+            <button class="rounded-lg bg-[#0B3D91] text-white text-sm font-semibold px-5 py-2">Buscar</button>
         </form>
     </div>
 
     @forelse ($materiasPorAnio as $anio => $materias)
         <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
             <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <span class="inline-block h-4 w-1 bg-[#16305a] rounded"></span>
+                <span class="inline-block h-4 w-1 bg-[#0B3D91] rounded"></span>
                 {{ $nombresAnio[$anio] ?? "{$anio}° Año" }} — {{ $materias->count() }} materias
                 @if ($inscripcionCarrera && $inscripcionCarrera->anioCursada && (int) $inscripcionCarrera->anioCursada->id_anio_cursada === (int) $anio)
                     <span class="text-xs font-normal text-amber-500">(año en curso)</span>

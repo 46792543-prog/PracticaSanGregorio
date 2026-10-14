@@ -32,85 +32,36 @@
     ];
 @endphp
 
-<aside class="w-72 shrink-0 bg-gradient-to-b from-[#122a52] via-[#0e2242] to-[#0a1a34] text-white flex flex-col relative">
-    <div class="absolute inset-0 opacity-[0.04] pointer-events-none"
-         style="background-image: radial-gradient(circle at 20% 20%, white 1px, transparent 1px); background-size: 22px 22px;"></div>
+<aside class="sg-sidebar w-[280px] shrink-0 text-white flex flex-col lg:sticky lg:top-0 lg:h-screen overflow-hidden">
+    @include('partials.sidebar.decoracion')
 
-    <div class="relative px-6 pt-7 pb-6 flex items-center gap-3 border-b border-white/10">
-        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#D4A017] to-[#a97b0e] shadow-lg shadow-black/20 ring-1 ring-white/10 overflow-hidden">
-            @if ($configInstitucion?->logo_url)
-                <img src="{{ $configInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
-            @else
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0e2242" stroke-width="1.7" class="h-6 w-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2.25 2.25L15.5 9.5" />
-                </svg>
-            @endif
-        </div>
-        <div class="min-w-0">
-            <p class="font-bold text-[15px] leading-tight">{{ $configInstitucion?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</p>
-            <p class="text-[10px] font-semibold tracking-widest text-[#e8c465] mt-0.5">DIRECCIÓN</p>
-        </div>
-    </div>
+    @include('partials.sidebar.marca', ['etiqueta' => 'Dirección'])
 
-    <nav class="relative flex-1 px-4 py-5 space-y-1 overflow-y-auto">
+    <nav class="sg-sidebar__nav relative flex-1 px-4 py-5 space-y-1 overflow-y-auto">
+        <p class="px-3 pb-2 text-[10px] font-bold tracking-[.16em] text-[#8FD3F8]/60 uppercase">Menú principal</p>
         @foreach ($enlaces as $enlace)
-            @php $activo = request()->routeIs($enlace['ruta'] . '*'); @endphp
-            <a href="{{ route($enlace['ruta']) }}"
-               class="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all
-                      {{ $activo ? 'bg-white text-[#122a52] shadow-md shadow-black/20' : 'text-blue-100/80 hover:bg-white/[0.07] hover:text-white' }}">
-                <span @class([
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
-                        'bg-[#D4A017]/15 text-[#D4A017]' => $activo,
-                        'bg-white/[0.06] text-blue-200 group-hover:bg-white/10 group-hover:text-white' => ! $activo,
-                    ])>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-[18px] w-[18px]">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos[$enlace['icono']] }}" />
-                    </svg>
-                </span>
-                <span class="truncate flex-1 {{ $activo ? 'font-semibold' : '' }}">{{ $enlace['texto'] }}</span>
-                @if (! empty($enlace['badge']))
-                    <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#D4A017] text-[#122a52] text-[11px] font-bold px-1.5">
-                        {{ $enlace['badge'] }}
-                    </span>
-                @elseif ($activo)
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3.5 w-3.5 text-[#D4A017]">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos['chevron'] }}" />
-                    </svg>
-                @endif
-            </a>
+            @include('partials.sidebar.enlace', [
+                'href' => route($enlace['ruta']),
+                'texto' => $enlace['texto'],
+                'icono' => $iconos[$enlace['icono']],
+                'activo' => request()->routeIs($enlace['ruta'] . '*'),
+                'badge' => $enlace['badge'] ?? null,
+            ])
         @endforeach
 
-        <p class="px-3.5 pt-5 pb-1.5 text-[10px] font-bold tracking-widest text-blue-300/50 uppercase">Acceso administrativo</p>
-        <a href="{{ route('admin.panel.index') }}"
-           class="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-blue-100/80 hover:bg-white/[0.07] hover:text-white transition-all">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-blue-200 group-hover:bg-white/10 group-hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-[18px] w-[18px]">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos['grid'] }}" />
-                </svg>
-            </span>
-            <span class="truncate">Ir al Panel Administrativo</span>
-        </a>
+        <p class="px-3 pt-6 pb-2 text-[10px] font-bold tracking-[.16em] text-[#8FD3F8]/60 uppercase">Acceso administrativo</p>
+        @include('partials.sidebar.enlace', [
+            'href' => route('admin.panel.index'),
+            'texto' => 'Ir al Panel Administrativo',
+            'icono' => $iconos['grid'],
+            'activo' => false,
+            'badge' => null,
+        ])
     </nav>
 
-    <div class="relative px-4 py-4 border-t border-white/10">
-        <div class="flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2.5 mb-2">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#D4A017] to-[#a97b0e] text-[#122a52] text-xs font-bold">
-                {{ mb_substr(auth()->user()->nombre, 0, 1) }}{{ mb_substr(auth()->user()->apellido, 0, 1) }}
-            </span>
-            <div class="min-w-0">
-                <p class="text-sm font-semibold truncate">Dra. {{ auth()->user()->apellido }}</p>
-                <p class="text-[11px] text-blue-300/70">Directora General</p>
-            </div>
-        </div>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-blue-100/70 hover:bg-white/[0.07] hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-[18px] w-[18px] ml-1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconos['logout'] }}" />
-                </svg>
-                Cerrar sesión
-            </button>
-        </form>
-    </div>
+    @include('partials.sidebar.usuario', [
+        'nombre' => 'Dra. ' . auth()->user()->apellido,
+        'detalle' => 'Directora General',
+        'iniciales' => mb_substr(auth()->user()->nombre, 0, 1) . mb_substr(auth()->user()->apellido, 0, 1),
+    ])
 </aside>
