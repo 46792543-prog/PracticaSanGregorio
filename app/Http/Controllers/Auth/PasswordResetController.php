@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CodigoRecuperacionMail;
 use App\Models\ConfiguracionInstitucion;
 use App\Models\Usuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -39,9 +40,7 @@ class PasswordResetController extends Controller
                 ['token' => Hash::make($codigo), 'created_at' => now()]
             );
 
-            // No hay servidor de correo configurado en este proyecto de práctica:
-            // el código se registra en el log en vez de enviarse por email real.
-            Log::info("Código de recuperación para {$usuario->email}: {$codigo}");
+            Mail::to($usuario->email)->send(new CodigoRecuperacionMail($codigo));
         }
 
         // El código solo se muestra en pantalla (modo demo sin servidor de correo)
