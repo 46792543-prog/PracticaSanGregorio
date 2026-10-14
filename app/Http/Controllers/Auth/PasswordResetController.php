@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class PasswordResetController extends Controller
@@ -105,7 +106,7 @@ class PasswordResetController extends Controller
         abort_unless(session('password_reset_verificado'), 419);
 
         $request->validate([
-            'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
 
         $email = session('password_reset_email');
