@@ -5,22 +5,24 @@
 
 @section('contenido')
     @if ($inscripcionCarrera)
-        <div class="bg-[#16305a] text-white rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+        <div class="relative overflow-hidden bg-white border border-slate-200/70 rounded-2xl shadow-sm p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+            <div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#4FC3F7] to-[#0B3D91]"></div>
             <div>
-                <h2 class="text-lg font-bold">{{ $inscripcionCarrera->carrera->nombre }}</h2>
-                <p class="text-blue-200 text-sm mt-1">
+                <p class="text-[11px] font-bold tracking-[.14em] uppercase text-[#4FC3F7]">Mi carrera</p>
+                <h2 class="text-lg md:text-xl font-bold text-[#0B3D91] mt-1">{{ $inscripcionCarrera->carrera->nombre }}</h2>
+                <p class="text-slate-500 text-sm mt-1">
                     {{ $inscripcionCarrera->anioCursada?->nombre_anio }} · Plan {{ $inscripcionCarrera->carrera->materias->first()?->version_plan ?? '2024' }}
                     · Condición: {{ $inscripcionCarrera->condicion->nombre_condicion }}
                 </p>
             </div>
             <div class="flex items-center gap-4 shrink-0">
                 <div class="relative h-20 w-20 rounded-full grid place-items-center"
-                     style="background: conic-gradient(#fbbf24 {{ $porcentaje }}%, rgba(255,255,255,.15) 0)">
-                    <div class="h-14 w-14 rounded-full bg-[#16305a] grid place-items-center text-sm font-bold">
+                     style="background: conic-gradient(#FFC107 {{ $porcentaje }}%, #E3F4FD 0)">
+                    <div class="h-14 w-14 rounded-full bg-white grid place-items-center text-sm font-bold text-[#0B3D91]">
                         {{ $porcentaje }}%
                     </div>
                 </div>
-                <p class="text-sm text-blue-100 leading-tight">
+                <p class="text-sm text-slate-600 font-medium leading-tight">
                     {{ $materiasAprobadas }} de {{ $totalMaterias }}<br>materias aprobadas
                 </p>
             </div>

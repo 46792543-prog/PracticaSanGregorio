@@ -1,69 +1,70 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar sesión · {{ $config?->nombre_institucion ?? 'Instituto Superior San Gregorio' }}</title>
+@extends('auth.layout')
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
-</head>
-<body class="landing-body landing-login">
-    @include('auth.partials.recuperar-fondo')
+@section('titulo', 'Iniciar sesión')
+@section('panel-etiqueta', 'Campus virtual')
+@section('panel-titulo')
+    Tu lugar en el instituto, <em>siempre a mano</em>
+@endsection
+@section('panel-texto', 'Alumnos, docentes y personal ingresan desde acá: inscripciones, mesas de examen, estado académico, cuotas y gestión institucional en un solo lugar.')
 
-    <div class="landing-login__tarjeta">
-        <a href="{{ route('welcome') }}" class="landing-login__volver">← Volver al inicio</a>
+@section('contenido')
+    <a href="{{ route('welcome') }}" class="acc-volver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
+        Volver al inicio
+    </a>
 
-        <div class="landing-login__cabecera">
-            <span class="landing-login__icono">
-                @if ($config?->logo_url)
-                    <img src="{{ $config->logo_url }}" alt="">
-                @else
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25 4.5 5.4v5.4c0 5.13 3.24 9.6 7.5 10.95 4.26-1.35 7.5-5.82 7.5-10.95V5.4L12 2.25Z" />
-                        <path stroke-linecap="round" d="M12 9v6M9 12h6" />
-                    </svg>
-                @endif
-            </span>
-            <span class="landing-etiqueta" style="margin-bottom:10px;">
-                <span class="landing-etiqueta__punto"></span> Acceso institucional
-            </span>
-            <h1>Iniciá sesión</h1>
-            <p>Con tu usuario del instituto</p>
-        </div>
-
-        @if ($errors->any())
-            <div class="landing-login__error" role="alert">{{ $errors->first() }}</div>
-        @endif
-
-        <form method="POST" action="{{ route('login') }}" class="landing-form">
-            @csrf
-            <div class="landing-form__campo">
-                <label for="login-email">Correo electrónico</label>
-                <div class="landing-input-icono">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372a1.125 1.125 0 0 0-.852-1.09l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>
-                    <input id="login-email" type="email" maxlength="100" name="email" value="{{ old('email') }}" required autofocus placeholder="tu@institucion.edu.ar">
-                </div>
-            </div>
-            <div class="landing-form__campo">
-                <label for="login-password">Contraseña</label>
-                <div class="landing-input-icono landing-input-icono--clave">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
-                    <input id="login-password" type="password" maxlength="100" name="password" required placeholder="••••••••">
-                    @include('auth.partials.toggle-clave', ['objetivo' => 'login-password'])
-                </div>
-            </div>
-
-            <button type="submit" class="landing-btn landing-btn--primario landing-btn--bloque">Ingresar →</button>
-
-            <p style="text-align:center;margin-top:4px;">
-                <a href="{{ route('password.solicitar') }}" style="color:var(--landing-azul);font-weight:700;font-size:.88rem;">¿Olvidaste tu contraseña?</a>
-            </p>
-        </form>
+    <div class="acc-cabecera">
+        <span class="acc-cabecera__icono">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+        </span>
+        <h1>¡Hola! Ingresá a tu cuenta</h1>
+        <p>Usá el correo y la contraseña que te dio el instituto.</p>
     </div>
 
-    <script src="{{ asset('js/landing.js') }}" defer></script>
-</body>
-</html>
+    @if ($errors->any())
+        <div class="acc-aviso acc-aviso--error" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+            <span>{{ $errors->first() }}</span>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('login') }}" class="acc-form">
+        @csrf
+        <div class="acc-campo">
+            <label for="login-email">Correo electrónico</label>
+            <div class="acc-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+                <input id="login-email" type="email" maxlength="100" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" placeholder="tu correo del instituto">
+            </div>
+        </div>
+
+        <div class="acc-campo">
+            <label for="login-password">
+                Contraseña
+                <a href="{{ route('password.solicitar') }}">¿La olvidaste?</a>
+            </label>
+            <div class="acc-input acc-input--con-boton">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                <input id="login-password" type="password" maxlength="100" name="password" required autocomplete="current-password" placeholder="••••••••">
+                <button type="button" class="acc-ojo" data-acc-ojo="login-password" aria-label="Mostrar contraseña"></button>
+            </div>
+            <p class="acc-mayus" data-acc-mayus="login-password">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                Bloq Mayús está activado
+            </p>
+        </div>
+
+        <button type="submit" class="acc-btn acc-btn--primario">
+            Ingresar
+            <svg class="acc-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+            <span class="acc-spinner" aria-hidden="true"></span>
+        </button>
+    </form>
+
+    <p class="acc-ayuda">¿Sos alumno/a y no tenés usuario? Pedilo en Secretaría.</p>
+
+    <p class="acc-seguro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
+        Conexión segura · Solo para la comunidad institucional
+    </p>
+@endsection

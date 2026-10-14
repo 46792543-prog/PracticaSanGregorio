@@ -363,26 +363,6 @@
 .landing-input-icono input { position: relative; padding-left: 44px; }
 .landing-input-icono:focus-within svg { opacity: .8; }
 
-/* Botón "ojito" para mostrar/ocultar contraseña */
-.landing-input-icono--clave input { padding-right: 44px; }
-.landing-toggle-clave {
-    position: absolute; z-index: 2; right: 10px; top: 50%; transform: translateY(-50%);
-    width: 28px; height: 28px; display: grid; place-items: center; border: none; background: transparent;
-    color: var(--landing-azul); opacity: .55; cursor: pointer; padding: 0; border-radius: 8px;
-}
-.landing-toggle-clave:hover { opacity: .9; background: rgba(79,195,247,.15); }
-.landing-toggle-clave svg { width: 19px; height: 19px; pointer-events: none; }
-.landing-toggle-clave .landing-toggle-clave__ojo-cerrado { display: none; }
-.landing-toggle-clave[aria-pressed="true"] .landing-toggle-clave__ojo-abierto { display: none; }
-.landing-toggle-clave[aria-pressed="true"] .landing-toggle-clave__ojo-cerrado { display: block; }
-
-/* Requisitos de contraseña, se van tildando en vivo */
-.landing-reglas-clave { font-size: .78rem; color: var(--landing-texto-suave); background: var(--landing-celeste-claro); border-radius: 12px; padding: 12px 16px; display: grid; gap: 5px; list-style: none; }
-.landing-reglas-clave li { display: flex; align-items: center; gap: 8px; transition: color .2s; }
-.landing-reglas-clave li::before { content: '○'; font-size: .7rem; color: var(--landing-texto-suave); }
-.landing-reglas-clave li.cumplida { color: #16743f; font-weight: 600; }
-.landing-reglas-clave li.cumplida::before { content: '●'; color: #16743f; }
-
 /* ===================== Footer ===================== */
 .landing-footer { background: #081b3f; color: #c7d4ea; padding: 64px 0 28px; }
 .landing-footer__grid { display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }

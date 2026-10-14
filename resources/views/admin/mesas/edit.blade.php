@@ -4,15 +4,31 @@
 @section('subtitulo', 'Gestión académica / Configurar mesa')
 
 @section('contenido')
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 max-w-3xl">
-        <h2 class="font-bold text-slate-800 flex items-center gap-2 mb-6">✏️ Editar mesa de examen</h2>
+    <x-sg.encabezado titulo="Editar mesa de examen" subtitulo="Gestión académica · Configurar mesa" eyebrow="Mesas de examen" icono="clipboard">
+        <a href="{{ route('admin.mesas.index') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver</a>
+    </x-sg.encabezado>
+
+    <div class="grid gap-6 xl:grid-cols-3 items-start">
+    <div class="sg-card sg-revelar xl:col-span-2">
+        <div class="sg-card__head">
+            <div class="sg-card__titulo">
+                <span class="sg-chip sg-chip--azul"><x-sg.icono nombre="pencil" /></span>
+                <div><h3>Modificá los datos de la mesa programada</h3><p>Los campos con * son obligatorios</p></div>
+            </div>
+        </div>
+        <div class="sg-card__body">
 
         <form method="POST" action="{{ route('admin.mesas.update', $mesa) }}" class="space-y-5" id="form-mesa">
             @csrf
             @method('PUT')
+            <div class="flex items-center gap-3 pt-2">
+                <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="book" /></span>
+                <p class="font-display font-bold text-sm text-slate-800">Materia</p>
+                <span class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></span>
+            </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">SELECCIONAR MATERIA *</label>
-                <select name="id_materia" required class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                <label class="sg-label">SELECCIONAR MATERIA *</label>
+                <select name="id_materia" required class="sg-input w-full">
                     <option value="">Ej: Fundamentos de Enfermería Básica y Comunitaria</option>
                     @foreach ($carreras as $carrera)
                         <optgroup label="{{ $carrera->nombre_carrera }}">
@@ -24,102 +40,130 @@
                 </select>
             </div>
 
+            <div class="flex items-center gap-3 pt-2">
+                <span class="sg-chip sg-chip--chico sg-chip--celeste"><x-sg.icono nombre="calendar" /></span>
+                <p class="font-display font-bold text-sm text-slate-800">Fechas</p>
+                <span class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></span>
+            </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">APERTURA DE INSCRIPCIÓN *</label>
+                    <label class="sg-label">APERTURA DE INSCRIPCIÓN *</label>
                     <input type="date" name="fecha_inicio_inscripcion" id="fecha_inicio_inscripcion" required
                            value="{{ old('fecha_inicio_inscripcion', $mesa->fecha_inicio_inscripcion->format('Y-m-d')) }}"
-                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                           class="sg-input w-full">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">CIERRE DE INSCRIPCIÓN *</label>
+                    <label class="sg-label">CIERRE DE INSCRIPCIÓN *</label>
                     <input type="date" name="fecha_fin_inscripcion" id="fecha_fin_inscripcion" required
                            value="{{ old('fecha_fin_inscripcion', $mesa->fecha_fin_inscripcion->format('Y-m-d')) }}"
-                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                           class="sg-input w-full">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">FECHA DEL EXAMEN *</label>
+                <label class="sg-label">FECHA DEL EXAMEN *</label>
                 <input type="date" name="fecha_examen" id="fecha_examen" required
                        value="{{ old('fecha_examen', $mesa->fecha_examen->format('Y-m-d')) }}"
-                       class="w-full sm:w-64 rounded-xl border border-slate-300 px-4 py-3 text-sm">
-                <p class="text-xs text-slate-400 mt-1">Debe ser al menos una semana después de la apertura de inscripción.</p>
+                       class="sg-input w-full sm:w-64">
+                <p class="sg-ayuda">Debe ser al menos una semana después de la apertura de inscripción.</p>
             </div>
 
+            <div class="flex items-center gap-3 pt-2">
+                <span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="settings" /></span>
+                <p class="font-display font-bold text-sm text-slate-800">Organización</p>
+                <span class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></span>
+            </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">TURNO EXAMEN *</label>
+                    <label class="sg-label">TURNO EXAMEN *</label>
                     <div class="flex gap-2">
-                        <select name="id_turno" id="id_turno" required class="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                        <select name="id_turno" id="id_turno" required class="sg-input min-w-0 flex-1">
                             <option value="">Seleccionar...</option>
                             @foreach ($turnos as $t)
                                 <option value="{{ $t->id_turno }}" data-mes-desde="{{ $t->mes_desde }}" data-mes-hasta="{{ $t->mes_hasta }}" @selected(old('id_turno', $mesa->id_turno) == $t->id_turno)>{{ $t->nombre_turno }}</option>
                             @endforeach
                         </select>
                         <button type="button" onclick="abrirModalTurnos()" title="Gestionar turnos de examen"
-                                class="shrink-0 w-12 h-12 flex items-center justify-center rounded-xl border border-[#1E4D8C] text-[#1E4D8C] text-lg font-bold leading-none hover:bg-blue-50">+</button>
+                                class="shrink-0 w-[46px] flex items-center justify-center rounded-xl bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="plus" /></button>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1">Se sugiere solo al elegir la fecha del examen; podés cambiarlo a mano.</p>
+                    <p class="sg-ayuda">Se sugiere solo al elegir la fecha del examen; podés cambiarlo a mano.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">CUPO MÁXIMO (OPCIONAL)</label>
+                    <label class="sg-label">CUPO MÁXIMO (OPCIONAL)</label>
                     <input type="number" name="cupo_maximo" min="1" placeholder="Sin límite"
                            value="{{ old('cupo_maximo', $mesa->cupo_maximo) }}"
-                           class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                           class="sg-input w-full">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">LLAMADO *</label>
+                <label class="sg-label">LLAMADO *</label>
                 <div class="flex gap-2 w-full sm:w-64">
-                    <select name="id_llamado" id="id_llamado" required class="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm">
+                    <select name="id_llamado" id="id_llamado" required class="sg-input min-w-0 flex-1">
                         <option value="">Seleccionar...</option>
                         @foreach ($llamados as $l)
                             <option value="{{ $l->id_llamado }}" @selected(old('id_llamado', $mesa->id_llamado) == $l->id_llamado)>{{ $l->nombre_llamado }}</option>
                         @endforeach
                     </select>
                     <button type="button" onclick="abrirModalLlamados()" title="Gestionar llamados"
-                            class="shrink-0 w-12 h-12 flex items-center justify-center rounded-xl border border-[#1E4D8C] text-[#1E4D8C] text-lg font-bold leading-none hover:bg-blue-50">+</button>
+                            class="shrink-0 w-[46px] flex items-center justify-center rounded-xl bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="plus" /></button>
                 </div>
             </div>
 
+            <div class="flex items-center gap-3 pt-2">
+                <span class="sg-chip sg-chip--chico sg-chip--violeta"><x-sg.icono nombre="users" /></span>
+                <p class="font-display font-bold text-sm text-slate-800">Tribunal examinador</p>
+                <span class="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent"></span>
+            </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-2">TRIBUNAL EXAMINADOR (PRESIDENTE / VOCALES / SUPLENTE)</label>
+                <label class="sg-label">TRIBUNAL EXAMINADOR (PRESIDENTE / VOCALES / SUPLENTE)</label>
                 <div class="grid sm:grid-cols-4 gap-3">
-                    <select name="presidente_id" id="presidente_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <select name="presidente_id" id="presidente_id" class="sg-input tribunal-select w-full">
                         <option value="">Presidente...</option>
                         @foreach ($profesores as $profesor)
                             <option value="{{ $profesor->id_profesor }}" @selected(old('presidente_id', $presidenteId) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
-                    <select name="vocal1_id" id="vocal1_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <select name="vocal1_id" id="vocal1_id" class="sg-input tribunal-select w-full">
                         <option value="">Vocal 1...</option>
                         @foreach ($profesores as $profesor)
                             <option value="{{ $profesor->id_profesor }}" @selected(old('vocal1_id', $vocal1Id) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
-                    <select name="vocal2_id" id="vocal2_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <select name="vocal2_id" id="vocal2_id" class="sg-input tribunal-select w-full">
                         <option value="">Vocal 2...</option>
                         @foreach ($profesores as $profesor)
                             <option value="{{ $profesor->id_profesor }}" @selected(old('vocal2_id', $vocal2Id) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
-                    <select name="suplente_id" id="suplente_id" class="tribunal-select w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">
+                    <select name="suplente_id" id="suplente_id" class="sg-input tribunal-select w-full">
                         <option value="">Suplente...</option>
                         @foreach ($profesores as $profesor)
                             <option value="{{ $profesor->id_profesor }}" @selected(old('suplente_id', $suplenteId) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
-                <p id="error-tribunal" class="hidden text-xs text-red-500 mt-2">No se puede asignar el mismo docente en más de un rol del tribunal.</p>
+                <p id="error-tribunal" class="hidden text-xs font-semibold text-red-500 mt-2">No se puede asignar el mismo docente en más de un rol del tribunal.</p>
             </div>
 
-            <div class="flex gap-3 pt-4">
-                <button type="submit" class="rounded-xl bg-[#D4A017] hover:brightness-95 text-white font-bold text-sm px-8 py-3.5">Guardar cambios</button>
-                <a href="{{ route('admin.mesas.index') }}" class="rounded-xl border border-slate-300 text-slate-600 font-bold text-sm px-8 py-3.5">Cancelar</a>
+            <div class="flex justify-end gap-3 pt-5 border-t border-slate-100">
+                <a href="{{ route('admin.mesas.index') }}" class="sg-btn sg-btn--borde">Cancelar</a>
+                <button type="submit" class="sg-btn sg-btn--primario"><x-sg.icono nombre="check" /> Guardar cambios</button>
             </div>
         </form>
+        </div>
+    </div>
+
+    <aside class="sg-card sg-revelar p-6 xl:sticky xl:top-24 bg-gradient-to-br from-blue-50 to-white">
+        <span class="sg-chip sg-chip--marca sg-chip--grande mb-4"><x-sg.icono nombre="info" /></span>
+        <h3 class="font-display font-bold text-slate-800 mb-3">Cómo armar la mesa</h3>
+        <ol class="space-y-3 text-sm text-slate-600">
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0B3D91] text-[11px] font-bold text-white">1</span> Elegí la materia de la carrera.</li>
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0B3D91] text-[11px] font-bold text-white">2</span> El examen debe ser al menos una semana después de abrir la inscripción.</li>
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0B3D91] text-[11px] font-bold text-white">3</span> El turno se sugiere solo según el mes del examen.</li>
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0B3D91] text-[11px] font-bold text-white">4</span> Un mismo docente no puede ocupar dos roles del tribunal.</li>
+        </ol>
+    </aside>
     </div>
 
     @include('admin.mesas._modales-turnos-llamados')

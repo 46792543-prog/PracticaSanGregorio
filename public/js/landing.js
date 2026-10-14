@@ -210,44 +210,6 @@
         }
     }
 
-    /* ---------- Mostrar/ocultar contraseña (ojito) ---------- */
-    var botonesOjo = document.querySelectorAll('[data-landing-toggle-clave]');
-    if (botonesOjo.length) {
-        botonesOjo.forEach(function (boton) {
-            var input = document.getElementById(boton.getAttribute('data-landing-toggle-clave'));
-            if (!input) return;
-            boton.addEventListener('click', function () {
-                var visible = input.type === 'text';
-                input.type = visible ? 'password' : 'text';
-                boton.setAttribute('aria-pressed', visible ? 'false' : 'true');
-                boton.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
-            });
-        });
-    }
-
-    /* ---------- Requisitos de contraseña en vivo (recuperar contraseña) ---------- */
-    var inputClaveNueva = document.getElementById('rec-password');
-    var listaReglas = document.querySelector('[data-landing-reglas-clave]');
-    if (inputClaveNueva && listaReglas) {
-        var reglas = {
-            longitud: function (v) { return v.length >= 8; },
-            letra: function (v) { return /[a-zA-Z]/.test(v); },
-            numero: function (v) { return /[0-9]/.test(v); }
-        };
-        var itemsRegla = listaReglas.querySelectorAll('[data-regla]');
-        var evaluar = function () {
-            var valor = inputClaveNueva.value;
-            itemsRegla.forEach(function (item) {
-                var clave = item.getAttribute('data-regla');
-                var cumple = reglas[clave] ? reglas[clave](valor) : false;
-                item.classList.toggle('cumplida', cumple);
-            });
-        };
-        inputClaveNueva.addEventListener('input', evaluar);
-        inputClaveNueva.addEventListener('focus', evaluar);
-        evaluar();
-    }
-
     /* ---------- Pestañas de carrera ---------- */
     var tabsCarrera = document.querySelectorAll('[data-landing-tab-carrera]');
     if (tabsCarrera.length) {
