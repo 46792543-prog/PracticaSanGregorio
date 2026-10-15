@@ -23,7 +23,7 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="cash" /></span>
-                <div><h3>Pagos registrados</h3><p>El estado se cambia directamente desde la lista</p></div>
+                <div><h3>Pagos registrados</h3><p>Una vez registrado, el pago no se puede modificar</p></div>
             </div>
         </div>
 
@@ -80,16 +80,9 @@
                             <td class="!text-right font-display font-bold !text-slate-800 whitespace-nowrap">$ {{ number_format($pago->monto, 0, ',', '.') }}</td>
                             <td>{{ $pago->metodoPago->nombre_metodo }}</td>
                             <td>
-                                <form method="POST" action="{{ route('director.pagos-docentes.estado', $pago) }}">
-                                    @csrf
-                                    @method('PUT')
-                                    <select name="id_estado_pago_docente" onchange="this.form.submit()" title="Cambiar estado del pago"
-                                            class="text-xs font-semibold rounded-full pl-3 pr-8 py-1.5 border-0 ring-1 cursor-pointer {{ $estadoEstilos[$pago->estadoPago->nombre_estado] ?? 'bg-slate-50 text-slate-600 ring-slate-200' }}">
-                                        @foreach ($estadosPago as $opcion)
-                                            <option value="{{ $opcion->id_estado_pago_docente }}" @selected($pago->id_estado_pago_docente === $opcion->id_estado_pago_docente)>{{ $opcion->nombre_estado }}</option>
-                                        @endforeach
-                                    </select>
-                                </form>
+                                <span class="inline-flex text-xs font-semibold rounded-full px-3 py-1 ring-1 {{ $estadoEstilos[$pago->estadoPago->nombre_estado] ?? 'bg-slate-50 text-slate-600 ring-slate-200' }}">
+                                    {{ $pago->estadoPago->nombre_estado }}
+                                </span>
                                 @if ($pago->observaciones)
                                     <p class="text-xs text-slate-400 mt-1" title="{{ $pago->observaciones }}">{{ \Illuminate\Support\Str::limit($pago->observaciones, 30) }}</p>
                                 @endif

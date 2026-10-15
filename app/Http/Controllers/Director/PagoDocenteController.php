@@ -67,17 +67,6 @@ class PagoDocenteController extends Controller
         return back()->with('status', 'Se registró el pago al docente correctamente.');
     }
 
-    public function actualizarEstado(Request $request, PagoDocente $pagoDocente): RedirectResponse
-    {
-        $data = $request->validate([
-            'id_estado_pago_docente' => ['required', 'exists:estado_pago_docente,id_estado_pago_docente'],
-        ]);
-
-        $pagoDocente->update(['id_estado_pago_docente' => $data['id_estado_pago_docente']]);
-
-        return back()->with('status', 'Se actualizó el estado del pago correctamente.');
-    }
-
     public function storeMetodoPago(Request $request): RedirectResponse
     {
         $data = $request->validate([

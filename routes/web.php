@@ -240,7 +240,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
     Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
-    Route::put('/pagos-docentes/{pagoDocente}/estado', [PagoDocenteController::class, 'actualizarEstado'])->name('pagos-docentes.estado');
     Route::post('/pagos-docentes/metodos-pago', [PagoDocenteController::class, 'storeMetodoPago'])->name('pagos-docentes.metodos-pago.store');
     Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 
