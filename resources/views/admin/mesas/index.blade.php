@@ -89,7 +89,29 @@
                         </td>
                         <td>
                             <div class="flex items-center justify-end gap-1.5">
-                                <a href="{{ route('admin.mesas.acta', $mesa) }}" class="sg-btn sg-btn--suave sg-btn--chico"><x-sg.icono nombre="document" /> Acta</a>
+                                <a href="{{ route('admin.mesas.acta', $mesa) }}" class="sg-btn sg-btn--suave sg-btn--chico">
+                                    <x-sg.icono nombre="document" /> Acta
+                                    @if ($mesa->acta)
+                                        <span @class(['sg-badge sg-badge--sin-punto !py-0.5 !ml-1', 'sg-badge--amarillo' => $mesa->acta->estado === 'borrador', 'sg-badge--verde' => $mesa->acta->estado === 'generada'])>
+                                            {{ $mesa->acta->estado === 'borrador' ? 'Borrador' : 'Generada' }}
+                                        </span>
+                                    @endif
+                                </a>
+                                @if ($mesa->acta && $mesa->acta->estado === 'borrador')
+                                    <form method="POST" action="{{ route('admin.actas.generar', $mesa) }}" onsubmit="return confirm('¿Cerrar el acta de {{ $mesa->materia->nombre }}? Una vez generada no se puede volver a editar desde acá.');">
+                                        @csrf
+                                        <input type="hidden" name="libro" value="{{ $mesa->acta->libro }}">
+                                        <input type="hidden" name="folio" value="{{ $mesa->acta->folio }}">
+                                        <input type="hidden" name="observaciones" value="{{ $mesa->acta->observaciones }}">
+                                        @foreach ($mesa->acta->detalles as $detalle)
+                                            <input type="hidden" name="notas[{{ $detalle->id_persona_alumno }}][nota_escrito]" value="{{ $detalle->nota_escrito }}">
+                                            <input type="hidden" name="notas[{{ $detalle->id_persona_alumno }}][nota_oral]" value="{{ $detalle->nota_oral }}">
+                                            <input type="hidden" name="notas[{{ $detalle->id_persona_alumno }}][nota_final]" value="{{ $detalle->nota_final }}">
+                                            <input type="hidden" name="notas[{{ $detalle->id_persona_alumno }}][resultado]" value="{{ $detalle->resultado }}">
+                                        @endforeach
+                                        <button type="submit" class="sg-btn sg-btn--verde sg-btn--icono" title="Cerrar acta"><x-sg.icono nombre="lock" class="!h-4 !w-4" /></button>
+                                    </form>
+                                @endif
                                 @if ($estadoMesa === 'Programada')
                                     <a href="{{ route('admin.mesas.edit', $mesa) }}" class="sg-btn sg-btn--borde sg-btn--icono" title="Editar"><x-sg.icono nombre="pencil" class="!h-4 !w-4" /></a>
                                     <form method="POST" action="{{ route('admin.mesas.destroy', $mesa) }}" onsubmit="return confirm('¿Cancelar esta mesa?');">
