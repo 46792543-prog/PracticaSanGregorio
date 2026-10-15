@@ -58,13 +58,21 @@ class HistorialPrevioController extends Controller
 
         $data = $request->validate([
             'id_persona_alumno' => ['required', 'exists:persona,id_persona'],
-            'id_materia' => ['required', 'exists:materia,id_materia'],
+            'id_materia' => [
+                'required',
+                'exists:materia,id_materia',
+                Rule::unique('historial_alumno', 'id_materia')->where(fn ($q) => $q
+                    ->where('id_persona_alumno', $request->id_persona_alumno)
+                    ->where('id_anio_lectivo', $request->id_anio_lectivo)),
+            ],
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
             'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
             'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
             'fecha_ultima_modificacion' => ['required', 'date'],
             'busqueda_actual' => ['nullable', 'string'],
+        ], [
+            'id_materia.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
         ]);
 
         $idCondicion = (int) $data['id_condicion'];
@@ -105,5 +113,72 @@ class HistorialPrevioController extends Controller
 
         return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $data['busqueda_actual'] ?? null])
             ->with('status', $status);
+    }
+
+    public function update(Request $request, HistorialAlumno $historial): RedirectResponse
+    {
+        $condicionesPermitidas = CondicionAlumno::whereIn('nombre_condicion', self::CONDICIONES_DISPONIBLES)->pluck('id_condicion');
+
+        $data = $request->validate([
+            'id_anio_lectivo' => [
+                'required',
+                'exists:anio_lectivo,id_anio_lectivo',
+                Rule::unique('historial_alumno', 'id_anio_lectivo')
+                    ->where(fn ($q) => $q
+                        ->where('id_persona_alumno', $historial->id_persona_alumno)
+                        ->where('id_materia', $historial->id_materia))
+                    ->ignore($historial->id_historial, 'id_historial'),
+            ],
+            'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
+            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+            'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'fecha_ultima_modificacion' => ['required', 'date'],
+            'busqueda_actual' => ['nullable', 'string'],
+        ], [
+            'id_anio_lectivo.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
+        ]);
+
+        $idCondicion = (int) $data['id_condicion'];
+        $sePasoALibre = false;
+
+        if ((int) ($data['veces_rendida'] ?? 0) > self::TOPE_VECES_RENDIDA) {
+            $idLibre = CondicionAlumno::where('nombre_condicion', 'Libre')->value('id_condicion');
+
+            if ($idLibre && $idCondicion !== $idLibre) {
+                $idCondicion = $idLibre;
+                $sePasoALibre = true;
+            }
+        }
+
+        $esAprobada = CondicionAlumno::find($idCondicion)?->nombre_condicion === 'Aprobada';
+
+        if ($esAprobada && (float) ($data['nota_cursada'] ?? 0) < 4) {
+            return back()->withErrors([
+                'nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.',
+            ])->withInput();
+        }
+
+        $historial->update([
+            'id_anio_lectivo' => $data['id_anio_lectivo'],
+            'id_condicion' => $idCondicion,
+            'nota_cursada' => $data['nota_cursada'] ?? null,
+            'veces_rendida' => $data['veces_rendida'] ?? null,
+            'fecha_ultima_modificacion' => $data['fecha_ultima_modificacion'],
+        ]);
+
+        $status = $sePasoALibre
+            ? 'Se actualizó la materia, pero como superó las 3 veces rendidas se marcó automáticamente como Libre.'
+            : 'Se actualizó la materia correctamente.';
+
+        return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $data['busqueda_actual'] ?? null])
+            ->with('status', $status);
+    }
+
+    public function destroy(Request $request, HistorialAlumno $historial): RedirectResponse
+    {
+        $historial->delete();
+
+        return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $request->query('busqueda')])
+            ->with('status', 'Se eliminó la materia del historial.');
     }
 }

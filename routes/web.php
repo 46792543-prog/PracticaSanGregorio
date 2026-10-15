@@ -115,6 +115,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
     Route::get('/alumnos/historial/cargar', [HistorialPrevioController::class, 'index'])->name('alumnos.historial-previo.index');
     Route::post('/alumnos/historial/cargar', [HistorialPrevioController::class, 'store'])->name('alumnos.historial-previo.store');
+    Route::put('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'update'])->name('alumnos.historial-previo.update');
+    Route::delete('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'destroy'])->name('alumnos.historial-previo.destroy');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
