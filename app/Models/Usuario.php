@@ -94,6 +94,16 @@ class Usuario extends Authenticatable
         return in_array($this->rol?->nombre_rol, ['Secretario', 'Director'], true);
     }
 
+    /** Panel al que va cada usuario al iniciar sesión (o si intenta entrar a uno que no le corresponde). */
+    public function rutaInicio(): string
+    {
+        return match (true) {
+            $this->esDirector() => route('director.panel.index'),
+            $this->esStaff() => route('admin.panel.index'),
+            default => route('panel.index'),
+        };
+    }
+
     public function scopeAlumnos($query)
     {
         return $query->whereHas('rol', fn ($q) => $q->where('nombre_rol', 'Alumno'));

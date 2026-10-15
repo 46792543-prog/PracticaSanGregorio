@@ -45,13 +45,12 @@ class LoginController extends Controller
         // sesión (ver partials.session-guard) no la cierre por error.
         $request->session()->flash('recien_logueado', true);
 
-        $destino = match (true) {
-            Auth::user()->esDirector() => route('director.panel.index'),
-            Auth::user()->esStaff() => route('admin.panel.index'),
-            default => route('panel.index'),
-        };
+        // Siempre al panel propio: no se respeta la URL que se haya escrito
+        // antes de loguearse (ej. /director/auditoria), para que no se pueda
+        // entrar directo a una pantalla pegando su dirección.
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended($destino);
+        return redirect(Auth::user()->rutaInicio());
     }
 
     public function logout(Request $request): RedirectResponse
@@ -60,6 +59,12 @@ class LoginController extends Controller
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        // El guard de sesión (partials.session-guard) cierra la sesión solo cuando
+        // se vuelve a entrar sin haber pasado por el login; se avisa por qué.
+        if ($request->input('motivo') === 'reingreso') {
+            return redirect()->route('login')->withErrors(['email' => 'Por seguridad se cerró tu sesión. Volvé a iniciar sesión para continuar.']);
+        }
 
         return redirect()->route('login');
     }
