@@ -41,6 +41,19 @@
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
                 @endif
+                @if ($progresoPromocion)
+                    <form method="POST" action="{{ route('admin.alumnos.promover', $alumno) }}"
+                          onsubmit="return confirm('¿Promover a {{ $alumno->nombre }} {{ $alumno->apellido }} a {{ $progresoPromocion['proximoAnio']->nombre_anio }}?');">
+                        @csrf @method('PUT')
+                        <button type="submit" @disabled(! $progresoPromocion['puede'])
+                                title="{{ $progresoPromocion['aprobadas'] }} de {{ $progresoPromocion['total'] }} materias de su año aprobadas{{ $progresoPromocion['puede'] ? '' : ' — hace falta la mayoría para promover' }}"
+                                @class(['sg-btn sg-btn--chico', 'sg-btn--verde' => $progresoPromocion['puede'], 'sg-btn--borde opacity-50 cursor-not-allowed' => ! $progresoPromocion['puede']])>
+                            <x-sg.icono nombre="trending-up" />
+                            Promover a {{ $progresoPromocion['proximoAnio']->nombre_anio }}
+                            <span class="text-xs opacity-80">({{ $progresoPromocion['aprobadas'] }}/{{ $progresoPromocion['total'] }})</span>
+                        </button>
+                    </form>
+                @endif
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <form method="POST" action="{{ route('admin.alumnos.baja', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de baja a este alumno?');">
                         @csrf @method('PUT')
