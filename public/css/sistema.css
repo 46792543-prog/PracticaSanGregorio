@@ -228,7 +228,7 @@ a.sg-fila:hover .sg-fila__flecha { color: #0B3D91; transform: translateX(4px); }
 .sg-js .sg-revelar.sg-visible { opacity: 1; transform: none; }
 
 /* Filas de tabla/lista que entran escalonadas */
-.sg-js .sg-filas > * { animation: sg-entrar-fila .45s cubic-bezier(.22,.61,.36,1) both; }
+.sg-js .sg-filas > * { animation: sg-entrar-fila .45s cubic-bezier(.22,.61,.36,1) backwards; }
 .sg-filas > *:nth-child(1) { animation-delay: .05s; } .sg-filas > *:nth-child(2) { animation-delay: .09s; }
 .sg-filas > *:nth-child(3) { animation-delay: .13s; } .sg-filas > *:nth-child(4) { animation-delay: .17s; }
 .sg-filas > *:nth-child(5) { animation-delay: .21s; } .sg-filas > *:nth-child(6) { animation-delay: .25s; }

@@ -187,14 +187,29 @@
                             <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
                         </form>
 
-                        <p class="sg-label mb-2">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
+                        @if ($primerMesSinGenerar)
+                            <p class="sg-aviso sg-aviso--alerta mb-3">
+                                Debe {{ $primerMesSinGenerar->nombre_mes }}, pero todavía no se le generó esa cuota. Las cuotas de meses posteriores quedan bloqueadas hasta que la generes y la cobres.
+                            </p>
+                        @endif
+
+                        <p class="sg-label mb-1">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
+                        <p class="text-xs text-slate-400 mb-2">Se cobran en orden: al tildar una cuota se tildan también las anteriores, y no se puede saltear ningún mes.</p>
                         <div class="space-y-2 mb-4">
-                            @foreach ($cuotasPendientes as $cuota)
+                            @foreach ($cuotasPendientes->values() as $cuota)
+                                @php
+                                    $bloqueada = $primerMesSinGenerar
+                                        && $cuota->id_anio_lectivo == $primerMesSinGenerar->id_anio_lectivo
+                                        && $cuota->id_mes > $primerMesSinGenerar->id_mes;
+                                @endphp
                                 <div class="rounded-2xl bg-white border-[1.5px] border-slate-200 px-4 py-3 transition-colors has-[.cuota-check:checked]:border-[#4FC3F7] has-[.cuota-check:checked]:shadow-md">
                                     <div class="flex items-center justify-between gap-3">
                                         <label class="flex items-center gap-3 cursor-pointer flex-1">
-                                            <input type="checkbox" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" checked>
+                                            <input type="checkbox" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" data-orden="{{ $loop->index }}" @if ($bloqueada) disabled @else checked @endif>
                                             <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</span>
+                                            @if ($bloqueada)
+                                                <span class="sg-badge sg-badge--gris">Bloqueada: falta generar {{ $primerMesSinGenerar->nombre_mes }}</span>
+                                            @endif
                                         </label>
                                         <div class="flex items-center gap-1 shrink-0">
                                             <button type="button" onclick="document.getElementById('editar-cuota-{{ $cuota->id_cuota }}').classList.toggle('hidden')"
@@ -307,7 +322,17 @@
                                 });
                                 document.getElementById('total-cobro').textContent = '$ ' + total.toLocaleString('es-AR');
                             }
-                            document.querySelectorAll('.cuota-check').forEach(cb => cb.addEventListener('change', recalcularTotal));
+                            // Cobro en orden: tildar una cuota tilda las anteriores; destildarla destilda las posteriores.
+                            document.querySelectorAll('.cuota-check').forEach(cb => cb.addEventListener('change', () => {
+                                const orden = parseInt(cb.dataset.orden);
+                                document.querySelectorAll('.cuota-check:not(:disabled)').forEach(otro => {
+                                    const ordenOtro = parseInt(otro.dataset.orden);
+                                    if (cb.checked && ordenOtro < orden) otro.checked = true;
+                                    if (! cb.checked && ordenOtro > orden) otro.checked = false;
+                                });
+                                recalcularTotal();
+                            }));
+                            recalcularTotal();
                             document.querySelectorAll('.cuota-monto, .cuota-recargo').forEach(input => {
                                 input.addEventListener('input', () => recalcularCuota(input.dataset.id));
                             });

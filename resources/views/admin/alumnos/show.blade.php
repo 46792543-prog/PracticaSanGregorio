@@ -19,12 +19,12 @@
             <span class="absolute -right-10 -top-16 h-48 w-48 rounded-full border-[14px] border-[#FFC107]/25"></span>
             <span class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 18px 18px;"></span>
         </div>
-        <div class="relative px-6 pb-6 -mt-10 flex items-end justify-between flex-wrap gap-5">
-            <div class="flex items-end gap-4">
-                <span class="sg-avatar sg-avatar--grande sg-avatar--marca h-20 w-20 text-2xl ring-4 ring-white shadow-lg">
+        <div class="relative px-6 pb-6 flex items-end justify-between flex-wrap gap-5">
+            <div class="flex items-end gap-4 min-w-0">
+                <span class="sg-avatar sg-avatar--grande sg-avatar--marca h-20 w-20 shrink-0 -mt-10 text-2xl ring-4 ring-white shadow-lg">
                     {{ mb_substr($alumno->nombre, 0, 1) }}{{ mb_substr($alumno->apellido, 0, 1) }}
                 </span>
-                <div class="pb-1">
+                <div class="pt-3 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h1 class="font-display font-extrabold text-xl text-slate-900">{{ $alumno->apellido }}, {{ $alumno->nombre }}</h1>
                         @if ($estadoInscNombre === 'Activo')
@@ -38,10 +38,6 @@
             </div>
             <div class="flex gap-2 flex-wrap">
                 <a href="{{ route('admin.documentacion.show', $alumno) }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="folder" /> Documentación</a>
-                <a href="{{ route('admin.alumnos.boletin', $alumno) }}" target="_blank" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="clipboard" /> Boletín</a>
-                @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
-                    <a href="{{ route('admin.alumnos.certificado.regular', $alumno) }}" target="_blank" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="document-check" /> Certificado regular</a>
-                @endif
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
                 @endif
@@ -206,27 +202,5 @@
                 @endforeach
             </div>
         @endif
-    </x-sg.tarjeta>
-
-    <x-sg.tarjeta titulo="Seguimiento del alumno" subtitulo="Notas internas de Secretaría" icono="pencil" tono="violeta">
-        <form method="POST" action="{{ route('admin.alumnos.seguimiento.store', $alumno) }}" class="flex flex-col gap-3 mb-6">
-            @csrf
-            <textarea name="texto" required maxlength="1000" rows="3" placeholder="Agregar una nota de seguimiento..."
-                      class="sg-input w-full"></textarea>
-            <button type="submit" class="sg-btn sg-btn--azul self-end"><x-sg.icono nombre="plus" /> Agregar nota</button>
-        </form>
-        <ol class="space-y-4 sg-filas">
-            @forelse ($seguimientos as $nota)
-                <li class="flex gap-3">
-                    <span class="sg-avatar shrink-0">{{ mb_substr($nota->autor->nombre, 0, 1) }}{{ mb_substr($nota->autor->apellido, 0, 1) }}</span>
-                    <div class="flex-1 rounded-2xl rounded-tl-sm bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
-                        <p class="text-slate-700 whitespace-pre-line">{{ $nota->texto }}</p>
-                        <p class="text-xs text-slate-400 mt-1.5">{{ $nota->autor->nombre }} {{ $nota->autor->apellido }} · {{ \App\Support\FechaEsp::corta($nota->created_at) }} {{ $nota->created_at->format('H:i') }}</p>
-                    </div>
-                </li>
-            @empty
-                <x-sg.vacio icono="pencil">Todavía no hay notas de seguimiento cargadas.</x-sg.vacio>
-            @endforelse
-        </ol>
     </x-sg.tarjeta>
 @endsection
