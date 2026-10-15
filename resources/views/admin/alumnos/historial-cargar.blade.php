@@ -108,6 +108,7 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <h2 class="font-bold text-slate-700 px-6 pt-5 pb-3">Historial actual del alumno</h2>
+            <p class="text-xs text-slate-400 px-6 pb-3 -mt-2">Para corregir una materia ya cargada, editá los campos y tocá "Guardar" en su fila.</p>
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-slate-50 text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
@@ -116,25 +117,67 @@
                         <th class="px-6 py-3">Condición</th>
                         <th class="px-6 py-3">Nota</th>
                         <th class="px-6 py-3">Veces rendida</th>
+                        <th class="px-6 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($historial as $item)
+                        @php $formId = 'form-historial-' . $item->id_historial; @endphp
                         <tr>
-                            <td class="px-6 py-3.5 font-semibold text-slate-700">{{ $item->materia->nombre }}</td>
-                            <td class="px-6 py-3.5 text-slate-500">{{ $item->anioLectivo->anio }}</td>
-                            <td class="px-6 py-3.5 text-slate-500">{{ $item->condicion->nombre_condicion }}</td>
-                            <td class="px-6 py-3.5 text-slate-500">{{ $item->nota_cursada ?? '—' }}</td>
-                            <td class="px-6 py-3.5 text-slate-500">{{ $item->veces_rendida ?? '—' }}</td>
+                            <td class="px-6 py-3 font-semibold text-slate-700">
+                                {{ $item->materia->nombre }}
+                                @if ($item->materia->anioCursada)
+                                    <span class="font-normal text-slate-400">({{ $item->materia->anioCursada->nombre_anio }})</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-3">
+                                <select form="{{ $formId }}" name="id_anio_lectivo" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    @foreach ($aniosLectivos as $anio)
+                                        <option value="{{ $anio->id_anio_lectivo }}" @selected($item->id_anio_lectivo == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-6 py-3">
+                                <select form="{{ $formId }}" name="id_condicion" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    @foreach ($condiciones as $condicion)
+                                        <option value="{{ $condicion->id_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-6 py-3">
+                                <input form="{{ $formId }}" type="number" step="0.01" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}"
+                                       class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                            </td>
+                            <td class="px-6 py-3">
+                                <input form="{{ $formId }}" type="number" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}"
+                                       class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                            </td>
+                            <td class="px-6 py-3 text-right whitespace-nowrap">
+                                <button form="{{ $formId }}" type="submit" class="text-[#1E4D8C] hover:underline font-semibold text-xs">Guardar</button>
+                                <button form="form-eliminar-{{ $item->id_historial }}" type="submit" class="text-red-500 hover:underline font-semibold text-xs ml-2">Eliminar</button>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
+                            <td colspan="6" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+
+        @foreach ($historial as $item)
+            <form id="form-historial-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.update', $item) }}" class="hidden">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="busqueda_actual" value="{{ $busqueda }}">
+                <input type="hidden" name="fecha_ultima_modificacion" value="{{ $item->fecha_ultima_modificacion->format('Y-m-d') }}">
+            </form>
+            <form id="form-eliminar-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.destroy', $item) }}?busqueda={{ urlencode($busqueda) }}" class="hidden" onsubmit="return confirm('¿Eliminar esta materia del historial?');">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endforeach
     @endif
 
     <script>
