@@ -35,7 +35,7 @@ class HistorialPrevioController extends Controller
 
         $historial = $alumno
             ? HistorialAlumno::where('id_persona_alumno', $alumno->id_persona)
-                ->with(['materia.nombreMateria', 'materia.carrera', 'anioLectivo', 'condicion'])
+                ->with(['materia.nombreMateria', 'materia.carrera', 'materia.anioCursada', 'anioLectivo', 'condicion'])
                 ->orderByDesc('id_historial')
                 ->get()
             : collect();

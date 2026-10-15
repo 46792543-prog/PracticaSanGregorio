@@ -124,7 +124,12 @@
                     @forelse ($historial as $item)
                         @php $formId = 'form-historial-' . $item->id_historial; @endphp
                         <tr>
-                            <td class="px-6 py-3 font-semibold text-slate-700">{{ $item->materia->nombre }}</td>
+                            <td class="px-6 py-3 font-semibold text-slate-700">
+                                {{ $item->materia->nombre }}
+                                @if ($item->materia->anioCursada)
+                                    <span class="font-normal text-slate-400">({{ $item->materia->anioCursada->nombre_anio }})</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-3">
                                 <select form="{{ $formId }}" name="id_anio_lectivo" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
                                     @foreach ($aniosLectivos as $anio)
