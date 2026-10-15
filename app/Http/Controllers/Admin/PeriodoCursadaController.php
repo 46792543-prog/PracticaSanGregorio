@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AnioCursada;
 use App\Models\AnioLectivo;
 use App\Models\Carrera;
+use App\Models\Materia;
 use App\Models\PeriodoDictado;
 use App\Models\PeriodoInscripcionCursada;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,14 @@ class PeriodoCursadaController extends Controller
         $aniosCursada = AnioCursada::orderBy('id_anio_cursada')->get();
         $anioCursadaSeleccionada = $aniosCursada->firstWhere('id_anio_cursada', (int) $request->query('id_anio_cursada')) ?? $aniosCursada->first();
 
-        $periodos = PeriodoDictado::orderBy('id_periodo')->get()->map(function (PeriodoDictado $periodo) use ($anioLectivo, $carrera, $aniosCursada) {
+        $materias = $carrera
+            ? Materia::where('id_carrera', $carrera->id_carrera)
+                ->where('activa', true)
+                ->with('nombreMateria')
+                ->get()
+            : collect();
+
+        $periodos = PeriodoDictado::orderBy('id_periodo')->get()->map(function (PeriodoDictado $periodo) use ($anioLectivo, $carrera, $aniosCursada, $materias) {
             $periodo->habilitacionesPorAnio = $aniosCursada->map(fn (AnioCursada $anioCursada) => [
                 'anioCursada' => $anioCursada,
                 'habilitacion' => $anioLectivo && $carrera
@@ -36,6 +44,10 @@ class PeriodoCursadaController extends Controller
                         'id_anio_cursada' => $anioCursada->id_anio_cursada,
                     ])
                     : null,
+                'materias' => $materias->where('id_periodo', $periodo->id_periodo)
+                    ->where('id_anio_cursada', $anioCursada->id_anio_cursada)
+                    ->sortBy('numero_orden')
+                    ->values(),
             ]);
 
             return $periodo;

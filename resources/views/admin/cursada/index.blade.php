@@ -59,6 +59,23 @@
                                     {{ $abierto ? 'Abierto' : 'Cerrado' }}
                                 </span>
                             </div>
+
+                            <div class="mb-5">
+                                <p class="sg-eyebrow mb-1.5">Materias de {{ $item['anioCursada']->nombre_anio }} · {{ $periodo->nombre_periodo }}</p>
+                                @if ($item['materias']->isEmpty())
+                                    <p class="text-xs text-slate-400">No hay materias cargadas para este año y período.</p>
+                                @else
+                                    <ul class="text-sm text-slate-600 space-y-1 max-h-40 overflow-y-auto pr-1">
+                                        @foreach ($item['materias'] as $materia)
+                                            <li class="flex items-center gap-2">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0"></span>
+                                                {{ $materia->nombre }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+
                             <form method="POST" action="{{ route('admin.cursada.toggle', $periodo) }}"
                                   onsubmit="return confirm({{ \Illuminate\Support\Js::from($abierto
                                         ? '¿Cerrar la inscripción a cursada de ' . $periodo->nombre_periodo . ' (' . $item['anioCursada']->nombre_anio . ') para ' . $carrera->nombre_carrera . '?'
