@@ -19,12 +19,12 @@
             <span class="absolute -right-10 -top-16 h-48 w-48 rounded-full border-[14px] border-[#FFC107]/25"></span>
             <span class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 18px 18px;"></span>
         </div>
-        <div class="relative px-6 pb-6 -mt-10 flex items-end justify-between flex-wrap gap-5">
-            <div class="flex items-end gap-4">
-                <span class="sg-avatar sg-avatar--grande sg-avatar--marca h-20 w-20 text-2xl ring-4 ring-white shadow-lg">
+        <div class="relative px-6 pb-6 flex items-end justify-between flex-wrap gap-5">
+            <div class="flex items-end gap-4 min-w-0">
+                <span class="sg-avatar sg-avatar--grande sg-avatar--marca h-20 w-20 shrink-0 -mt-10 text-2xl ring-4 ring-white shadow-lg">
                     {{ mb_substr($alumno->nombre, 0, 1) }}{{ mb_substr($alumno->apellido, 0, 1) }}
                 </span>
-                <div class="pb-1">
+                <div class="pt-3 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <h1 class="font-display font-extrabold text-xl text-slate-900">{{ $alumno->apellido }}, {{ $alumno->nombre }}</h1>
                         @if ($estadoInscNombre === 'Activo')

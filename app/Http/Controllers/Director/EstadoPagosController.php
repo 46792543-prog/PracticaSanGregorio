@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Director;
 
-use App\Exports\EstadoPagosExport;
 use App\Http\Controllers\Controller;
 use App\Models\Carrera;
 use App\Models\CuotaAlumno;
@@ -10,7 +9,6 @@ use App\Models\Persona;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Maatwebsite\Excel\Facades\Excel;
 
 class EstadoPagosController extends Controller
 {
@@ -45,16 +43,6 @@ class EstadoPagosController extends Controller
         ]);
     }
 
-    public function excel(Request $request)
-    {
-        $alumnos = $this->consultaAlumnos($request)
-            ->orderBy('apellido')
-            ->orderBy('nombre')
-            ->get();
-
-        return Excel::download(new EstadoPagosExport($alumnos), 'estado-de-pagos-' . now()->format('Y-m-d') . '.xlsx');
-    }
-
     private function consultaAlumnos(Request $request): Builder
     {
         $busqueda = trim((string) $request->query('q'));
@@ -67,7 +55,10 @@ class EstadoPagosController extends Controller
                 ->orWhere('apellido', 'like', "%{$busqueda}%")
                 ->orWhere('dni', 'like', "%{$busqueda}%")))
             ->when($carreraId, fn ($q) => $q->whereHas('inscripcionesCarrera', fn ($w) => $w->where('id_carrera', $carreraId)))
-            ->with(['inscripcionesCarrera' => fn ($q) => $q->latest('fecha_inscripcion')->with('carrera')])
+            ->with([
+                'inscripcionesCarrera' => fn ($q) => $q->latest('fecha_inscripcion')->with('carrera'),
+                'cuotas' => fn ($q) => $q->with('mes', 'anioLectivo', 'movimientoCaja.medioPago')->orderBy('id_anio_lectivo')->orderBy('id_mes'),
+            ])
             ->withCount([
                 'cuotas as cuotas_pagadas_count' => fn ($q) => $q->where('pagado', true),
                 'cuotas as cuotas_pendientes_count' => fn ($q) => $q->where('pagado', false),

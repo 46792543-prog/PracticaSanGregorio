@@ -152,7 +152,7 @@
     }
 
     @keyframes sg-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .sg-aparecer { animation: sg-aparecer .35s ease-out both; }
+    .sg-aparecer { animation: sg-aparecer .35s ease-out backwards; }
     @media (prefers-reduced-motion: reduce) {
         .sg-aparecer, .sg-sidebar { animation: none !important; transition: none !important; }
     }

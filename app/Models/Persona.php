@@ -126,4 +126,26 @@ class Persona extends Model
             ->reject(fn ($item) => $item['pagado'])
             ->pluck('mes');
     }
+
+    /**
+     * Meses que debe del año lectivo activo y que ni siquiera tienen la cuota
+     * generada (no se pueden cobrar hasta generarla).
+     */
+    public function mesesSinCuotaGenerada(): \Illuminate\Support\Collection
+    {
+        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+
+        if (! $anioLectivoActivo) {
+            return collect();
+        }
+
+        $mesesConCuota = $this->cuotas()
+            ->where('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo)
+            ->pluck('id_mes');
+
+        return $this->mesesAdeudados()
+            ->reject(fn (Mes $mes) => $mesesConCuota->contains($mes->id_mes))
+            ->values()
+            ->each(fn (Mes $mes) => $mes->setAttribute('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo));
+    }
 }
