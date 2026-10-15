@@ -29,7 +29,7 @@
                 <select name="tabla" onchange="this.form.submit()" class="sg-input w-auto min-w-[180px]">
                     <option value="">Todas las tablas</option>
                     @foreach ($tablas as $tabla)
-                        <option value="{{ $tabla }}" @selected($filtros['tabla'] === $tabla)>{{ $tabla }}</option>
+                        <option value="{{ $tabla }}" @selected($filtros['tabla'] === $tabla)>{{ \App\Support\AuditoriaFormato::tabla($tabla) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -66,24 +66,25 @@
                     <span class="sg-chip sg-chip--{{ $tono }} relative z-10 ring-4 ring-white"><x-sg.icono :nombre="$icono" class="h-[18px] w-[18px]" /></span>
                     <div class="flex-1 min-w-0 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-sm transition-all px-4 py-3">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
-                            <span class="sg-badge sg-badge--{{ $tono }}">{{ $etiquetasAccion[$evento->accion] ?? $evento->accion }} · {{ $evento->tabla }}</span>
+                            <span class="sg-badge sg-badge--{{ $tono }}">{{ $etiquetasAccion[$evento->accion] ?? $evento->accion }} · {{ \App\Support\AuditoriaFormato::tabla($evento->tabla) }}</span>
                             <span class="text-xs text-slate-400 flex items-center gap-1.5">
                                 <x-sg.icono nombre="clock" class="h-3.5 w-3.5" />
                                 {{ $evento->created_at->format('d/m/Y') }} · {{ $evento->created_at->format('H:i') }}
                             </span>
                         </div>
-                        <p class="text-sm text-slate-700 mt-2">{{ $evento->descripcion }}</p>
-                        @if (! empty($evento->cambios))
+                        <p class="text-sm text-slate-700 mt-2">{{ \App\Support\AuditoriaFormato::descripcion($evento) }}</p>
+                        @php $detalle = \App\Support\AuditoriaFormato::cambios($evento); @endphp
+                        @if (! empty($detalle))
                             <details class="mt-1.5">
                                 <summary class="text-xs text-[#0B3D91] cursor-pointer select-none font-semibold">Ver detalle</summary>
                                 <ul class="mt-1.5 space-y-0.5 text-xs text-slate-500">
-                                    @foreach ($evento->cambios as $campo => $valor)
+                                    @foreach ($detalle as $fila)
                                         <li>
-                                            <span class="font-semibold text-slate-600">{{ $campo }}:</span>
-                                            @if (is_array($valor) && array_key_exists('antes', $valor))
-                                                {{ $valor['antes'] ?? '—' }} → {{ $valor['despues'] ?? '—' }}
+                                            <span class="font-semibold text-slate-600">{{ $fila['campo'] }}:</span>
+                                            @if ($fila['valor'] === null)
+                                                {{ $fila['antes'] }} → <span class="text-slate-700 font-medium">{{ $fila['despues'] }}</span>
                                             @else
-                                                {{ is_scalar($valor) ? $valor : json_encode($valor) }}
+                                                {{ $fila['valor'] }}
                                             @endif
                                         </li>
                                     @endforeach

@@ -13,6 +13,7 @@ class PeriodoInscripcionCursada extends Model
     protected $fillable = [
         'id_anio_lectivo',
         'id_periodo',
+        'id_carrera',
         'abierto',
     ];
 
@@ -23,6 +24,11 @@ class PeriodoInscripcionCursada extends Model
     public function anioLectivo(): BelongsTo
     {
         return $this->belongsTo(AnioLectivo::class, 'id_anio_lectivo', 'id_anio_lectivo');
+    }
+
+    public function carrera(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
 
     public function periodo(): BelongsTo

@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\AlertaController as AdminAlertaController;
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\HistorialPrevioController;
 use App\Http\Controllers\Admin\CarreraController;
-use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
 use App\Http\Controllers\Admin\FichaInscripcionController as AdminFichaInscripcionController;
 use App\Http\Controllers\Admin\HorarioCarreraController;
@@ -124,9 +123,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
     Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
-    Route::post('/alumnos/{persona}/seguimiento', [AlumnoController::class, 'storeSeguimiento'])->name('alumnos.seguimiento.store');
-    Route::get('/alumnos/{persona}/certificado-regular', [CertificadoController::class, 'regular'])->name('alumnos.certificado.regular');
-    Route::get('/alumnos/{persona}/boletin', [CertificadoController::class, 'boletin'])->name('alumnos.boletin');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
@@ -223,7 +219,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
-    Route::get('/pagos/excel', [EstadoPagosController::class, 'excel'])->name('pagos.excel');
 
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
@@ -247,9 +242,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
     Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
-    Route::put('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'update'])->name('pagos-docentes.update');
-    Route::delete('/pagos-docentes/{pagoDocente}', [PagoDocenteController::class, 'destroy'])->name('pagos-docentes.destroy');
-    Route::put('/pagos-docentes/{pagoDocente}/estado', [PagoDocenteController::class, 'actualizarEstado'])->name('pagos-docentes.estado');
     Route::post('/pagos-docentes/metodos-pago', [PagoDocenteController::class, 'storeMetodoPago'])->name('pagos-docentes.metodos-pago.store');
     Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 

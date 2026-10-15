@@ -9,12 +9,14 @@ use App\Models\CuotaAlumno;
 use App\Models\MedioPago;
 use App\Models\Mes;
 use App\Models\MovimientoCaja;
+use App\Models\Persona;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -65,6 +67,7 @@ class CuotaController extends Controller
             'resultados' => $resultados,
             'alumnoSeleccionado' => $alumnoSeleccionado,
             'estadoMensual' => $alumnoSeleccionado ? $alumnoSeleccionado->persona->estadoMensualCuotas() : collect(),
+            'primerMesSinGenerar' => $alumnoSeleccionado ? $alumnoSeleccionado->persona->mesesSinCuotaGenerada()->first() : null,
             'historial' => $historial,
             'filtroHistorialAlumno' => $request->query('h_alumno'),
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
@@ -183,6 +186,10 @@ class CuotaController extends Controller
             return back()->withErrors(['cuotas' => 'Seleccioná al menos una cuota para registrar el cobro.']);
         }
 
+        if ($error = $this->validarOrdenDeCobro(Persona::findOrFail($data['persona_id']), $seleccionadas->keys()->map(fn ($id) => (int) $id))) {
+            return back()->withErrors(['cuotas' => $error]);
+        }
+
         $totalCobrado = 0;
         $cantidad = 0;
 
@@ -236,5 +243,46 @@ class CuotaController extends Controller
 
         return redirect()->route('director.cuotas.index')
             ->with('status', "Se registró el cobro de {$cantidad} cuota(s) por $" . number_format($totalCobrado, 0, ',', '.') . ' y se asentó en el Libro de Caja.');
+    }
+
+    /**
+     * Las cuotas se cobran en orden: no se puede cobrar un mes si queda una
+     * cuota anterior sin pagar (que no se esté cobrando junto con esta), ni
+     * si hay un mes anterior adeudado al que todavía no se le generó la cuota.
+     */
+    private function validarOrdenDeCobro(Persona $alumno, Collection $idsSeleccionados): ?string
+    {
+        $pendientes = CuotaAlumno::where('cuota_alumno.id_persona_alumno', $alumno->id_persona)
+            ->where('cuota_alumno.pagado', false)
+            ->join('anio_lectivo', 'anio_lectivo.id_anio_lectivo', '=', 'cuota_alumno.id_anio_lectivo')
+            ->orderBy('anio_lectivo.anio')
+            ->orderBy('cuota_alumno.id_mes')
+            ->select('cuota_alumno.*', 'anio_lectivo.anio')
+            ->with('mes')
+            ->get();
+
+        $ultimaSeleccionada = $pendientes->keys()->filter(fn ($i) => $idsSeleccionados->contains($pendientes[$i]->id_cuota))->max();
+
+        if ($ultimaSeleccionada === null) {
+            return null;
+        }
+
+        $salteada = $pendientes->take($ultimaSeleccionada)->first(fn ($c) => ! $idsSeleccionados->contains($c->id_cuota));
+
+        if ($salteada) {
+            return "No se pueden saltear cuotas: primero hay que cobrar la de {$salteada->mes->nombre_mes} {$salteada->anio}. Seleccionala junto con las siguientes.";
+        }
+
+        $sinGenerar = $alumno->mesesSinCuotaGenerada()->first();
+
+        if ($sinGenerar) {
+            $posterior = $pendientes->take($ultimaSeleccionada + 1)->first(fn ($c) => $c->id_anio_lectivo == $sinGenerar->id_anio_lectivo && $c->id_mes > $sinGenerar->id_mes);
+
+            if ($posterior) {
+                return "El alumno debe {$sinGenerar->nombre_mes}, pero esa cuota todavía no está generada. Generala y cobrala antes de cobrar {$posterior->mes->nombre_mes}.";
+            }
+        }
+
+        return null;
     }
 }

@@ -24,8 +24,9 @@ class CursadaController extends Controller
             ->latest('id_inscripcion_carrera')
             ->first();
 
-        $periodosAbiertos = $anioLectivo
+        $periodosAbiertos = $anioLectivo && $inscripcionCarrera
             ? PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
+                ->where('id_carrera', $inscripcionCarrera->id_carrera)
                 ->where('abierto', true)
                 ->pluck('id_periodo')
             : collect();
@@ -34,7 +35,7 @@ class CursadaController extends Controller
 
         if ($inscripcionCarrera && $periodosAbiertos->isNotEmpty()) {
             // Un alumno solo ve las materias de SU año del plan, y solo las
-            // de los períodos que secretaría haya abierto (ver Admin\PeriodoCursadaController).
+            // de los períodos que secretaría haya abierto para su carrera (ver Admin\PeriodoCursadaController).
             $materias = Materia::with('nombreMateria', 'periodo', 'requisitos')
                 ->where('id_carrera', $inscripcionCarrera->id_carrera)
                 ->where('id_anio_cursada', $inscripcionCarrera->id_anio_cursada)
@@ -78,6 +79,7 @@ class CursadaController extends Controller
 
         $periodoAbierto = PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
             ->where('id_periodo', $materia->id_periodo)
+            ->where('id_carrera', $inscripcionCarrera->id_carrera)
             ->where('abierto', true)
             ->exists();
 

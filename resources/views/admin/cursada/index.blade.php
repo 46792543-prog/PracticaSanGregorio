@@ -3,16 +3,32 @@
 @section('titulo', 'Inscripción a cursada')
 
 @section('contenido')
-    <x-sg.encabezado titulo="Inscripción a cursada" subtitulo="Habilitá los períodos en los que los alumnos pueden inscribirse a cursar" eyebrow="Gestión académica" icono="cap" />
+    <x-sg.encabezado titulo="Inscripción a cursada" subtitulo="Habilitá, por carrera, los períodos en los que los alumnos pueden inscribirse a cursar" eyebrow="Gestión académica" icono="cap" />
 
     @if (! $anioLectivo)
         <x-sg.tarjeta>
             <x-sg.vacio icono="calendar" titulo="Sin año lectivo activo">No hay ningún año lectivo marcado como "Activo". Activá uno para poder habilitar la inscripción a cursada.</x-sg.vacio>
         </x-sg.tarjeta>
+    @elseif (! $carrera)
+        <x-sg.tarjeta>
+            <x-sg.vacio icono="cap" titulo="Sin carreras">Todavía no hay carreras cargadas.</x-sg.vacio>
+        </x-sg.tarjeta>
     @else
+        <form method="GET" class="sg-card sg-revelar flex flex-wrap items-end gap-4 px-6 py-5 mb-6">
+            <div class="flex-1 min-w-[260px]">
+                <label class="sg-label" for="id_carrera">Carrera</label>
+                <select name="id_carrera" id="id_carrera" onchange="this.form.submit()" class="sg-input w-full">
+                    @foreach ($carreras as $opcion)
+                        <option value="{{ $opcion->id_carrera }}" @selected($opcion->id_carrera === $carrera->id_carrera)>{{ $opcion->nombre_carrera }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <noscript><button class="sg-btn sg-btn--azul">Ver</button></noscript>
+        </form>
+
         <div class="sg-aviso sg-aviso--info mb-6 sg-revelar">
             <x-sg.icono nombre="info" class="h-5 w-5 shrink-0" />
-            <span>Habilitá los períodos en los que los alumnos van a poder inscribirse a cursar materias del año lectivo <strong>{{ $anioLectivo->anio }}</strong>. Se aplica a todas las carreras a la vez.</span>
+            <span>Habilitá los períodos en los que los alumnos de <strong>{{ $carrera->nombre_carrera }}</strong> van a poder inscribirse a cursar materias del año lectivo <strong>{{ $anioLectivo->anio }}</strong>. Las demás carreras no se modifican.</span>
         </div>
 
         <div class="grid sm:grid-cols-3 gap-5" data-sg-escalonar>
@@ -31,9 +47,10 @@
                     <p class="sg-eyebrow mb-1">Período</p>
                     <p class="font-display font-bold text-lg text-slate-800 mb-5">{{ $periodo->nombre_periodo }}</p>
                     <form method="POST" action="{{ route('admin.cursada.toggle', $periodo) }}"
-                          onsubmit="return confirm('{{ $abierto ? '¿Cerrar la inscripción a cursada de este período?' : '¿Abrir la inscripción a cursada de este período para todas las carreras?' }}');">
+                          onsubmit="return confirm({{ \Illuminate\Support\Js::from($abierto ? '¿Cerrar la inscripción a cursada de este período para ' . $carrera->nombre_carrera . '?' : '¿Abrir la inscripción a cursada de este período para ' . $carrera->nombre_carrera . '?') }});">
                         @csrf @method('PUT')
                         <input type="hidden" name="id_anio_lectivo" value="{{ $anioLectivo->id_anio_lectivo }}">
+                        <input type="hidden" name="id_carrera" value="{{ $carrera->id_carrera }}">
                         <input type="hidden" name="abierto" value="{{ $abierto ? '0' : '1' }}">
                         <button type="submit" @class(['sg-btn w-full', 'sg-btn--peligro' => $abierto, 'sg-btn--azul' => ! $abierto])>
                             <x-sg.icono :nombre="$abierto ? 'lock' : 'bolt'" />

@@ -67,49 +67,6 @@ class PagoDocenteController extends Controller
         return back()->with('status', 'Se registró el pago al docente correctamente.');
     }
 
-    public function update(Request $request, PagoDocente $pagoDocente): RedirectResponse
-    {
-        $data = $request->validate([
-            'id_profesor' => ['required', 'exists:profesor,id_profesor'],
-            'periodo' => ['required', 'date_format:Y-m'],
-            'fecha_pago' => ['required', 'date'],
-            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999'],
-            'id_metodo_pago_docente' => ['required', 'exists:metodo_pago_docente,id_metodo_pago_docente'],
-            'id_estado_pago_docente' => ['required', 'exists:estado_pago_docente,id_estado_pago_docente'],
-            'observaciones' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $pagoDocente->update([
-            'id_profesor' => $data['id_profesor'],
-            'periodo' => $data['periodo'] . '-01',
-            'fecha_pago' => $data['fecha_pago'],
-            'monto' => round((float) $data['monto'], 2),
-            'id_metodo_pago_docente' => $data['id_metodo_pago_docente'],
-            'id_estado_pago_docente' => $data['id_estado_pago_docente'],
-            'observaciones' => $data['observaciones'] ?: null,
-        ]);
-
-        return back()->with('status', 'Se actualizó el pago correctamente.');
-    }
-
-    public function destroy(PagoDocente $pagoDocente): RedirectResponse
-    {
-        $pagoDocente->delete();
-
-        return back()->with('status', 'Se eliminó el pago correctamente.');
-    }
-
-    public function actualizarEstado(Request $request, PagoDocente $pagoDocente): RedirectResponse
-    {
-        $data = $request->validate([
-            'id_estado_pago_docente' => ['required', 'exists:estado_pago_docente,id_estado_pago_docente'],
-        ]);
-
-        $pagoDocente->update(['id_estado_pago_docente' => $data['id_estado_pago_docente']]);
-
-        return back()->with('status', 'Se actualizó el estado del pago correctamente.');
-    }
-
     public function storeMetodoPago(Request $request): RedirectResponse
     {
         $data = $request->validate([
