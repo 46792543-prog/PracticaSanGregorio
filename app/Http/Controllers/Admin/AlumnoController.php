@@ -370,6 +370,16 @@ class AlumnoController extends Controller
             'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
         ]);
 
+        $condicionNombre = CondicionAlumno::find($data['id_condicion'])?->nombre_condicion;
+
+        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
+            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.']);
+        }
+
+        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
+            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Libre con una nota de aprobación (4 o más).']);
+        }
+
         $historial->update([
             'id_condicion' => $data['id_condicion'],
             'nota_cursada' => $data['nota_cursada'] ?? null,
