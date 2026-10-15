@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\AlertaController as AdminAlertaController;
 use App\Http\Controllers\Admin\AlumnoController;
 use App\Http\Controllers\Admin\HistorialPrevioController;
 use App\Http\Controllers\Admin\CarreraController;
-use App\Http\Controllers\Admin\CertificadoController;
 use App\Http\Controllers\Admin\DocumentacionController as AdminDocumentacionController;
 use App\Http\Controllers\Admin\FichaInscripcionController as AdminFichaInscripcionController;
 use App\Http\Controllers\Admin\HorarioCarreraController;
@@ -122,9 +121,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
     Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
-    Route::post('/alumnos/{persona}/seguimiento', [AlumnoController::class, 'storeSeguimiento'])->name('alumnos.seguimiento.store');
-    Route::get('/alumnos/{persona}/certificado-regular', [CertificadoController::class, 'regular'])->name('alumnos.certificado.regular');
-    Route::get('/alumnos/{persona}/boletin', [CertificadoController::class, 'boletin'])->name('alumnos.boletin');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');

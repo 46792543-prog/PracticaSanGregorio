@@ -38,10 +38,6 @@
             </div>
             <div class="flex gap-2 flex-wrap">
                 <a href="{{ route('admin.documentacion.show', $alumno) }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="folder" /> Documentación</a>
-                <a href="{{ route('admin.alumnos.boletin', $alumno) }}" target="_blank" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="clipboard" /> Boletín</a>
-                @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
-                    <a href="{{ route('admin.alumnos.certificado.regular', $alumno) }}" target="_blank" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="document-check" /> Certificado regular</a>
-                @endif
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
                 @endif
@@ -206,27 +202,5 @@
                 @endforeach
             </div>
         @endif
-    </x-sg.tarjeta>
-
-    <x-sg.tarjeta titulo="Seguimiento del alumno" subtitulo="Notas internas de Secretaría" icono="pencil" tono="violeta">
-        <form method="POST" action="{{ route('admin.alumnos.seguimiento.store', $alumno) }}" class="flex flex-col gap-3 mb-6">
-            @csrf
-            <textarea name="texto" required maxlength="1000" rows="3" placeholder="Agregar una nota de seguimiento..."
-                      class="sg-input w-full"></textarea>
-            <button type="submit" class="sg-btn sg-btn--azul self-end"><x-sg.icono nombre="plus" /> Agregar nota</button>
-        </form>
-        <ol class="space-y-4 sg-filas">
-            @forelse ($seguimientos as $nota)
-                <li class="flex gap-3">
-                    <span class="sg-avatar shrink-0">{{ mb_substr($nota->autor->nombre, 0, 1) }}{{ mb_substr($nota->autor->apellido, 0, 1) }}</span>
-                    <div class="flex-1 rounded-2xl rounded-tl-sm bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
-                        <p class="text-slate-700 whitespace-pre-line">{{ $nota->texto }}</p>
-                        <p class="text-xs text-slate-400 mt-1.5">{{ $nota->autor->nombre }} {{ $nota->autor->apellido }} · {{ \App\Support\FechaEsp::corta($nota->created_at) }} {{ $nota->created_at->format('H:i') }}</p>
-                    </div>
-                </li>
-            @empty
-                <x-sg.vacio icono="pencil">Todavía no hay notas de seguimiento cargadas.</x-sg.vacio>
-            @endforelse
-        </ol>
     </x-sg.tarjeta>
 @endsection
