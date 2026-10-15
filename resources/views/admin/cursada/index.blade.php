@@ -15,6 +15,7 @@
         </x-sg.tarjeta>
     @else
         <form method="GET" class="sg-card sg-revelar flex flex-wrap items-end gap-4 px-6 py-5 mb-6">
+            <input type="hidden" name="id_anio_cursada" value="{{ $anioCursadaSeleccionada->id_anio_cursada }}">
             <div class="flex-1 min-w-[260px]">
                 <label class="sg-label" for="id_carrera">Carrera</label>
                 <select name="id_carrera" id="id_carrera" onchange="this.form.submit()" class="sg-input w-full">
@@ -41,14 +42,14 @@
                         </div>
                         <select class="sg-input sg-input--chico w-auto" data-cursada-selector-anio>
                             @foreach ($periodo->habilitacionesPorAnio as $item)
-                                <option value="{{ $item['anioCursada']->id_anio_cursada }}">{{ $item['anioCursada']->nombre_anio }}</option>
+                                <option value="{{ $item['anioCursada']->id_anio_cursada }}" @selected($item['anioCursada']->id_anio_cursada === $anioCursadaSeleccionada->id_anio_cursada)>{{ $item['anioCursada']->nombre_anio }}</option>
                             @endforeach
                         </select>
                     </div>
 
                     @foreach ($periodo->habilitacionesPorAnio as $item)
                         @php $abierto = $item['habilitacion']->abierto ?? false; @endphp
-                        <div data-cursada-panel-anio="{{ $item['anioCursada']->id_anio_cursada }}" @class(['hidden' => ! $loop->first])>
+                        <div data-cursada-panel-anio="{{ $item['anioCursada']->id_anio_cursada }}" @class(['hidden' => $item['anioCursada']->id_anio_cursada !== $anioCursadaSeleccionada->id_anio_cursada])>
                             <span @class(['absolute inset-x-0 top-0 h-1', 'bg-gradient-to-r from-emerald-400 to-emerald-600' => $abierto, 'bg-slate-200' => ! $abierto])></span>
                             <div class="flex items-center justify-between mb-5">
                                 <span @class(['sg-chip sg-chip--grande', 'sg-chip--verde' => $abierto, 'sg-chip--gris' => ! $abierto])>
@@ -79,12 +80,15 @@
         </div>
 
         <script>
+            const inputAnioCarreraForm = document.querySelector('input[name="id_anio_cursada"]');
             document.querySelectorAll('[data-cursada-tarjeta]').forEach((tarjeta) => {
                 const selector = tarjeta.querySelector('[data-cursada-selector-anio]');
                 selector?.addEventListener('change', () => {
                     tarjeta.querySelectorAll('[data-cursada-panel-anio]').forEach((panel) => {
                         panel.classList.toggle('hidden', panel.dataset.cursadaPanelAnio !== selector.value);
                     });
+                    // Para que, si después cambiás de carrera, se mantenga este mismo año seleccionado.
+                    if (inputAnioCarreraForm) inputAnioCarreraForm.value = selector.value;
                 });
             });
         </script>

@@ -23,6 +23,7 @@ class PeriodoCursadaController extends Controller
         $carreras = Carrera::orderBy('nombre_carrera')->get();
         $carrera = $carreras->firstWhere('id_carrera', (int) $request->query('id_carrera')) ?? $carreras->first();
         $aniosCursada = AnioCursada::orderBy('id_anio_cursada')->get();
+        $anioCursadaSeleccionada = $aniosCursada->firstWhere('id_anio_cursada', (int) $request->query('id_anio_cursada')) ?? $aniosCursada->first();
 
         $periodos = PeriodoDictado::orderBy('id_periodo')->get()->map(function (PeriodoDictado $periodo) use ($anioLectivo, $carrera, $aniosCursada) {
             $periodo->habilitacionesPorAnio = $aniosCursada->map(fn (AnioCursada $anioCursada) => [
@@ -45,6 +46,7 @@ class PeriodoCursadaController extends Controller
             'carreras' => $carreras,
             'carrera' => $carrera,
             'periodos' => $periodos,
+            'anioCursadaSeleccionada' => $anioCursadaSeleccionada,
         ]);
     }
 
@@ -70,7 +72,7 @@ class PeriodoCursadaController extends Controller
         $carrera = Carrera::find($data['id_carrera'])->nombre_carrera;
         $anioCursada = AnioCursada::find($data['id_anio_cursada'])->nombre_anio;
 
-        return redirect()->route('admin.cursada.index', ['id_carrera' => $data['id_carrera']])->with('status', $data['abierto']
+        return redirect()->route('admin.cursada.index', ['id_carrera' => $data['id_carrera'], 'id_anio_cursada' => $data['id_anio_cursada']])->with('status', $data['abierto']
             ? "Inscripción a cursada abierta para {$periodo->nombre_periodo} ({$anioCursada}) en {$carrera}."
             : "Inscripción a cursada cerrada para {$periodo->nombre_periodo} ({$anioCursada}) en {$carrera}.");
     }
