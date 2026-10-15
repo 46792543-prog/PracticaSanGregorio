@@ -11,10 +11,13 @@ use App\Models\PeriodoDictado;
 use App\Models\PeriodoInscripcionCursada;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
 class PeriodoCursadaController extends Controller
 {
+    private const SESSION_KEY = 'cursada_anio_preferido';
+
     public function index(Request $request): View
     {
         $anioLectivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))
@@ -33,7 +36,17 @@ class PeriodoCursadaController extends Controller
                 ->get()
             : collect();
 
-        $periodos = PeriodoDictado::orderBy('id_periodo')->get()->map(function (PeriodoDictado $periodo) use ($anioLectivo, $carrera, $aniosCursada, $materias) {
+        $preferencias = Session::get(self::SESSION_KEY, []);
+
+        $periodos = PeriodoDictado::orderBy('id_periodo')->get()->map(function (PeriodoDictado $periodo) use ($anioLectivo, $carrera, $aniosCursada, $materias, $anioCursadaSeleccionada, $preferencias) {
+            $idPreferido = $preferencias[$periodo->id_periodo] ?? null;
+
+            // Cada tarjeta recuerda el año que se le guardó explícitamente (botón
+            // "Guardar"); si todavía no se guardó ninguno, usa el que vino por la
+            // URL (ej. después de abrir/cerrar un período).
+            $periodo->anioCursadaPorDefecto = ($idPreferido ? $aniosCursada->firstWhere('id_anio_cursada', $idPreferido) : null)
+                ?? $anioCursadaSeleccionada;
+
             $periodo->habilitacionesPorAnio = $aniosCursada->map(fn (AnioCursada $anioCursada) => [
                 'anioCursada' => $anioCursada,
                 'habilitacion' => $anioLectivo && $carrera
@@ -87,5 +100,22 @@ class PeriodoCursadaController extends Controller
         return redirect()->route('admin.cursada.index', ['id_carrera' => $data['id_carrera'], 'id_anio_cursada' => $data['id_anio_cursada']])->with('status', $data['abierto']
             ? "Inscripción a cursada abierta para {$periodo->nombre_periodo} ({$anioCursada}) en {$carrera}."
             : "Inscripción a cursada cerrada para {$periodo->nombre_periodo} ({$anioCursada}) en {$carrera}.");
+    }
+
+    public function guardarPreferenciaAnio(Request $request, PeriodoDictado $periodo): RedirectResponse
+    {
+        $data = $request->validate([
+            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
+            'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
+        ]);
+
+        $preferencias = Session::get(self::SESSION_KEY, []);
+        $preferencias[$periodo->id_periodo] = (int) $data['id_anio_cursada'];
+        Session::put(self::SESSION_KEY, $preferencias);
+
+        $anioCursada = AnioCursada::find($data['id_anio_cursada'])->nombre_anio;
+
+        return redirect()->route('admin.cursada.index', ['id_carrera' => $data['id_carrera'], 'id_anio_cursada' => $data['id_anio_cursada']])
+            ->with('status', "La tarjeta de {$periodo->nombre_periodo} va a mostrar {$anioCursada} de ahora en más.");
     }
 }

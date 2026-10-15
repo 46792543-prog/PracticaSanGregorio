@@ -166,6 +166,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
     Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
+    Route::put('/cursada/{periodo}/preferencia-anio', [PeriodoCursadaController::class, 'guardarPreferenciaAnio'])->name('cursada.preferencia-anio');
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');

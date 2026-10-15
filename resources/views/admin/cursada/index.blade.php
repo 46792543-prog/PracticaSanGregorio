@@ -42,14 +42,14 @@
                         </div>
                         <select class="sg-input sg-input--chico w-auto" data-cursada-selector-anio>
                             @foreach ($periodo->habilitacionesPorAnio as $item)
-                                <option value="{{ $item['anioCursada']->id_anio_cursada }}" @selected($item['anioCursada']->id_anio_cursada === $anioCursadaSeleccionada->id_anio_cursada)>{{ $item['anioCursada']->nombre_anio }}</option>
+                                <option value="{{ $item['anioCursada']->id_anio_cursada }}" @selected($item['anioCursada']->id_anio_cursada === $periodo->anioCursadaPorDefecto->id_anio_cursada)>{{ $item['anioCursada']->nombre_anio }}</option>
                             @endforeach
                         </select>
                     </div>
 
                     @foreach ($periodo->habilitacionesPorAnio as $item)
                         @php $abierto = $item['habilitacion']->abierto ?? false; @endphp
-                        <div data-cursada-panel-anio="{{ $item['anioCursada']->id_anio_cursada }}" @class(['hidden' => $item['anioCursada']->id_anio_cursada !== $anioCursadaSeleccionada->id_anio_cursada])>
+                        <div data-cursada-panel-anio="{{ $item['anioCursada']->id_anio_cursada }}" @class(['hidden' => $item['anioCursada']->id_anio_cursada !== $periodo->anioCursadaPorDefecto->id_anio_cursada])>
                             <span @class(['absolute inset-x-0 top-0 h-1', 'bg-gradient-to-r from-emerald-400 to-emerald-600' => $abierto, 'bg-slate-200' => ! $abierto])></span>
                             <div class="flex items-center justify-between mb-5">
                                 <span @class(['sg-chip sg-chip--grande', 'sg-chip--verde' => $abierto, 'sg-chip--gris' => ! $abierto])>
@@ -88,6 +88,16 @@
                                 <button type="submit" @class(['sg-btn w-full', 'sg-btn--peligro' => $abierto, 'sg-btn--azul' => ! $abierto])>
                                     <x-sg.icono :nombre="$abierto ? 'lock' : 'bolt'" />
                                     {{ $abierto ? 'Cerrar inscripción' : 'Abrir inscripción' }}
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{{ route('admin.cursada.preferencia-anio', $periodo) }}" class="mt-2">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="id_carrera" value="{{ $carrera->id_carrera }}">
+                                <input type="hidden" name="id_anio_cursada" value="{{ $item['anioCursada']->id_anio_cursada }}">
+                                <button type="submit" class="sg-btn sg-btn--borde w-full">
+                                    <x-sg.icono nombre="check" />
+                                    Guardar {{ $item['anioCursada']->nombre_anio }} como vista de esta tarjeta
                                 </button>
                             </form>
                         </div>
