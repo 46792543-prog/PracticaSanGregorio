@@ -14,6 +14,7 @@ class PeriodoInscripcionCursada extends Model
         'id_anio_lectivo',
         'id_periodo',
         'id_carrera',
+        'id_anio_cursada',
         'abierto',
     ];
 
@@ -29,6 +30,11 @@ class PeriodoInscripcionCursada extends Model
     public function carrera(): BelongsTo
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function anioCursada(): BelongsTo
+    {
+        return $this->belongsTo(AnioCursada::class, 'id_anio_cursada', 'id_anio_cursada');
     }
 
     public function periodo(): BelongsTo
