@@ -3,7 +3,7 @@
 @section('titulo', 'Alumnos Registrados')
 
 @section('contenido')
-    <x-sg.encabezado titulo="Alumnos Registrados" subtitulo="Listado completo por carrera — Corte {{ $corteActivo?->anio ?? now()->year }}" eyebrow="Gestión académica" icono="users">
+    <x-sg.encabezado titulo="Alumnos Registrados" subtitulo="Listado completo por carrera — Año lectivo {{ $corteActivo?->anio ?? now()->year }}" eyebrow="Gestión académica" icono="users">
         <a href="{{ route('admin.alumnos.historial-previo.index') }}" class="sg-btn sg-btn--borde">
             <x-sg.icono nombre="book" /> Cargar historial previo
         </a>

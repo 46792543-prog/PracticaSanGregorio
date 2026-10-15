@@ -221,7 +221,7 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--amarillo"><x-sg.icono nombre="calendar" /></span>
-                <div><h3>Años lectivos (cortes)</h3><p>Períodos de trabajo del sistema</p></div>
+                <div><h3>Años lectivos</h3><p>Períodos de trabajo del sistema</p></div>
             </div>
         </div>
 
@@ -229,13 +229,13 @@
             <form method="POST" action="{{ route('director.configuracion.cortes.store') }}" class="grid sm:grid-cols-[1fr_auto] gap-4 mb-6">
                 @csrf
                 <div>
-                    <label class="sg-label">NUEVO CORTE (AÑO) *</label>
+                    <label class="sg-label">GENERAR NUEVO AÑO LECTIVO *</label>
                     <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="4" maxlength="4" name="anio" placeholder="{{ now()->year + 1 }}" required
                            value="{{ old('anio') }}"
                            class="sg-input w-full">
                 </div>
                 <div class="flex items-end">
-                    <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="plus" /> Cargar corte</button>
+                    <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="plus" /> Generar año lectivo</button>
                 </div>
             </form>
 
@@ -244,7 +244,7 @@
                     <div class="flex items-center justify-between rounded-2xl border-[1.5px] px-4 py-3 transition-colors {{ $anio->estadoAnio?->nombre_estado === 'Activo' ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-100 bg-white' }}">
                         <div class="flex items-center gap-3">
                             <span class="grid h-11 w-11 place-items-center rounded-xl {{ $anio->estadoAnio?->nombre_estado === 'Activo' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }} font-display font-extrabold text-xs">{{ substr($anio->anio, -2) }}</span>
-                            <span class="font-display font-bold text-slate-800">Corte {{ $anio->anio }}</span>
+                            <span class="font-display font-bold text-slate-800">Año lectivo {{ $anio->anio }}</span>
                             @if ($anio->estadoAnio?->nombre_estado === 'Activo')
                                 <span class="sg-badge sg-badge--verde">Activo</span>
                             @else
@@ -260,15 +260,15 @@
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('director.configuracion.cortes.destroy', $anio) }}"
-                                  onsubmit="return confirm('¿Eliminar el corte {{ $anio->anio }}? Sólo se puede eliminar si no tiene datos cargados.');">
+                                  onsubmit="return confirm('¿Eliminar el año lectivo {{ $anio->anio }}? Sólo se puede eliminar si no tiene datos cargados.');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar corte"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
+                                <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar año lectivo"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
                             </form>
                         </div>
                     </div>
                 @empty
-                    <x-sg.vacio icono="calendar" class="sm:col-span-2">Todavía no hay cortes cargados.</x-sg.vacio>
+                    <x-sg.vacio icono="calendar" class="sm:col-span-2">Todavía no hay años lectivos cargados.</x-sg.vacio>
                 @endforelse
             </div>
         </div>

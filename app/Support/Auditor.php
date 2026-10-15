@@ -43,12 +43,17 @@ class Auditor
             return;
         }
 
+        $clave = $model->getKey();
+
         Auditoria::create([
             'id_usuario' => $usuario->id_usuario,
             'accion' => $accion,
             'tabla' => $model->getTable(),
-            'id_registro' => $model->getKey(),
-            'descripcion' => self::describir($accion, $model),
+            // Los modelos con clave compuesta (ej. Correlativa) devuelven un
+            // array acá — id_registro es una sola columna, así que ahí no
+            // guardamos nada; la clave completa igual queda en la descripción.
+            'id_registro' => is_array($clave) ? null : $clave,
+            'descripcion' => self::describir($accion, $model, $clave),
             'cambios' => $cambios,
         ]);
     }
@@ -86,7 +91,7 @@ class Auditor
         return $atributos;
     }
 
-    private static function describir(string $accion, Model $model): string
+    private static function describir(string $accion, Model $model, mixed $clave): string
     {
         $verbo = [
             'creado' => 'Creó',
@@ -94,6 +99,10 @@ class Auditor
             'eliminado' => 'Eliminó',
         ][$accion];
 
-        return "{$verbo} un registro en \"{$model->getTable()}\" (#{$model->getKey()})";
+        $claveLegible = is_array($clave)
+            ? collect($clave)->map(fn ($valor, $columna) => "{$columna}={$valor}")->implode(', ')
+            : "#{$clave}";
+
+        return "{$verbo} un registro en \"{$model->getTable()}\" ({$claveLegible})";
     }
 }

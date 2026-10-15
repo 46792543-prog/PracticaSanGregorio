@@ -89,11 +89,17 @@ class HistorialPrevioController extends Controller
             }
         }
 
-        $esAprobada = CondicionAlumno::find($idCondicion)?->nombre_condicion === 'Aprobada';
+        $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if ($esAprobada && (float) ($data['nota_cursada'] ?? 0) < 4) {
+        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
             return back()->withErrors([
                 'nota_cursada' => 'No se puede cargar la materia como Aprobada con una nota inferior a 4.',
+            ])->withInput();
+        }
+
+        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
+            return back()->withErrors([
+                'nota_cursada' => 'No se puede cargar la materia como Libre con una nota de aprobación (4 o más).',
             ])->withInput();
         }
 
@@ -150,11 +156,17 @@ class HistorialPrevioController extends Controller
             }
         }
 
-        $esAprobada = CondicionAlumno::find($idCondicion)?->nombre_condicion === 'Aprobada';
+        $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if ($esAprobada && (float) ($data['nota_cursada'] ?? 0) < 4) {
+        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
             return back()->withErrors([
                 'nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.',
+            ])->withInput();
+        }
+
+        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
+            return back()->withErrors([
+                'nota_cursada' => 'No se puede guardar la materia como Libre con una nota de aprobación (4 o más).',
             ])->withInput();
         }
 

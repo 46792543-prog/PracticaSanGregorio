@@ -33,7 +33,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="sg-label">CORTE (AÑO LECTIVO) *</label>
+                        <label class="sg-label">AÑO LECTIVO *</label>
                         <select name="anio_lectivo_id" required class="sg-input w-full">
                             @foreach ($aniosLectivos as $anio)
                                 <option value="{{ $anio->id_anio_lectivo }}" @selected(($academicos['anio_lectivo_id'] ?? $corteActivoId) == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>

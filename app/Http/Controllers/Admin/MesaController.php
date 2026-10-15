@@ -27,7 +27,7 @@ class MesaController extends Controller
         $turnoId = (int) $request->query('turno', $turnos->firstWhere('nombre_turno', 'Turno Julio')?->id_turno ?? $turnos->first()?->id_turno);
         $corteActivo = CorteActivo::actual();
 
-        $mesas = MesaExamen::with('materia.carrera', 'materia.nombreMateria', 'tribunal.profesor.persona', 'tribunal.rolTribunal', 'llamadoExamen', 'inscripciones', 'estadoMesa')
+        $mesas = MesaExamen::with('materia.carrera', 'materia.nombreMateria', 'tribunal.profesor.persona', 'tribunal.rolTribunal', 'llamadoExamen', 'inscripciones', 'estadoMesa', 'acta.detalles')
             ->where('id_turno', $turnoId)
             ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
             ->when($request->query('q'), fn ($q, $busqueda) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$busqueda}%")))

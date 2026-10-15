@@ -20,9 +20,9 @@
             ])>
             <x-sg.icono nombre="alert" class="h-5 w-5 shrink-0" />
             <span>
-                Esta mesa se va a crear en el <strong>corte {{ $corteActivo->anio }}</strong>{{ $corteActivo->estadoAnio?->nombre_estado !== 'Activo' ? ' (Cerrado)' : '' }}.
+                Esta mesa se va a crear en el <strong>año lectivo {{ $corteActivo->anio }}</strong>{{ $corteActivo->estadoAnio?->nombre_estado !== 'Activo' ? ' (Cerrado)' : '' }}.
                 @if ($corteActivo->anio != now()->year)
-                    Estás en {{ now()->year }} pero el corte activo es {{ $corteActivo->anio }}: si no es el año que querés cargar, cambialo arriba con el selector de corte antes de guardar.
+                    Estás en {{ now()->year }} pero el año lectivo activo es {{ $corteActivo->anio }}: si no es el año que querés cargar, cambialo arriba con el selector de año lectivo antes de guardar.
                 @else
                     Verificá que sea el año correcto antes de guardar.
                 @endif

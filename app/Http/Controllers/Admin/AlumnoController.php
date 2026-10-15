@@ -118,11 +118,14 @@ class AlumnoController extends Controller
             ->get();
         $fichaRespuestas = $persona->fichaRespuestas()->get()->keyBy('id_campo');
 
+        $progresoPromocion = $this->progresoPromocion($persona);
+
         return view('admin.alumnos.show', [
             'alumno' => $persona,
             'condiciones' => $condiciones,
             'fichaSecciones' => $fichaSecciones,
             'fichaRespuestas' => $fichaRespuestas,
+            'progresoPromocion' => $progresoPromocion,
         ]);
     }
 
@@ -281,6 +284,23 @@ class AlumnoController extends Controller
         return back()->with('status', "Se dio de alta nuevamente a {$persona->nombre} {$persona->apellido}.");
     }
 
+    public function promoverAnio(Request $request, Persona $persona): RedirectResponse
+    {
+        $progreso = $this->progresoPromocion($persona);
+
+        abort_unless($progreso, 404, 'Este alumno no tiene una inscripción activa, o ya está en el último año del plan.');
+
+        if (! $progreso['puede']) {
+            return back()->withErrors([
+                'promocion' => "No se puede promover: tiene {$progreso['aprobadas']} de {$progreso['total']} materias de su año aprobadas (hace falta la mayoría).",
+            ]);
+        }
+
+        $progreso['inscripcion']->update(['id_anio_cursada' => $progreso['proximoAnio']->id_anio_cursada]);
+
+        return back()->with('status', "Se promovió a {$persona->nombre} {$persona->apellido} a {$progreso['proximoAnio']->nombre_anio}.");
+    }
+
     public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
     {
         abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
@@ -370,6 +390,16 @@ class AlumnoController extends Controller
             'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
         ]);
 
+        $condicionNombre = CondicionAlumno::find($data['id_condicion'])?->nombre_condicion;
+
+        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
+            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.']);
+        }
+
+        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
+            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Libre con una nota de aprobación (4 o más).']);
+        }
+
         $historial->update([
             'id_condicion' => $data['id_condicion'],
             'nota_cursada' => $data['nota_cursada'] ?? null,
@@ -377,6 +407,55 @@ class AlumnoController extends Controller
         ]);
 
         return back()->with('status', 'Condición académica actualizada correctamente.');
+    }
+
+    /**
+     * Cuántas materias de SU año (de su carrera) tiene aprobadas un alumno,
+     * y si eso le alcanza (mayoría) para promoverlo al año siguiente del plan.
+     * Null = no tiene inscripción activa, o ya está en el último año (no hay
+     * a dónde promoverlo).
+     */
+    private function progresoPromocion(Persona $persona): ?array
+    {
+        $inscripcion = $persona->inscripcionesCarrera()
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+
+        if (! $inscripcion) {
+            return null;
+        }
+
+        $proximoAnio = AnioCursada::where('id_anio_cursada', '>', $inscripcion->id_anio_cursada)
+            ->orderBy('id_anio_cursada')
+            ->first();
+
+        if (! $proximoAnio) {
+            return null;
+        }
+
+        $total = Materia::where('id_carrera', $inscripcion->id_carrera)
+            ->where('id_anio_cursada', $inscripcion->id_anio_cursada)
+            ->where('activa', true)
+            ->count();
+
+        $idAprobada = CondicionAlumno::where('nombre_condicion', 'Aprobada')->value('id_condicion');
+
+        $aprobadas = HistorialAlumno::where('id_persona_alumno', $persona->id_persona)
+            ->where('id_condicion', $idAprobada)
+            ->whereHas('materia', fn ($q) => $q
+                ->where('id_carrera', $inscripcion->id_carrera)
+                ->where('id_anio_cursada', $inscripcion->id_anio_cursada))
+            ->distinct('id_materia')
+            ->count('id_materia');
+
+        return [
+            'inscripcion' => $inscripcion,
+            'proximoAnio' => $proximoAnio,
+            'total' => $total,
+            'aprobadas' => $aprobadas,
+            'puede' => $total > 0 && $aprobadas > ($total / 2),
+        ];
     }
 
     private function generarClave(string $dni): string
