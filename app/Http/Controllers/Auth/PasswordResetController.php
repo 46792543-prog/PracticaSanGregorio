@@ -47,9 +47,7 @@ class PasswordResetController extends Controller
         // El código solo se muestra en pantalla (modo demo sin servidor de correo)
         // cuando el entorno es local Y la petición viene de la propia máquina,
         // para que no quede expuesto ante quien adivine un email ajeno en producción.
-        $mostrarCodigoEnPantalla = $usuario
-            && app()->environment('local')
-            && in_array($request->ip(), ['127.0.0.1', '::1'], true);
+        $mostrarCodigoEnPantalla = false;
 
         session([
             'password_reset_email' => $request->email,
