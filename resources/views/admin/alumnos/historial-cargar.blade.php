@@ -128,7 +128,7 @@
                 </div>
 
                 <p class="text-xs text-slate-400 mb-4">
-                    Mientras la materia está "en curso" (Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Una "Equivalencia" además pide institución de origen y número de resolución, y no lleva veces rendida. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
+                    Mientras la materia está "en curso" (Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Una "Equivalencia" además pide institución de origen y número de resolución, y no lleva veces rendida — "Cursando" y "Regular" tampoco, porque todavía no se rindió ningún final. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
                 </p>
 
                 <div class="flex justify-end">
@@ -331,7 +331,7 @@
             const campoVeces = contenedor.querySelector('[data-campo-veces]');
             const inputVeces = contenedor.querySelector('[data-input-veces]');
             if (campoVeces && inputVeces) {
-                if (esEquivalencia) {
+                if (esEquivalencia || SIN_NOTA.includes(nombreCondicion)) {
                     campoVeces.style.visibility = 'hidden';
                     inputVeces.value = '';
                     inputVeces.disabled = true;
