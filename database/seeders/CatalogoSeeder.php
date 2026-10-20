@@ -118,8 +118,11 @@ class CatalogoSeeder extends Seeder
         }
 
         // Tabla compartida por inscripcion_carrera (Regular/Promoción/Libre) e
-        // historial_alumno (Pendiente/Cursando/Regular/Aprobada) en el dump.
-        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Aprobada'] as $nombre) {
+        // historial_alumno (Pendiente/Cursando/Regular/Promocionada/Examen
+        // Final/Equivalencia/Libre) — las últimas tres reemplazan a la vieja
+        // "Aprobada" genérica, distinguiendo cómo se aprobó cada materia
+        // (ver CondicionAlumno::APROBADA).
+        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Promocionada', 'Examen Final', 'Equivalencia'] as $nombre) {
             CondicionAlumno::firstOrCreate(['nombre_condicion' => $nombre]);
         }
 

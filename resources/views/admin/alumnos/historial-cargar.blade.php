@@ -97,7 +97,7 @@
                 </div>
 
                 <p class="text-xs text-slate-400 mb-4">
-                    No se puede guardar como "Aprobada" con nota menor a 4, ni como "Libre" con nota de 4 o más. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
+                    No se puede guardar como "Promocionada", "Examen Final" o "Equivalencia" con nota menor a 4, ni como "Libre" con nota de 4 o más. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
                 </p>
 
                 <div class="flex justify-end">

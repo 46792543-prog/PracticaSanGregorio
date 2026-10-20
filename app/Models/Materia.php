@@ -118,8 +118,8 @@ class Materia extends Model
             $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
 
             $cumplida = $requisito->pivot->requiere_aprobada
-                ? $condicionNombre === 'Aprobada'
-                : (! $requisito->pivot->requiere_regularizada || $condicionNombre === 'Aprobada' || $regularVigente);
+                ? CondicionAlumno::esAprobada($condicionNombre)
+                : (! $requisito->pivot->requiere_regularizada || CondicionAlumno::esAprobada($condicionNombre) || $regularVigente);
 
             if (! $cumplida) {
                 return $requisito;
@@ -149,7 +149,7 @@ class Materia extends Model
             $condicionNombre = $historial?->condicion?->nombre_condicion;
             $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
 
-            if (! ($condicionNombre === 'Aprobada' || $regularVigente)) {
+            if (! (CondicionAlumno::esAprobada($condicionNombre) || $regularVigente)) {
                 return $requisito;
             }
         }

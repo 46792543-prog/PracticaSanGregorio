@@ -7,6 +7,7 @@ use App\Models\AnioCursada;
 use App\Models\AnioLectivo;
 use App\Models\Carrera;
 use App\Models\CondicionAlumno;
+use App\Models\DetalleActa;
 use App\Models\EstadoInscripcion;
 use App\Models\EstadoUsuario;
 use App\Models\FichaSeccion;
@@ -110,8 +111,6 @@ class AlumnoController extends Controller
             'documentacion.documentoRequisito',
         ]);
 
-        $condiciones = CondicionAlumno::whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Aprobada'])->orderBy('id_condicion')->get();
-
         $fichaSecciones = FichaSeccion::where('activo', true)
             ->with(['campos' => fn ($q) => $q->where('activo', true)])
             ->orderBy('orden')
@@ -120,12 +119,39 @@ class AlumnoController extends Controller
 
         $progresoPromocion = $this->progresoPromocion($persona);
 
+        // Historial académico: datos para mostrarlo como un analítico —
+        // solo consulta, la carga/corrección se hace desde "Cargar historial
+        // previo" o mientras el alumno cursa/rinde.
+        $inscripcionOriginal = $persona->inscripcionesCarrera->sortBy('id_inscripcion_carrera')->first();
+        $anioIngreso = $inscripcionOriginal?->anioLectivo?->anio;
+
+        $actasPorMateria = DetalleActa::where('id_persona_alumno', $persona->id_persona)
+            ->whereHas('acta', fn ($q) => $q->where('estado', 'generada'))
+            ->with('acta.mesaExamen')
+            ->get()
+            ->keyBy(fn (DetalleActa $d) => $d->acta->mesaExamen->id_materia);
+
+        $inscripcionActiva = $persona->inscripcionesCarrera->first();
+        $totalMateriasPlan = $inscripcionActiva
+            ? Materia::where('id_carrera', $inscripcionActiva->id_carrera)->where('activa', true)->count()
+            : 0;
+        $materiasAprobadasTotal = $persona->historialAlumno
+            ->filter(fn (HistorialAlumno $h) => CondicionAlumno::esAprobada($h->condicion?->nombre_condicion))
+            ->pluck('id_materia')
+            ->unique()
+            ->count();
+        $porcentajeAvance = $totalMateriasPlan > 0 ? (int) round($materiasAprobadasTotal / $totalMateriasPlan * 100) : 0;
+
         return view('admin.alumnos.show', [
             'alumno' => $persona,
-            'condiciones' => $condiciones,
             'fichaSecciones' => $fichaSecciones,
             'fichaRespuestas' => $fichaRespuestas,
             'progresoPromocion' => $progresoPromocion,
+            'anioIngreso' => $anioIngreso,
+            'actasPorMateria' => $actasPorMateria,
+            'totalMateriasPlan' => $totalMateriasPlan,
+            'materiasAprobadasTotal' => $materiasAprobadasTotal,
+            'porcentajeAvance' => $porcentajeAvance,
         ]);
     }
 
@@ -392,8 +418,8 @@ class AlumnoController extends Controller
 
         $condicionNombre = CondicionAlumno::find($data['id_condicion'])?->nombre_condicion;
 
-        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
-            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.']);
+        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
+            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como aprobada con una nota inferior a 4.']);
         }
 
         if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
@@ -439,10 +465,10 @@ class AlumnoController extends Controller
             ->where('activa', true)
             ->count();
 
-        $idAprobada = CondicionAlumno::where('nombre_condicion', 'Aprobada')->value('id_condicion');
+        $idsAprobada = CondicionAlumno::whereIn('nombre_condicion', CondicionAlumno::APROBADA)->pluck('id_condicion');
 
         $aprobadas = HistorialAlumno::where('id_persona_alumno', $persona->id_persona)
-            ->where('id_condicion', $idAprobada)
+            ->whereIn('id_condicion', $idsAprobada)
             ->whereHas('materia', fn ($q) => $q
                 ->where('id_carrera', $inscripcion->id_carrera)
                 ->where('id_anio_cursada', $inscripcion->id_anio_cursada))

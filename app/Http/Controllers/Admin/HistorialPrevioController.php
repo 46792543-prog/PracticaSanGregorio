@@ -17,7 +17,7 @@ use Illuminate\View\View;
 class HistorialPrevioController extends Controller
 {
     private const TOPE_VECES_RENDIDA = 3;
-    private const CONDICIONES_DISPONIBLES = ['Pendiente', 'Cursando', 'Regular', 'Aprobada', 'Libre'];
+    private const CONDICIONES_DISPONIBLES = ['Pendiente', 'Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre'];
 
     public function index(Request $request): View
     {
@@ -91,9 +91,9 @@ class HistorialPrevioController extends Controller
 
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
+        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
             return back()->withErrors([
-                'nota_cursada' => 'No se puede cargar la materia como Aprobada con una nota inferior a 4.',
+                'nota_cursada' => 'No se puede cargar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.',
             ])->withInput();
         }
 
@@ -158,9 +158,9 @@ class HistorialPrevioController extends Controller
 
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if ($condicionNombre === 'Aprobada' && (float) ($data['nota_cursada'] ?? 0) < 4) {
+        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
             return back()->withErrors([
-                'nota_cursada' => 'No se puede guardar la materia como Aprobada con una nota inferior a 4.',
+                'nota_cursada' => 'No se puede guardar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.',
             ])->withInput();
         }
 

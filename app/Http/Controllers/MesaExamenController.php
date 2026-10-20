@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CondicionAlumno;
 use App\Models\EstadoInscripcion;
 use App\Models\InscripcionMesa;
 use App\Models\Materia;
@@ -99,7 +100,7 @@ class MesaExamenController extends Controller
     {
         $historial = $materia->historialDe($alumno);
         $condicionNombre = $historial?->condicion?->nombre_condicion;
-        $puedeRendir = $condicionNombre === 'Aprobada'
+        $puedeRendir = CondicionAlumno::esAprobada($condicionNombre)
             || ($condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false));
 
         return $puedeRendir ? null : $materia;
