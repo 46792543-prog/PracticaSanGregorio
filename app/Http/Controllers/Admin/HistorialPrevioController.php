@@ -70,7 +70,7 @@ class HistorialPrevioController extends Controller
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
             'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
-            'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'veces_rendida' => ['nullable', 'integer', 'between:1,10'],
             'institucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'resolucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'fecha_ultima_modificacion' => ['required', 'date'],
@@ -78,6 +78,8 @@ class HistorialPrevioController extends Controller
         ], [
             'id_materia.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
             'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
+            'veces_rendida.integer' => 'Las veces rendida tienen que ser un número entero del 1 al 10, sin decimales.',
+            'veces_rendida.between' => 'Las veces rendida tienen que ser un número entero del 1 al 10.',
         ]);
 
         [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
@@ -127,7 +129,7 @@ class HistorialPrevioController extends Controller
             ],
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
             'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
-            'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'veces_rendida' => ['nullable', 'integer', 'between:1,10'],
             'institucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'resolucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'fecha_ultima_modificacion' => ['required', 'date'],
@@ -135,6 +137,8 @@ class HistorialPrevioController extends Controller
         ], [
             'id_anio_lectivo.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
             'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
+            'veces_rendida.integer' => 'Las veces rendida tienen que ser un número entero del 1 al 10, sin decimales.',
+            'veces_rendida.between' => 'Las veces rendida tienen que ser un número entero del 1 al 10.',
         ]);
 
         [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);

@@ -94,8 +94,8 @@
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div data-campo-veces>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Veces rendida (opcional):</label>
-                        <input type="number" step="1" min="0" max="50" name="veces_rendida" data-input-veces
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Veces rendida (opcional, entre 1 y 10):</label>
+                        <input type="number" step="1" min="1" max="10" name="veces_rendida" data-input-veces
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div data-campo-equivalencia class="sm:col-span-2 lg:col-span-2">
@@ -180,7 +180,7 @@
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-veces>
-                                    <input form="{{ $formId }}" type="number" step="1" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
+                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
                                            class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
                                 </div>
                             </td>
@@ -282,7 +282,7 @@
         }
 
         document.querySelectorAll('[data-input-nota]').forEach((input) => limitarEntero(input, 1, 10));
-        document.querySelectorAll('[data-input-veces]').forEach((input) => limitarEntero(input, 0, 50));
+        document.querySelectorAll('[data-input-veces]').forEach((input) => limitarEntero(input, 1, 10));
 
         // Según la condición elegida: la nota se oculta en curso, se pide
         // obligatoria en una aprobación definitiva y queda opcional en Libre.
