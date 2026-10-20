@@ -192,22 +192,44 @@
         @endif
     </div>
 
-    {{-- Modal: nueva especialidad --}}
+    {{-- Modal: especialidades --}}
     <div id="modal-especialidad" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[70] items-center justify-center p-4">
-        <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-sm p-6">
+        <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-sm p-6 max-h-[85vh] overflow-y-auto">
             <div class="flex items-start justify-between mb-4">
-                <h3 class="font-display font-bold text-slate-800 flex items-center gap-3"><span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="plus" /></span> Nueva especialidad</h3>
+                <h3 class="font-display font-bold text-slate-800 flex items-center gap-3"><span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="plus" /></span> Especialidades</h3>
                 <button type="button" onclick="cerrarModalEspecialidad()" class="grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors" aria-label="Cerrar"><x-sg.icono nombre="x" /></button>
             </div>
-            <form method="POST" action="{{ route('admin.profesores.especialidades.store') }}">
-                @csrf
-                <label class="sg-label">NOMBRE DE LA ESPECIALIDAD</label>
-                <input type="text" name="nombre_especialidad" required autofocus maxlength="45" placeholder="Ej: Enfermería Pediátrica"
-                       class="sg-input w-full mb-4">
-                <div class="flex gap-3">
-                    <button type="button" onclick="cerrarModalEspecialidad()" class="sg-btn sg-btn--borde flex-1">Cancelar</button>
-                    <button type="submit" class="sg-btn sg-btn--azul flex-1">Guardar</button>
+            <p class="text-xs text-slate-400 -mt-2 mb-4">Áreas de formación del profesor (ej. Enfermería Pediátrica, Farmacología) — no es el nombre de una materia puntual, eso se elige al armar la asignación.</p>
+
+            @if ($errors->has('nombre_especialidad'))
+                <p class="text-xs text-red-500 mb-3">{{ $errors->first('nombre_especialidad') }}</p>
+            @endif
+
+            @if ($especialidades->isNotEmpty())
+                <div class="space-y-2 mb-5">
+                    @foreach ($especialidades as $especialidad)
+                        <div class="flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors">
+                            <form method="POST" action="{{ route('admin.profesores.especialidades.update', $especialidad) }}" class="flex flex-1 gap-2 items-center min-w-0">
+                                @csrf @method('PUT')
+                                <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="45"
+                                       class="sg-input sg-input--chico min-w-0 flex-1">
+                                <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.profesores.especialidades.destroy', $especialidad) }}" onsubmit="return confirm('¿Eliminar la especialidad \'{{ $especialidad->nombre_especialidad }}\'?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" title="Eliminar especialidad" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                            </form>
+                        </div>
+                    @endforeach
                 </div>
+            @endif
+
+            <p class="sg-label mb-2">Agregar nueva especialidad</p>
+            <form method="POST" action="{{ route('admin.profesores.especialidades.store') }}" class="flex gap-2">
+                @csrf
+                <input type="text" name="nombre_especialidad" required autofocus maxlength="45" placeholder="Ej: Enfermería Pediátrica"
+                       class="sg-input sg-input--chico min-w-0 flex-1">
+                <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico shrink-0">Agregar</button>
             </form>
         </div>
     </div>

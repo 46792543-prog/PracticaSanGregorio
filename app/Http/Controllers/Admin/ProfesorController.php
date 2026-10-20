@@ -139,6 +139,28 @@ class ProfesorController extends Controller
         return back()->with('status', 'Especialidad agregada correctamente.');
     }
 
+    public function updateEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse
+    {
+        $data = $request->validate([
+            'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad,' . $especialidad->id_especialidad . ',id_especialidad'],
+        ]);
+
+        $especialidad->update($data);
+
+        return back()->with('status', 'Especialidad actualizada correctamente.');
+    }
+
+    public function destroyEspecialidad(EspecialidadProfesor $especialidad): RedirectResponse
+    {
+        if (Profesor::where('id_especialidad', $especialidad->id_especialidad)->exists()) {
+            return back()->withErrors(['nombre_especialidad' => 'No se puede eliminar: hay profesores cargados con esta especialidad. Cambiales la especialidad primero.']);
+        }
+
+        $especialidad->delete();
+
+        return back()->with('status', 'Especialidad eliminada.');
+    }
+
     public function storeAsignacion(Request $request): RedirectResponse
     {
         $data = $request->validate([
