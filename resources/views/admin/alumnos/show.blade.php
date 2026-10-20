@@ -134,52 +134,65 @@
             <div class="flex justify-between gap-3"><dt class="text-slate-400">Año de ingreso a la carrera</dt><dd class="text-slate-700 font-medium text-right">{{ $anioIngreso ?? '—' }}</dd></div>
         </div>
 
-        <div class="sg-lista sg-filas">
-            @forelse ($alumno->historialAlumno->sortBy('materia.nombre') as $historial)
-                @php
-                    $condicionNombre = $historial->condicion->nombre_condicion ?? '—';
-                    $aprobada = \App\Models\CondicionAlumno::esAprobada($condicionNombre);
-                    $acta = $actasPorMateria->get($historial->id_materia);
-                @endphp
-                <div class="sg-fila flex-wrap justify-between text-sm">
-                    <span class="flex items-center gap-3 min-w-0">
-                        <span @class([
-                                'h-2.5 w-2.5 rounded-full shrink-0',
-                                'bg-emerald-500' => $aprobada,
-                                'bg-amber-400' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
-                                'bg-rose-500' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
-                                'bg-slate-300' => $condicionNombre === 'Pendiente',
-                                'bg-sky-500' => $condicionNombre === 'Cursando',
-                            ])></span>
-                        <span class="font-semibold text-slate-700">{{ $historial->materia->nombre }}</span>
-                    </span>
-                    <div class="flex items-center gap-4 flex-wrap text-xs text-slate-500">
-                        @if ($historial->nota_cursada)
-                            <span>Nota: <span class="font-semibold text-slate-700">{{ $historial->nota_cursada }}</span></span>
-                        @endif
-                        @if ($aprobada && $historial->fecha_ultima_modificacion)
-                            <span>Fecha: {{ \App\Support\FechaEsp::corta($historial->fecha_ultima_modificacion) }}</span>
-                        @endif
-                        <span>Libro/Folio: {{ $acta ? "{$acta->acta->libro}/{$acta->acta->folio}" : '—' }}</span>
-                        @if ($condicionNombre === 'Regular' && $historial->fecha_limite_calculada)
-                            <span>(vence {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }})</span>
-                        @endif
-                        <span @class([
-                                'sg-badge',
-                                'sg-badge--verde' => $aprobada,
-                                'sg-badge--amarillo' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
-                                'sg-badge--rojo' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
-                                'sg-badge--gris' => $condicionNombre === 'Pendiente',
-                                'sg-badge--azul' => $condicionNombre === 'Cursando',
-                            ])>
-                            {{ $historial->regularidad_vencida ? 'Venció el ' . \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) : $condicionNombre }}
-                        </span>
-                    </div>
-                </div>
-            @empty
-                <x-sg.vacio icono="book">Sin historial académico cargado.</x-sg.vacio>
-            @endforelse
-        </div>
+        @if ($alumno->historialAlumno->isEmpty())
+            <div class="p-5"><x-sg.vacio icono="book">Sin historial académico cargado.</x-sg.vacio></div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="sg-tabla">
+                    <thead>
+                        <tr>
+                            <th>Materia</th>
+                            <th>Condición</th>
+                            <th class="sg-num">Nota</th>
+                            <th>Fecha</th>
+                            <th>Libro / Folio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($alumno->historialAlumno->sortBy('materia.nombre') as $historial)
+                            @php
+                                $condicionNombre = $historial->condicion->nombre_condicion ?? '—';
+                                $aprobada = \App\Models\CondicionAlumno::esAprobada($condicionNombre);
+                                $acta = $actasPorMateria->get($historial->id_materia);
+                            @endphp
+                            <tr>
+                                <td>
+                                    <span class="flex items-center gap-2.5 min-w-0">
+                                        <span @class([
+                                                'h-2 w-2 rounded-full shrink-0',
+                                                'bg-emerald-500' => $aprobada,
+                                                'bg-amber-400' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
+                                                'bg-rose-500' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
+                                                'bg-slate-300' => $condicionNombre === 'Pendiente',
+                                                'bg-sky-500' => $condicionNombre === 'Cursando',
+                                            ])></span>
+                                        <span class="font-semibold text-slate-700">{{ $historial->materia->nombre }}</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span @class([
+                                            'sg-badge',
+                                            'sg-badge--verde' => $aprobada,
+                                            'sg-badge--amarillo' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
+                                            'sg-badge--rojo' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
+                                            'sg-badge--gris' => $condicionNombre === 'Pendiente',
+                                            'sg-badge--azul' => $condicionNombre === 'Cursando',
+                                        ])>
+                                        {{ $historial->regularidad_vencida ? 'Venció' : $condicionNombre }}
+                                    </span>
+                                    @if ($condicionNombre === 'Regular' && $historial->fecha_limite_calculada)
+                                        <p class="text-[11px] text-slate-400 mt-1">{{ $historial->regularidad_vencida ? 'venció el' : 'vence' }} {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }}</p>
+                                    @endif
+                                </td>
+                                <td class="sg-num font-semibold text-slate-700">{{ $historial->nota_cursada ?? '—' }}</td>
+                                <td class="text-slate-500">{{ $aprobada && $historial->fecha_ultima_modificacion ? \App\Support\FechaEsp::corta($historial->fecha_ultima_modificacion) : '—' }}</td>
+                                <td class="text-slate-500">{{ $acta ? "{$acta->acta->libro}/{$acta->acta->folio}" : '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
 
         @if ($alumno->historialAlumno->isNotEmpty())
             <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between text-sm bg-slate-50/60">
