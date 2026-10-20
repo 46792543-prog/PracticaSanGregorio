@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Acta;
 use App\Models\Carrera;
+use App\Models\CondicionAlumno;
 use App\Models\CuotaAlumno;
 use App\Models\HistorialAlumno;
 use App\Models\InscripcionCarrera;
@@ -50,7 +51,7 @@ class PanelController extends Controller
                 'fecha' => $a->fecha_generacion,
                 'icono' => '📄',
             ]))
-            ->merge(HistorialAlumno::whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Aprobada'))->with('personaAlumno', 'materia.nombreMateria')->latest('fecha_ultima_modificacion')->take(2)->get()->map(fn ($h) => [
+            ->merge(HistorialAlumno::whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->with('personaAlumno', 'materia.nombreMateria')->latest('fecha_ultima_modificacion')->take(2)->get()->map(fn ($h) => [
                 'titulo' => "{$h->personaAlumno->nombre} {$h->personaAlumno->apellido} aprobó {$h->materia->nombre}",
                 'fecha' => $h->fecha_ultima_modificacion,
                 'icono' => '✅',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CondicionAlumno;
 use App\Models\MesaExamen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,7 @@ class PanelController extends Controller
         $totalMaterias = $inscripcionCarrera
             ? $inscripcionCarrera->carrera->materias()->count()
             : 0;
-        $materiasAprobadas = $alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Aprobada'))->count();
+        $materiasAprobadas = $alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->count();
         $porcentaje = $totalMaterias > 0 ? (int) round($materiasAprobadas / $totalMaterias * 100) : 0;
 
         $mesasDisponibles = MesaExamen::whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))->count();
@@ -53,9 +54,9 @@ class PanelController extends Controller
                 'detalle' => $i->mesaExamen->materia->nombre,
                 'fecha' => $i->fecha_inscripcion,
             ]))
-            ->merge($alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Aprobada'))->with('materia.nombreMateria')->latest('fecha_ultima_modificacion')->take(1)->get()->map(fn ($h) => [
+            ->merge($alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->with('materia.nombreMateria', 'condicion')->latest('fecha_ultima_modificacion')->take(1)->get()->map(fn ($h) => [
                 'titulo' => 'Nota registrada',
-                'detalle' => "{$h->materia->nombre} · Aprobada ({$h->nota_cursada})",
+                'detalle' => "{$h->materia->nombre} · {$h->condicion->nombre_condicion} ({$h->nota_cursada})",
                 'fecha' => $h->fecha_ultima_modificacion,
             ]))
             ->sortByDesc('fecha')

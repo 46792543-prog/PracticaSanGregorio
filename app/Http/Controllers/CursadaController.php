@@ -48,7 +48,7 @@ class CursadaController extends Controller
                     $historial = $materia->historialDe($alumno);
 
                     return $historial && $historial->id_anio_lectivo === $anioLectivo->id_anio_lectivo
-                        && in_array($historial->condicion?->nombre_condicion, ['Cursando', 'Regular', 'Aprobada'], true);
+                        && in_array($historial->condicion?->nombre_condicion, array_merge(['Cursando', 'Regular'], CondicionAlumno::APROBADA), true);
                 })
                 ->map(fn (Materia $materia) => [
                     'materia' => $materia,
@@ -91,7 +91,7 @@ class CursadaController extends Controller
 
         $historial = $materia->historialDe($alumno);
         $yaCursando = $historial && $historial->id_anio_lectivo === $anioLectivo->id_anio_lectivo
-            && in_array($historial->condicion?->nombre_condicion, ['Cursando', 'Regular', 'Aprobada'], true);
+            && in_array($historial->condicion?->nombre_condicion, array_merge(['Cursando', 'Regular'], CondicionAlumno::APROBADA), true);
         abort_if($yaCursando, 409, 'Ya estás inscripto a esta materia.');
 
         if ($bloqueo = $materia->bloqueoParaCursar($alumno)) {
