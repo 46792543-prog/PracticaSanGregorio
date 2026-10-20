@@ -7,9 +7,11 @@
         $materiasPorCarrera = $carreras->mapWithKeys(fn ($carrera) => [
             $carrera->id_carrera => $carrera->materias->map(fn ($materia) => [
                 'id' => $materia->id_materia,
-                'nombre' => $materia->nombre . ' (' . ($materia->anioCursada->nombre_anio ?? '—') . ')',
+                'nombre' => $materia->nombre,
+                'anio' => $materia->anioCursada->nombre_anio ?? null,
             ])->values(),
         ]);
+        $materiasYaCargadas = ($historial ?? collect())->pluck('id_materia')->unique()->values();
     @endphp
 
     <h1 class="text-xl font-bold text-slate-800 mb-1">Cargar historial académico de un alumno</h1>
@@ -93,7 +95,7 @@
                     </div>
                     <div data-campo-veces>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Veces rendida (opcional):</label>
-                        <input type="number" min="0" max="50" name="veces_rendida" data-input-veces
+                        <input type="number" step="1" min="0" max="50" name="veces_rendida" data-input-veces
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div data-campo-equivalencia class="sm:col-span-2 lg:col-span-2">
@@ -178,7 +180,7 @@
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-veces>
-                                    <input form="{{ $formId }}" type="number" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
+                                    <input form="{{ $formId }}" type="number" step="1" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
                                            class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
                                 </div>
                             </td>
@@ -224,19 +226,63 @@
 
     <script>
         const materiasPorCarrera = @json($materiasPorCarrera);
+        const materiasYaCargadas = new Set(@json($materiasYaCargadas));
+        const ORDEN_ANIO = { 'Primer Año': 1, 'Segundo Año': 2, 'Tercer Año': 3 };
         const selectCarrera = document.getElementById('select-carrera');
         const selectMateria = document.getElementById('select-materia');
 
         selectCarrera?.addEventListener('change', () => {
             const materias = materiasPorCarrera[selectCarrera.value] || [];
+
+            // Un año está "completo" cuando todas sus materias ya tienen
+            // historial cargado — recién ahí se habilita el año siguiente.
+            const materiasPorAnio = {};
+            materias.forEach((materia) => {
+                const orden = ORDEN_ANIO[materia.anio];
+                if (orden == null) return;
+                (materiasPorAnio[orden] ??= []).push(materia.id);
+            });
+            const anioCompleto = {};
+            Object.entries(materiasPorAnio).forEach(([orden, ids]) => {
+                anioCompleto[orden] = ids.every((id) => materiasYaCargadas.has(id));
+            });
+
             selectMateria.innerHTML = '<option value="">Seleccioná materia...</option>';
             materias.forEach((materia) => {
                 const opcion = document.createElement('option');
                 opcion.value = materia.id;
-                opcion.textContent = materia.nombre;
+
+                let etiqueta = `${materia.nombre} (${materia.anio ?? '—'})`;
+                const orden = ORDEN_ANIO[materia.anio];
+
+                if (materiasYaCargadas.has(materia.id)) {
+                    etiqueta += ' — ya cargada';
+                    opcion.disabled = true;
+                } else if (orden > 1 && !anioCompleto[orden - 1]) {
+                    etiqueta += ' — falta completar el año anterior';
+                    opcion.disabled = true;
+                }
+
+                opcion.textContent = etiqueta;
                 selectMateria.appendChild(opcion);
             });
         });
+
+        // Nota y veces rendida: solo enteros, dentro del rango permitido.
+        // Se recorta en vivo para que no dependa de que el navegador muestre
+        // el error de validación recién al tocar "Guardar".
+        function limitarEntero(input, min, max) {
+            input.addEventListener('input', () => {
+                let valor = input.value.replace(/[^0-9]/g, '');
+                if (valor !== '') {
+                    valor = String(Math.min(max, Math.max(min, parseInt(valor, 10))));
+                }
+                input.value = valor;
+            });
+        }
+
+        document.querySelectorAll('[data-input-nota]').forEach((input) => limitarEntero(input, 1, 10));
+        document.querySelectorAll('[data-input-veces]').forEach((input) => limitarEntero(input, 0, 50));
 
         // Según la condición elegida: la nota se oculta en curso, se pide
         // obligatoria en una aprobación definitiva y queda opcional en Libre.
