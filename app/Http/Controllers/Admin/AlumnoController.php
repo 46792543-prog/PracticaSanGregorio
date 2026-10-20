@@ -422,7 +422,8 @@ class AlumnoController extends Controller
             ->latest('id_inscripcion_carrera')
             ->first();
 
-        if (! $inscripcion) {
+        // Sin año de cursada cargado no hay desde dónde promover (inscripciones viejas lo tienen vacío).
+        if (! $inscripcion || ! $inscripcion->id_anio_cursada) {
             return null;
         }
 

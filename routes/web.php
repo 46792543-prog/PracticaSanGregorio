@@ -156,8 +156,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::put('/carreras/{carrera}/materias/{materia}/baja', [CarreraController::class, 'bajaMateria'])->name('carreras.materias.baja');
     Route::put('/carreras/{carrera}/materias/{materia}/reactivar', [CarreraController::class, 'reactivarMateria'])->name('carreras.materias.reactivar');
     Route::get('/carreras/{carrera}/correlativas', [CarreraController::class, 'correlativas'])->name('carreras.correlativas');
+    Route::get('/carreras/{carrera}/correlativas/{principal}/editar', [CarreraController::class, 'editGrupoCorrelativas'])->name('carreras.correlativas.grupo.edit');
+    Route::delete('/carreras/{carrera}/correlativas/{principal}', [CarreraController::class, 'destroyGrupoCorrelativas'])->name('carreras.correlativas.grupo.destroy');
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
-    Route::delete('/correlativas/{principal}/{requisito}', [CarreraController::class, 'destroyCorrelativa'])->name('carreras.correlativas.destroy');
 
     Route::get('/horarios', [HorarioCarreraController::class, 'index'])->name('horarios.index');
     Route::post('/horarios/modulos', [HorarioCarreraController::class, 'storeModulo'])->name('horarios.modulos.store');
