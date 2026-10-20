@@ -209,6 +209,7 @@ class ProfesorController extends Controller
 
     public function destroyAsignacion(AsignacionProfesorMateria $asignacion): RedirectResponse
     {
+        $asignacion->horarios()->delete();
         $asignacion->delete();
 
         return back()->with('status', 'Asignación eliminada.');
