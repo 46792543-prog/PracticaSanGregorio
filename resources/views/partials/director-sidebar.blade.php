@@ -61,7 +61,7 @@
 
     @include('partials.sidebar.usuario', [
         'nombre' => 'Dra. ' . auth()->user()->apellido,
-        'detalle' => 'Directora General',
+        'detalle' => auth()->user()->esDirector() ? 'Directora General' : auth()->user()->rol->nombre_rol,
         'iniciales' => mb_substr(auth()->user()->nombre, 0, 1) . mb_substr(auth()->user()->apellido, 0, 1),
     ])
 </aside>
