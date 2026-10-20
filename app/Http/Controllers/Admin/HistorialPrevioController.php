@@ -7,7 +7,6 @@ use App\Models\AnioLectivo;
 use App\Models\Carrera;
 use App\Models\CondicionAlumno;
 use App\Models\HistorialAlumno;
-use App\Models\Materia;
 use App\Models\Persona;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +17,9 @@ class HistorialPrevioController extends Controller
 {
     private const TOPE_VECES_RENDIDA = 3;
     private const CONDICIONES_DISPONIBLES = ['Pendiente', 'Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre'];
+
+    // Condiciones "en curso": todavía no hay una nota final que cargar.
+    private const SIN_NOTA = ['Pendiente', 'Cursando', 'Regular'];
 
     public function index(Request $request): View
     {
@@ -67,40 +69,20 @@ class HistorialPrevioController extends Controller
             ],
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
-            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+            'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
             'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
             'fecha_ultima_modificacion' => ['required', 'date'],
             'busqueda_actual' => ['nullable', 'string'],
         ], [
             'id_materia.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
+            'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
         ]);
 
-        $idCondicion = (int) $data['id_condicion'];
-        $sePasoALibre = false;
-
-        // Con más de 3 veces rendidas, la materia queda libre automáticamente
-        // sin importar qué condición haya tildado secretaría.
-        if ((int) ($data['veces_rendida'] ?? 0) > self::TOPE_VECES_RENDIDA) {
-            $idLibre = CondicionAlumno::where('nombre_condicion', 'Libre')->value('id_condicion');
-
-            if ($idLibre && $idCondicion !== $idLibre) {
-                $idCondicion = $idLibre;
-                $sePasoALibre = true;
-            }
-        }
-
+        [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
-            return back()->withErrors([
-                'nota_cursada' => 'No se puede cargar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.',
-            ])->withInput();
-        }
-
-        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
-            return back()->withErrors([
-                'nota_cursada' => 'No se puede cargar la materia como Libre con una nota de aprobación (4 o más).',
-            ])->withInput();
+        if ($error = $this->validarReglasNota($condicionNombre, $data['nota_cursada'] ?? null)) {
+            return back()->withErrors(['nota_cursada' => $error])->withInput();
         }
 
         HistorialAlumno::create([
@@ -136,38 +118,20 @@ class HistorialPrevioController extends Controller
                     ->ignore($historial->id_historial, 'id_historial'),
             ],
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
-            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+            'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
             'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
             'fecha_ultima_modificacion' => ['required', 'date'],
             'busqueda_actual' => ['nullable', 'string'],
         ], [
             'id_anio_lectivo.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
+            'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
         ]);
 
-        $idCondicion = (int) $data['id_condicion'];
-        $sePasoALibre = false;
-
-        if ((int) ($data['veces_rendida'] ?? 0) > self::TOPE_VECES_RENDIDA) {
-            $idLibre = CondicionAlumno::where('nombre_condicion', 'Libre')->value('id_condicion');
-
-            if ($idLibre && $idCondicion !== $idLibre) {
-                $idCondicion = $idLibre;
-                $sePasoALibre = true;
-            }
-        }
-
+        [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
-            return back()->withErrors([
-                'nota_cursada' => 'No se puede guardar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.',
-            ])->withInput();
-        }
-
-        if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
-            return back()->withErrors([
-                'nota_cursada' => 'No se puede guardar la materia como Libre con una nota de aprobación (4 o más).',
-            ])->withInput();
+        if ($error = $this->validarReglasNota($condicionNombre, $data['nota_cursada'] ?? null)) {
+            return back()->withErrors(['nota_cursada' => $error])->withInput();
         }
 
         $historial->update([
@@ -192,5 +156,51 @@ class HistorialPrevioController extends Controller
 
         return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $request->query('busqueda')])
             ->with('status', 'Se eliminó la materia del historial.');
+    }
+
+    /**
+     * Con más de 3 veces rendidas, la materia queda libre automáticamente
+     * sin importar qué condición haya tildado secretaría.
+     *
+     * @return array{0: int, 1: bool} [id_condicion final, si se forzó a Libre]
+     */
+    private function resolverCondicion(int $idCondicion, ?int $vecesRendida): array
+    {
+        if ((int) $vecesRendida > self::TOPE_VECES_RENDIDA) {
+            $idLibre = CondicionAlumno::where('nombre_condicion', 'Libre')->value('id_condicion');
+
+            if ($idLibre && $idCondicion !== $idLibre) {
+                return [$idLibre, true];
+            }
+        }
+
+        return [$idCondicion, false];
+    }
+
+    /**
+     * Devuelve el mensaje de error si la nota no corresponde a la condición
+     * final, o null si está todo bien.
+     */
+    private function validarReglasNota(?string $condicionNombre, ?int $nota): ?string
+    {
+        if (in_array($condicionNombre, self::SIN_NOTA, true) && $nota !== null) {
+            return "Una materia en condición \"{$condicionNombre}\" no puede llevar nota final. Si el alumno ya aprobó el examen, cambiá la condición a \"Examen Final\".";
+        }
+
+        if (CondicionAlumno::esAprobada($condicionNombre)) {
+            if ($nota === null) {
+                return "Para guardar la materia como \"{$condicionNombre}\" hace falta completar la nota.";
+            }
+
+            if ($nota < 4) {
+                return 'No se puede cargar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.';
+            }
+        }
+
+        if ($condicionNombre === 'Libre' && $nota !== null && $nota >= 4) {
+            return 'No se puede cargar la materia como Libre con una nota de aprobación (4 o más).';
+        }
+
+        return null;
     }
 }

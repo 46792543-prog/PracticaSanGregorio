@@ -73,15 +73,22 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Condición:</label>
-                        <select name="id_condicion" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                            @foreach ($condiciones as $condicion)
-                                <option value="{{ $condicion->id_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                            @endforeach
+                        <select name="id_condicion" required data-selector-condicion class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                            <optgroup label="En curso">
+                                @foreach ($condiciones->whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Libre']) as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </optgroup>
+                            <optgroup label="Aprobación definitiva">
+                                @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </optgroup>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nota (opcional):</label>
-                        <input type="number" step="0.01" min="1" max="10" name="nota_cursada"
+                    <div data-campo-nota>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nota (entre 1 y 10, sin decimales):</label>
+                        <input type="number" step="1" min="1" max="10" name="nota_cursada" data-input-nota
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div>
@@ -97,7 +104,7 @@
                 </div>
 
                 <p class="text-xs text-slate-400 mb-4">
-                    No se puede guardar como "Promocionada", "Examen Final" o "Equivalencia" con nota menor a 4, ni como "Libre" con nota de 4 o más. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
+                    Mientras la materia está "en curso" (Pendiente, Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
                 </p>
 
                 <div class="flex justify-end">
@@ -138,14 +145,21 @@
                                 </select>
                             </td>
                             <td class="px-6 py-3">
-                                <select form="{{ $formId }}" name="id_condicion" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-                                    @foreach ($condiciones as $condicion)
-                                        <option value="{{ $condicion->id_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
-                                    @endforeach
+                                <select form="{{ $formId }}" name="id_condicion" data-selector-condicion class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    <optgroup label="En curso">
+                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Libre']) as $condicion)
+                                            <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                    <optgroup label="Aprobación definitiva">
+                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
+                                            <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
+                                        @endforeach
+                                    </optgroup>
                                 </select>
                             </td>
-                            <td class="px-6 py-3">
-                                <input form="{{ $formId }}" type="number" step="0.01" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}"
+                            <td class="px-6 py-3" data-campo-nota>
+                                <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}" data-input-nota
                                        class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
                             </td>
                             <td class="px-6 py-3">
@@ -194,6 +208,35 @@
                 opcion.textContent = materia.nombre;
                 selectMateria.appendChild(opcion);
             });
+        });
+
+        // Según la condición elegida, la nota se oculta (en curso), se pide
+        // obligatoria (aprobación definitiva) o queda opcional (Libre).
+        const SIN_NOTA = ['Pendiente', 'Cursando', 'Regular'];
+
+        function actualizarCampoNota(selectCondicion) {
+            const contenedor = selectCondicion.closest('tr') || selectCondicion.closest('form');
+            const campoNota = contenedor?.querySelector('[data-campo-nota]');
+            const inputNota = contenedor?.querySelector('[data-input-nota]');
+            if (!campoNota || !inputNota) return;
+
+            const nombreCondicion = selectCondicion.selectedOptions[0]?.dataset.nombre;
+
+            if (SIN_NOTA.includes(nombreCondicion)) {
+                campoNota.classList.add('hidden');
+                inputNota.value = '';
+                inputNota.required = false;
+                inputNota.disabled = true;
+            } else {
+                campoNota.classList.remove('hidden');
+                inputNota.disabled = false;
+                inputNota.required = nombreCondicion !== 'Libre';
+            }
+        }
+
+        document.querySelectorAll('[data-selector-condicion]').forEach((select) => {
+            actualizarCampoNota(select);
+            select.addEventListener('change', () => actualizarCampoNota(select));
         });
     </script>
 @endsection
