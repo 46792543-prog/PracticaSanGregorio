@@ -152,6 +152,35 @@ class ProfesorController extends Controller
             'dias.*' => ['in:Lunes,Martes,Miercoles,Jueves,Viernes'],
         ]);
 
+        $idAsignacionActual = AsignacionProfesorMateria::where([
+            'id_profesor' => $data['id_profesor'],
+            'id_materia' => $data['id_materia'],
+            'id_anio_lectivo' => $data['id_anio_lectivo'],
+        ])->value('id_asignacion');
+
+        // Un profesor no puede dar dos materias el mismo día en horarios que se pisan.
+        $conflicto = HorarioAsignacion::whereIn('dia_semana', $data['dias'])
+            ->where('hora_desde', '<', $data['hora_fin'])
+            ->where('hora_fin', '>', $data['hora_inicio'])
+            ->whereHas('asignacion', function ($q) use ($data, $idAsignacionActual) {
+                $q->where('id_profesor', $data['id_profesor'])
+                    ->where('id_anio_lectivo', $data['id_anio_lectivo']);
+
+                if ($idAsignacionActual) {
+                    $q->where('id_asignacion', '!=', $idAsignacionActual);
+                }
+            })
+            ->with('asignacion.materia')
+            ->first();
+
+        if ($conflicto) {
+            $materiaConflicto = $conflicto->asignacion->materia->nombre;
+
+            return back()->withErrors([
+                'hora_inicio' => "El profesor ya tiene asignada \"{$materiaConflicto}\" el {$conflicto->dia_semana} de {$conflicto->hora_desde} a {$conflicto->hora_fin}, y se superpone con este horario.",
+            ])->withInput();
+        }
+
         $asignacion = AsignacionProfesorMateria::updateOrCreate(
             [
                 'id_profesor' => $data['id_profesor'],
