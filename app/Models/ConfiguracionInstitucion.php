@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class ConfiguracionInstitucion extends Model
 {
@@ -35,8 +36,17 @@ class ConfiguracionInstitucion extends Model
         return $this->belongsTo(Persona::class, 'id_secretario_modifica', 'id_persona');
     }
 
+    /**
+     * URL del logo, o null si no hay uno cargado o si el archivo no está en esta máquina
+     * (ej. una base importada de otra compu): así se muestra el escudo por defecto en vez
+     * de una imagen rota.
+     */
     public function getLogoUrlAttribute(): ?string
     {
-        return $this->logo_path ? asset('storage/'.$this->logo_path) : null;
+        if (! $this->logo_path || ! Storage::disk('public')->exists($this->logo_path)) {
+            return null;
+        }
+
+        return asset('storage/'.$this->logo_path);
     }
 }
