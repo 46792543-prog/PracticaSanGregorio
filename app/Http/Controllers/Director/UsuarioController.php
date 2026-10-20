@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class UsuarioController extends Controller
 {
-    private const ROLES_STAFF = ['Secretario', 'Director'];
+    private const ROLES_STAFF = ['Secretario', 'Secretario Administrativo', 'Director'];
 
     public function index(): View
     {

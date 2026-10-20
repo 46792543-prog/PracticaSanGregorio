@@ -219,7 +219,7 @@
 .landing-hero__decoracion { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .landing-burbuja {
     position: absolute; border-radius: 50%; filter: blur(45px); opacity: .3;
-    animation: landing-burbuja-flotar 15s ease-in-out infinite;
+    /* Fijas: animar un elemento con filter: blur obliga a recalcular el desenfoque en cada cuadro */
 }
 .landing-flotar-icono { position: absolute; color: rgba(255,255,255,.4); animation: landing-flotar 6s ease-in-out infinite; }
 .landing-flotar-icono--amarillo { color: rgba(255,213,84,.55); }
@@ -379,7 +379,6 @@
 @keyframes landing-brillo { 0%, 45% { transform: translateX(-130%); } 65%, 100% { transform: translateX(130%); } }
 @keyframes landing-degradado { to { background-position: 220% center; } }
 @keyframes landing-flotar { 0%, 100% { transform: translateY(0) rotate(var(--landing-rot, 0deg)); } 50% { transform: translateY(-18px) rotate(var(--landing-rot, 0deg)); } }
-@keyframes landing-burbuja-flotar { 0%, 100% { transform: translate(0,0) scale(1); } 33% { transform: translate(26px,-24px) scale(1.08); } 66% { transform: translate(-20px,18px) scale(.95); } }
 @keyframes landing-ecg-mover { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes landing-icono-pulso { 0% { box-shadow: 0 0 0 0 rgba(79,195,247,.45); } 70% { box-shadow: 0 0 0 12px rgba(79,195,247,0); } 100% { box-shadow: 0 0 0 0 rgba(79,195,247,0); } }
 @keyframes landing-icono-pulso-amarillo { 0% { box-shadow: 0 0 0 0 rgba(255,193,7,.45); } 70% { box-shadow: 0 0 0 12px rgba(255,193,7,0); } 100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); } }

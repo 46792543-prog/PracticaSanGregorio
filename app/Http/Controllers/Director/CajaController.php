@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Director;
 use App\Exports\CajaExport;
 use App\Http\Controllers\Controller;
 use App\Models\ConceptoCaja;
+use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
 use App\Models\TipoMovimiento;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -81,7 +82,8 @@ class CajaController extends Controller
             'fecha_movimiento' => ['required', 'date'],
         ]);
 
-        $tipoEgreso = TipoMovimiento::where('nombre_tipo', 'Egreso')->firstOrFail();
+        $tipoEgreso = TipoMovimiento::firstOrCreate(['nombre_tipo' => 'Egreso']);
+        $medioPago = MedioPago::firstOrCreate(['nombre_medio' => 'Efectivo']);
 
         $concepto = ConceptoCaja::firstOrCreate(
             ['nombre_concepto' => $data['concepto']],
@@ -93,6 +95,7 @@ class CajaController extends Controller
             'monto' => $data['monto'],
             'fecha_movimiento' => $data['fecha_movimiento'],
             'id_secretario_registra' => Auth::user()->id_persona,
+            'id_medio_pago' => $medioPago->id_medio_pago,
         ]);
 
         return back()->with('status', 'Gasto registrado correctamente en el Libro de Caja.');

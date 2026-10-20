@@ -29,7 +29,7 @@
                         <td class="px-6 py-3.5 text-slate-500">{{ $usuario->persona->dni }}</td>
                         <td class="px-6 py-3.5 text-slate-500">{{ $usuario->email }}</td>
                         <td class="px-6 py-3.5">
-                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $usuario->rol->nombre_rol === 'Director' ? 'bg-[#1E4D8C]/10 text-[#1E4D8C]' : 'bg-amber-50 text-amber-700' }}">
+                            <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ match ($usuario->rol->nombre_rol) { 'Director' => 'bg-[#1E4D8C]/10 text-[#1E4D8C]', 'Secretario Administrativo' => 'bg-sky-50 text-sky-700', default => 'bg-amber-50 text-amber-700' } }}">
                                 {{ $usuario->rol->nombre_rol }}
                             </span>
                         </td>

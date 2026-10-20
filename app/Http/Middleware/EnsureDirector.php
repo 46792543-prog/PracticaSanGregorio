@@ -12,7 +12,7 @@ class EnsureDirector
     {
         $usuario = $request->user();
 
-        if (! $usuario?->esDirector()) {
+        if (! $usuario?->accedeADireccion()) {
             abort_unless($usuario && $request->isMethod('GET'), 403);
 
             // Entró escribiendo la URL de un panel que no le corresponde:

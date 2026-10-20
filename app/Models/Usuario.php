@@ -16,11 +16,15 @@ class Usuario extends Authenticatable
     protected $primaryKey = 'id_usuario';
 
     protected $fillable = [
-        'id_persona', 'email', 'password', 'id_rol', 'id_estado',
+        'id_persona', 'email', 'password', 'debe_cambiar_clave', 'id_rol', 'id_estado',
     ];
 
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'debe_cambiar_clave' => 'boolean',
     ];
 
     public function persona()
@@ -91,14 +95,20 @@ class Usuario extends Authenticatable
 
     public function esStaff(): bool
     {
-        return in_array($this->rol?->nombre_rol, ['Secretario', 'Director'], true);
+        return in_array($this->rol?->nombre_rol, ['Secretario', 'Secretario Administrativo', 'Director'], true);
+    }
+
+    /** Director y secretario administrativo: entran al panel de dirección además del de secretaría. */
+    public function accedeADireccion(): bool
+    {
+        return in_array($this->rol?->nombre_rol, ['Secretario Administrativo', 'Director'], true);
     }
 
     /** Panel al que va cada usuario al iniciar sesión (o si intenta entrar a uno que no le corresponde). */
     public function rutaInicio(): string
     {
         return match (true) {
-            $this->esDirector() => route('director.panel.index'),
+            $this->accedeADireccion() => route('director.panel.index'),
             $this->esStaff() => route('admin.panel.index'),
             default => route('panel.index'),
         };

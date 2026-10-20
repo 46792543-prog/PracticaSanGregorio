@@ -6,7 +6,13 @@
 --}}
 @php
     $direccionMapa = $config?->direccion ?: 'Pedro Goyena 33, Y4500 San Pedro de Jujuy, Jujuy';
-    $urlMapa = 'https://www.google.com/maps?q=' . urlencode(($config?->nombre_institucion ?? 'Instituto Superior San Gregorio') . ', ' . $direccionMapa) . '&output=embed';
+    // Si la dirección son coordenadas copiadas de Google Maps (ej. "-24.2311, -64.8669"), el mapa marca
+    // ese punto exacto; si es una dirección escrita, se busca junto con el nombre de la institución.
+    $esCoordenada = (bool) preg_match('/^\s*-?\d{1,2}\.\d+\s*,\s*-?\d{1,3}\.\d+\s*$/', $direccionMapa);
+    $busquedaMapa = $esCoordenada
+        ? preg_replace('/\s+/', '', $direccionMapa)
+        : ($config?->nombre_institucion ?? 'Instituto Superior San Gregorio') . ', ' . $direccionMapa;
+    $urlMapa = 'https://www.google.com/maps?q=' . urlencode($busquedaMapa) . '&output=embed';
     $datosUbicacion = [
         ['icono' => 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z|M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z', 'etq' => 'Dirección', 'valor' => $direccionMapa],
         ['icono' => 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z', 'etq' => 'Teléfono', 'valor' => $config?->telefono_contacto ?: '(388) 000-0000'],
@@ -45,7 +51,7 @@
                         </div>
                     </div>
                 @endforeach
-                <a href="{{ 'https://www.google.com/maps/search/' . urlencode($direccionMapa) }}" target="_blank" rel="noopener" class="landing-btn landing-btn--outline-azul" style="justify-self:start;">
+                <a href="{{ 'https://www.google.com/maps/search/?api=1&query=' . urlencode($esCoordenada ? $busquedaMapa : $direccionMapa) }}" target="_blank" rel="noopener" class="landing-btn landing-btn--outline-azul" style="justify-self:start;">
                     Cómo llegar →
                 </a>
             </div>

@@ -16,9 +16,11 @@ class AnioLectivoController extends Controller
             'anio' => ['required', 'integer', 'digits:4', 'min:2000', 'max:2100', 'unique:anio_lectivo,anio'],
         ]);
 
+        $estadoActivo = EstadoAnioLectivo::firstOrCreate(['nombre_estado' => 'Activo']);
+
         AnioLectivo::create([
             'anio' => $data['anio'],
-            'id_estado_anio' => EstadoAnioLectivo::where('nombre_estado', 'Activo')->value('id_estado_anio'),
+            'id_estado_anio' => $estadoActivo->id_estado_anio,
         ]);
 
         return redirect()->route('director.configuracion.index')
@@ -27,10 +29,12 @@ class AnioLectivoController extends Controller
 
     public function actualizarEstado(AnioLectivo $anio): RedirectResponse
     {
-        $nuevoEstado = $anio->estadoAnio->nombre_estado === 'Activo' ? 'Cerrado' : 'Activo';
+        $estadoActual = $anio->estadoAnio()->firstOrFail();
+        $nuevoEstado = $estadoActual->nombre_estado === 'Activo' ? 'Cerrado' : 'Activo';
+        $estado = EstadoAnioLectivo::firstOrCreate(['nombre_estado' => $nuevoEstado]);
 
         $anio->update([
-            'id_estado_anio' => EstadoAnioLectivo::where('nombre_estado', $nuevoEstado)->value('id_estado_anio'),
+            'id_estado_anio' => $estado->id_estado_anio,
         ]);
 
         return redirect()->route('director.configuracion.index')

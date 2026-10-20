@@ -68,5 +68,6 @@ class Kernel extends HttpKernel
         'staff' => \App\Http\Middleware\EnsureStaff::class,
         'director' => \App\Http\Middleware\EnsureDirector::class,
         'alumno' => \App\Http\Middleware\EnsureAlumno::class,
+        'clave.cambiada' => \App\Http\Middleware\EnsureClaveCambiada::class,
     ];
 }
