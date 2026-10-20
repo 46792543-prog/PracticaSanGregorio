@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ClaveInicialMail;
 use App\Models\AnioCursada;
 use App\Models\AnioLectivo;
 use App\Models\Carrera;
@@ -22,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -241,6 +243,7 @@ class AlumnoController extends Controller
             'id_persona' => $persona->id_persona,
             'email' => $personales['email'],
             'password' => Hash::make($clave),
+            'debe_cambiar_clave' => true,
             'id_rol' => Rol::where('nombre_rol', 'Alumno')->value('id_rol'),
             'id_estado' => EstadoUsuario::where('nombre_estado', 'Activo')->value('id_estado'),
         ]);
@@ -258,8 +261,18 @@ class AlumnoController extends Controller
 
         session()->forget(self::SESSION_KEY);
 
+        // Si el correo falla (ej. servidor de mail caído) el alumno igual queda
+        // registrado: la secretaría ve la clave en pantalla y se la entrega.
+        try {
+            Mail::to($personales['email'])->send(new ClaveInicialMail($persona->nombre, $personales['email'], $clave));
+            $aviso = "Se envió la clave inicial a {$personales['email']}.";
+        } catch (\Throwable $e) {
+            report($e);
+            $aviso = 'No se pudo enviar el mail: entregale la clave al alumno.';
+        }
+
         return redirect()->route('admin.alumnos.show', $persona)
-            ->with('status', "Alumno registrado correctamente. Clave inicial: {$clave}");
+            ->with('status', "Alumno registrado correctamente. Clave inicial: {$clave}. {$aviso}");
     }
 
     public function baja(Request $request, Persona $persona): RedirectResponse
