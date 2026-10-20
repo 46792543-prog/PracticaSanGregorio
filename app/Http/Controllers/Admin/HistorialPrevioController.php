@@ -42,9 +42,12 @@ class HistorialPrevioController extends Controller
                 ->get()
             : collect();
 
+        $anioIngreso = $alumno?->inscripcionesCarrera->sortBy('id_inscripcion_carrera')->first()?->anioLectivo?->anio;
+
         return view('admin.alumnos.historial-cargar', [
             'busqueda' => $busqueda,
             'alumno' => $alumno,
+            'anioIngreso' => $anioIngreso,
             'carreras' => Carrera::with(['materias' => fn ($q) => $q->where('activa', true)->with(['nombreMateria', 'anioCursada'])])
                 ->orderBy('nombre_carrera')
                 ->get(),

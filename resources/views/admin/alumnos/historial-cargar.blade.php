@@ -30,7 +30,12 @@
             </div>
             <button type="submit" class="rounded-xl bg-[#1E4D8C] shadow-sm hover:shadow-md hover:bg-[#173d70] transition text-white font-semibold text-sm px-6 py-2.5">Buscar</button>
             @if ($alumno)
-                <span class="text-sm text-slate-600 pb-2.5">Alumno: <strong>{{ $alumno->apellido }}, {{ $alumno->nombre }}</strong> (DNI {{ $alumno->dni }})</span>
+                <span class="text-sm text-slate-600 pb-2.5">
+                    Alumno: <strong>{{ $alumno->apellido }}, {{ $alumno->nombre }}</strong> (DNI {{ $alumno->dni }})
+                    @if ($anioIngreso)
+                        — Ingresó en {{ $anioIngreso }}
+                    @endif
+                </span>
             @elseif ($busqueda)
                 <span class="text-sm text-red-600 pb-2.5">No se encontró ningún alumno inscripto que coincida con "{{ $busqueda }}".</span>
             @endif
@@ -64,7 +69,8 @@
                     </div>
                 </div>
 
-                <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                {{-- Datos siempre visibles, en posición fija --}}
+                <div class="grid sm:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Año lectivo:</label>
                         <select name="id_anio_lectivo" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
@@ -88,6 +94,17 @@
                             </optgroup>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Fecha:</label>
+                        <input type="date" name="fecha_ultima_modificacion" value="{{ now()->format('Y-m-d') }}" required
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                    </div>
+                </div>
+
+                {{-- Datos que dependen de la condición elegida: siempre en la misma
+                     posición (se ocultan sin visibilidad, no sin espacio) para que
+                     no "salten" de lugar al cambiar de condición. --}}
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div data-campo-nota>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Nota (entre 1 y 10, sin decimales):</label>
                         <input type="number" step="1" min="1" max="10" name="nota_cursada" data-input-nota
@@ -98,7 +115,7 @@
                         <input type="number" step="1" min="1" max="10" name="veces_rendida" data-input-veces
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
-                    <div data-campo-equivalencia class="sm:col-span-2 lg:col-span-2">
+                    <div data-campo-equivalencia>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Institución de origen (equivalencia):</label>
                         <input type="text" name="institucion_equivalencia" data-input-equivalencia maxlength="255"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
@@ -106,11 +123,6 @@
                     <div data-campo-equivalencia>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">N° de resolución (equivalencia):</label>
                         <input type="text" name="resolucion_equivalencia" data-input-equivalencia maxlength="255"
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Fecha:</label>
-                        <input type="date" name="fecha_ultima_modificacion" value="{{ now()->format('Y-m-d') }}" required
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                 </div>
@@ -296,16 +308,21 @@
             const nombreCondicion = selectCondicion.selectedOptions[0]?.dataset.nombre;
             const esEquivalencia = nombreCondicion === 'Equivalencia';
 
+            // visibility (no display:none) a propósito: así el campo deja de
+            // verse pero sigue ocupando su lugar en la grilla, y el resto de
+            // los campos no cambia de posición cada vez que cambia la condición.
+            // Se pisa el estilo directo (no una clase) para no depender de que
+            // el CSS de Tailwind ya esté recompilado con esa clase.
             const campoNota = contenedor.querySelector('[data-campo-nota]');
             const inputNota = contenedor.querySelector('[data-input-nota]');
             if (campoNota && inputNota) {
                 if (SIN_NOTA.includes(nombreCondicion)) {
-                    campoNota.classList.add('hidden');
+                    campoNota.style.visibility = 'hidden';
                     inputNota.value = '';
                     inputNota.required = false;
                     inputNota.disabled = true;
                 } else {
-                    campoNota.classList.remove('hidden');
+                    campoNota.style.visibility = '';
                     inputNota.disabled = false;
                     inputNota.required = nombreCondicion !== 'Libre';
                 }
@@ -315,11 +332,11 @@
             const inputVeces = contenedor.querySelector('[data-input-veces]');
             if (campoVeces && inputVeces) {
                 if (esEquivalencia) {
-                    campoVeces.classList.add('hidden');
+                    campoVeces.style.visibility = 'hidden';
                     inputVeces.value = '';
                     inputVeces.disabled = true;
                 } else {
-                    campoVeces.classList.remove('hidden');
+                    campoVeces.style.visibility = '';
                     inputVeces.disabled = false;
                 }
             }
@@ -327,13 +344,13 @@
             contenedor.querySelectorAll('[data-campo-equivalencia]').forEach((campo) => {
                 const inputEquivalencia = campo.querySelector('[data-input-equivalencia]');
                 if (esEquivalencia) {
-                    campo.classList.remove('hidden');
+                    campo.style.visibility = '';
                     if (inputEquivalencia) {
                         inputEquivalencia.disabled = false;
                         inputEquivalencia.required = true;
                     }
                 } else {
-                    campo.classList.add('hidden');
+                    campo.style.visibility = 'hidden';
                     if (inputEquivalencia) {
                         inputEquivalencia.value = '';
                         inputEquivalencia.disabled = true;
