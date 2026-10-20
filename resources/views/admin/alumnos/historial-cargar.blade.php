@@ -75,7 +75,7 @@
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Condición:</label>
                         <select name="id_condicion" required data-selector-condicion class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                             <optgroup label="En curso">
-                                @foreach ($condiciones->whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Libre']) as $condicion)
+                                @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
                                     <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
                                 @endforeach
                             </optgroup>
@@ -91,9 +91,19 @@
                         <input type="number" step="1" min="1" max="10" name="nota_cursada" data-input-nota
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
-                    <div>
+                    <div data-campo-veces>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Veces rendida (opcional):</label>
-                        <input type="number" min="0" max="50" name="veces_rendida"
+                        <input type="number" min="0" max="50" name="veces_rendida" data-input-veces
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                    </div>
+                    <div data-campo-equivalencia class="sm:col-span-2 lg:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Institución de origen (equivalencia):</label>
+                        <input type="text" name="institucion_equivalencia" data-input-equivalencia maxlength="255"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
+                    </div>
+                    <div data-campo-equivalencia>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">N° de resolución (equivalencia):</label>
+                        <input type="text" name="resolucion_equivalencia" data-input-equivalencia maxlength="255"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                     </div>
                     <div>
@@ -104,7 +114,7 @@
                 </div>
 
                 <p class="text-xs text-slate-400 mb-4">
-                    Mientras la materia está "en curso" (Pendiente, Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
+                    Mientras la materia está "en curso" (Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Una "Equivalencia" además pide institución de origen y número de resolución, y no lleva veces rendida. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
                 </p>
 
                 <div class="flex justify-end">
@@ -124,6 +134,8 @@
                         <th class="px-6 py-3">Condición</th>
                         <th class="px-6 py-3">Nota</th>
                         <th class="px-6 py-3">Veces rendida</th>
+                        <th class="px-6 py-3">Institución (equivalencia)</th>
+                        <th class="px-6 py-3">N° resolución (equivalencia)</th>
                         <th class="px-6 py-3"></th>
                     </tr>
                 </thead>
@@ -147,7 +159,7 @@
                             <td class="px-6 py-3">
                                 <select form="{{ $formId }}" name="id_condicion" data-selector-condicion class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
                                     <optgroup label="En curso">
-                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Pendiente', 'Cursando', 'Regular', 'Libre']) as $condicion)
+                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
                                             <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
                                         @endforeach
                                     </optgroup>
@@ -158,13 +170,29 @@
                                     </optgroup>
                                 </select>
                             </td>
-                            <td class="px-6 py-3" data-campo-nota>
-                                <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}" data-input-nota
-                                       class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                            <td class="px-6 py-3">
+                                <div data-campo-nota>
+                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}" data-input-nota
+                                           class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </div>
                             </td>
                             <td class="px-6 py-3">
-                                <input form="{{ $formId }}" type="number" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}"
-                                       class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                <div data-campo-veces>
+                                    <input form="{{ $formId }}" type="number" min="0" max="50" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
+                                           class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <div data-campo-equivalencia>
+                                    <input form="{{ $formId }}" type="text" name="institucion_equivalencia" value="{{ $item->institucion_equivalencia }}" data-input-equivalencia maxlength="255"
+                                           class="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <div data-campo-equivalencia>
+                                    <input form="{{ $formId }}" type="text" name="resolucion_equivalencia" value="{{ $item->resolucion_equivalencia }}" data-input-equivalencia maxlength="255"
+                                           class="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </div>
                             </td>
                             <td class="px-6 py-3 text-right whitespace-nowrap">
                                 <button form="{{ $formId }}" type="submit" class="text-[#1E4D8C] hover:underline font-semibold text-xs">Guardar</button>
@@ -173,7 +201,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
+                            <td colspan="8" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -210,33 +238,68 @@
             });
         });
 
-        // Según la condición elegida, la nota se oculta (en curso), se pide
-        // obligatoria (aprobación definitiva) o queda opcional (Libre).
-        const SIN_NOTA = ['Pendiente', 'Cursando', 'Regular'];
+        // Según la condición elegida: la nota se oculta en curso, se pide
+        // obligatoria en una aprobación definitiva y queda opcional en Libre.
+        // Una Equivalencia no lleva veces rendida, pero sí institución y resolución.
+        const SIN_NOTA = ['Cursando', 'Regular'];
 
-        function actualizarCampoNota(selectCondicion) {
+        function actualizarCamposPorCondicion(selectCondicion) {
             const contenedor = selectCondicion.closest('tr') || selectCondicion.closest('form');
-            const campoNota = contenedor?.querySelector('[data-campo-nota]');
-            const inputNota = contenedor?.querySelector('[data-input-nota]');
-            if (!campoNota || !inputNota) return;
+            if (!contenedor) return;
 
             const nombreCondicion = selectCondicion.selectedOptions[0]?.dataset.nombre;
+            const esEquivalencia = nombreCondicion === 'Equivalencia';
 
-            if (SIN_NOTA.includes(nombreCondicion)) {
-                campoNota.classList.add('hidden');
-                inputNota.value = '';
-                inputNota.required = false;
-                inputNota.disabled = true;
-            } else {
-                campoNota.classList.remove('hidden');
-                inputNota.disabled = false;
-                inputNota.required = nombreCondicion !== 'Libre';
+            const campoNota = contenedor.querySelector('[data-campo-nota]');
+            const inputNota = contenedor.querySelector('[data-input-nota]');
+            if (campoNota && inputNota) {
+                if (SIN_NOTA.includes(nombreCondicion)) {
+                    campoNota.classList.add('hidden');
+                    inputNota.value = '';
+                    inputNota.required = false;
+                    inputNota.disabled = true;
+                } else {
+                    campoNota.classList.remove('hidden');
+                    inputNota.disabled = false;
+                    inputNota.required = nombreCondicion !== 'Libre';
+                }
             }
+
+            const campoVeces = contenedor.querySelector('[data-campo-veces]');
+            const inputVeces = contenedor.querySelector('[data-input-veces]');
+            if (campoVeces && inputVeces) {
+                if (esEquivalencia) {
+                    campoVeces.classList.add('hidden');
+                    inputVeces.value = '';
+                    inputVeces.disabled = true;
+                } else {
+                    campoVeces.classList.remove('hidden');
+                    inputVeces.disabled = false;
+                }
+            }
+
+            contenedor.querySelectorAll('[data-campo-equivalencia]').forEach((campo) => {
+                const inputEquivalencia = campo.querySelector('[data-input-equivalencia]');
+                if (esEquivalencia) {
+                    campo.classList.remove('hidden');
+                    if (inputEquivalencia) {
+                        inputEquivalencia.disabled = false;
+                        inputEquivalencia.required = true;
+                    }
+                } else {
+                    campo.classList.add('hidden');
+                    if (inputEquivalencia) {
+                        inputEquivalencia.value = '';
+                        inputEquivalencia.disabled = true;
+                        inputEquivalencia.required = false;
+                    }
+                }
+            });
         }
 
         document.querySelectorAll('[data-selector-condicion]').forEach((select) => {
-            actualizarCampoNota(select);
-            select.addEventListener('change', () => actualizarCampoNota(select));
+            actualizarCamposPorCondicion(select);
+            select.addEventListener('change', () => actualizarCamposPorCondicion(select));
         });
     </script>
 @endsection

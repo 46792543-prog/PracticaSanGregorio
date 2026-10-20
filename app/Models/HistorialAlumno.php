@@ -18,6 +18,8 @@ class HistorialAlumno extends Model
         'id_condicion',
         'nota_cursada',
         'veces_rendida',
+        'institucion_equivalencia',
+        'resolucion_equivalencia',
         'fecha_ultima_modificacion',
         'anios_plazo_regularidad',
     ];

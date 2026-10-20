@@ -183,6 +183,14 @@
                                     @if ($condicionNombre === 'Regular' && $historial->fecha_limite_calculada)
                                         <p class="text-[11px] text-slate-400 mt-1">{{ $historial->regularidad_vencida ? 'venció el' : 'vence' }} {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }}</p>
                                     @endif
+                                    @if ($condicionNombre === 'Equivalencia' && ($historial->institucion_equivalencia || $historial->resolucion_equivalencia))
+                                        <p class="text-[11px] text-slate-400 mt-1">
+                                            {{ $historial->institucion_equivalencia ?: '—' }}
+                                            @if ($historial->resolucion_equivalencia)
+                                                · Res. {{ $historial->resolucion_equivalencia }}
+                                            @endif
+                                        </p>
+                                    @endif
                                 </td>
                                 <td class="sg-num font-semibold text-slate-700">{{ $historial->nota_cursada ?? '—' }}</td>
                                 <td class="text-slate-500">{{ $aprobada && $historial->fecha_ultima_modificacion ? \App\Support\FechaEsp::corta($historial->fecha_ultima_modificacion) : '—' }}</td>

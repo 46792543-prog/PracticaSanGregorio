@@ -16,10 +16,10 @@ use Illuminate\View\View;
 class HistorialPrevioController extends Controller
 {
     private const TOPE_VECES_RENDIDA = 3;
-    private const CONDICIONES_DISPONIBLES = ['Pendiente', 'Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre'];
+    private const CONDICIONES_DISPONIBLES = ['Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre'];
 
     // Condiciones "en curso": todavía no hay una nota final que cargar.
-    private const SIN_NOTA = ['Pendiente', 'Cursando', 'Regular'];
+    private const SIN_NOTA = ['Cursando', 'Regular'];
 
     public function index(Request $request): View
     {
@@ -71,6 +71,8 @@ class HistorialPrevioController extends Controller
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
             'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
             'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'institucion_equivalencia' => ['nullable', 'string', 'max:255'],
+            'resolucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'fecha_ultima_modificacion' => ['required', 'date'],
             'busqueda_actual' => ['nullable', 'string'],
         ], [
@@ -85,13 +87,19 @@ class HistorialPrevioController extends Controller
             return back()->withErrors(['nota_cursada' => $error])->withInput();
         }
 
+        if ($error = $this->validarCamposEquivalencia($condicionNombre, $data['institucion_equivalencia'] ?? null, $data['resolucion_equivalencia'] ?? null)) {
+            return back()->withErrors(['institucion_equivalencia' => $error])->withInput();
+        }
+
         HistorialAlumno::create([
             'id_persona_alumno' => $data['id_persona_alumno'],
             'id_materia' => $data['id_materia'],
             'id_anio_lectivo' => $data['id_anio_lectivo'],
             'id_condicion' => $idCondicion,
             'nota_cursada' => $data['nota_cursada'] ?? null,
-            'veces_rendida' => $data['veces_rendida'] ?? null,
+            'veces_rendida' => $condicionNombre === 'Equivalencia' ? null : ($data['veces_rendida'] ?? null),
+            'institucion_equivalencia' => $condicionNombre === 'Equivalencia' ? ($data['institucion_equivalencia'] ?? null) : null,
+            'resolucion_equivalencia' => $condicionNombre === 'Equivalencia' ? ($data['resolucion_equivalencia'] ?? null) : null,
             'fecha_ultima_modificacion' => $data['fecha_ultima_modificacion'],
         ]);
 
@@ -120,6 +128,8 @@ class HistorialPrevioController extends Controller
             'id_condicion' => ['required', Rule::in($condicionesPermitidas)],
             'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
             'veces_rendida' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'institucion_equivalencia' => ['nullable', 'string', 'max:255'],
+            'resolucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'fecha_ultima_modificacion' => ['required', 'date'],
             'busqueda_actual' => ['nullable', 'string'],
         ], [
@@ -134,11 +144,17 @@ class HistorialPrevioController extends Controller
             return back()->withErrors(['nota_cursada' => $error])->withInput();
         }
 
+        if ($error = $this->validarCamposEquivalencia($condicionNombre, $data['institucion_equivalencia'] ?? null, $data['resolucion_equivalencia'] ?? null)) {
+            return back()->withErrors(['institucion_equivalencia' => $error])->withInput();
+        }
+
         $historial->update([
             'id_anio_lectivo' => $data['id_anio_lectivo'],
             'id_condicion' => $idCondicion,
             'nota_cursada' => $data['nota_cursada'] ?? null,
-            'veces_rendida' => $data['veces_rendida'] ?? null,
+            'veces_rendida' => $condicionNombre === 'Equivalencia' ? null : ($data['veces_rendida'] ?? null),
+            'institucion_equivalencia' => $condicionNombre === 'Equivalencia' ? ($data['institucion_equivalencia'] ?? null) : null,
+            'resolucion_equivalencia' => $condicionNombre === 'Equivalencia' ? ($data['resolucion_equivalencia'] ?? null) : null,
             'fecha_ultima_modificacion' => $data['fecha_ultima_modificacion'],
         ]);
 
@@ -199,6 +215,19 @@ class HistorialPrevioController extends Controller
 
         if ($condicionNombre === 'Libre' && $nota !== null && $nota >= 4) {
             return 'No se puede cargar la materia como Libre con una nota de aprobación (4 o más).';
+        }
+
+        return null;
+    }
+
+    /**
+     * Una equivalencia tiene que decir de qué institución viene y con qué
+     * resolución se reconoció, además de la nota (ya validada aparte).
+     */
+    private function validarCamposEquivalencia(?string $condicionNombre, ?string $institucion, ?string $resolucion): ?string
+    {
+        if ($condicionNombre === 'Equivalencia' && (! $institucion || ! $resolucion)) {
+            return 'Para guardar la materia como "Equivalencia" hace falta indicar la institución de origen y el número de resolución.';
         }
 
         return null;
