@@ -84,7 +84,7 @@
                     </div>
 
                     <div class="relative">
-                        <input id="buscar-requisito" type="search" placeholder="Agregar materia requerida..." autocomplete="off" class="sg-input w-full" disabled>
+                        <input id="buscar-requisito" type="search" placeholder="Tildá las materias requeridas (podés buscar)..." autocomplete="off" class="sg-input w-full" disabled>
                         <div id="lista-requisito" role="listbox" class="absolute z-30 mt-1 hidden max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg"></div>
                     </div>
 
@@ -110,14 +110,14 @@
         </div>
 
         {{-- ====================== Matriz ====================== --}}
-        <div class="sg-card xl:col-span-3 overflow-hidden">
+        <div id="tarjeta-matriz" class="sg-card xl:col-span-3 overflow-hidden flex flex-col">
             <div class="sg-card__head">
                 <div class="sg-card__titulo">
                     <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="table" /></span>
                     <div><h3>Matriz de correlatividades</h3><p>Afectan las condiciones de inscripción a examen del alumno</p></div>
                 </div>
             </div>
-            <div id="matriz-correlativas-scroll" class="overflow-x-auto">
+            <div id="matriz-correlativas-scroll" class="overflow-auto flex-1 min-h-0">
                 <table class="sg-tabla">
                     <thead class="sticky top-0 z-10 bg-slate-50">
                         <tr>
@@ -178,11 +178,22 @@
             const INICIAL = @json($inicial);
             const porId = new Map(MATERIAS.map(function (m) { return [String(m.id), m]; }));
 
-            // ---------- Matriz: alto para 3 filas con scroll ----------
+            // ---------- Matriz: mismo alto que el editor (pantallas anchas) ----------
+            // Con el editor al lado, la matriz ocupa exactamente su alto y scrollea por dentro;
+            // en pantallas chicas (una debajo de la otra) muestra 3 filas con scroll.
+            const tarjetaMatriz = document.getElementById('tarjeta-matriz');
+            const editor = document.getElementById('editor-correlativas');
             const matrizScroll = document.getElementById('matriz-correlativas-scroll');
             const filasMatriz = matrizScroll.querySelectorAll('tbody tr');
             const encabezadoMatriz = matrizScroll.querySelector('thead');
+            const pantallaAncha = window.matchMedia('(min-width: 1280px)');
             function ajustarScrollMatriz() {
+                if (pantallaAncha.matches) {
+                    tarjetaMatriz.style.height = editor.offsetHeight + 'px';
+                    matrizScroll.style.maxHeight = '';
+                    return;
+                }
+                tarjetaMatriz.style.height = '';
                 if (filasMatriz.length <= 3) { matrizScroll.style.maxHeight = ''; return; }
                 const alto = encabezadoMatriz.getBoundingClientRect().height
                     + Array.from(filasMatriz).slice(0, 3).reduce(function (t, f) { return t + f.getBoundingClientRect().height; }, 0);
@@ -190,6 +201,8 @@
             }
             ajustarScrollMatriz();
             window.addEventListener('resize', ajustarScrollMatriz);
+            // El editor crece o se achica al agregar/quitar materias: la matriz lo acompaña.
+            if ('ResizeObserver' in window) new ResizeObserver(ajustarScrollMatriz).observe(editor);
 
             // ---------- Editor ----------
             const el = function (id) { return document.getElementById(id); };
@@ -257,12 +270,70 @@
                 buscarRequisito.focus();
             }
 
-            function agregarRequisito(m) {
-                requisitos.push({ id: m.id, cursar: true, rendir: true });
-                buscarRequisito.value = '';
-                listaRequisito.classList.add('hidden');
+            function estaElegida(m) {
+                return requisitos.some(function (r) { return String(r.id) === String(m.id); });
+            }
+
+            // Tilda o destilda una materia requerida sin cerrar la lista, para elegir varias seguidas.
+            function alternarRequisito(m) {
+                if (estaElegida(m)) {
+                    requisitos = requisitos.filter(function (r) { return String(r.id) !== String(m.id); });
+                } else {
+                    requisitos.push({ id: m.id, cursar: true, rendir: true });
+                }
                 render();
-                buscarRequisito.focus();
+                abrirRequisito();
+            }
+
+            // Lista con casillas: muestra todas las materias (menos la destino), filtradas por lo escrito.
+            function abrirRequisito() {
+                const consulta = normalizar(buscarRequisito.value.trim());
+                const scroll = listaRequisito.scrollTop;
+                listaRequisito.replaceChildren();
+
+                MATERIAS.forEach(function (m) {
+                    if (destino && m.id === destino.id) return;
+                    if (consulta && !normalizar(m.orden + ' ' + m.nombre).includes(consulta)) return;
+                    const elegida = estaElegida(m);
+                    const op = crear('button', 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm focus:outline-none '
+                        + (elegida ? 'bg-blue-50 text-[#0B3D91] font-semibold' : 'text-slate-700 hover:bg-slate-50'));
+                    op.type = 'button';
+                    op.setAttribute('role', 'option');
+                    op.setAttribute('aria-selected', elegida ? 'true' : 'false');
+
+                    const casilla = crear('span', 'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] '
+                        + (elegida ? 'border-[#0B3D91] bg-[#0B3D91] text-white' : 'border-slate-300 bg-white'));
+                    if (elegida) {
+                        casilla.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" class="h-3 w-3"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>';
+                    }
+                    op.appendChild(casilla);
+                    op.appendChild(crear('span', 'w-7 shrink-0 text-xs font-bold text-slate-400', '#' + m.orden));
+                    op.appendChild(crear('span', 'min-w-0', m.nombre));
+                    op.addEventListener('click', function () { alternarRequisito(m); });
+                    listaRequisito.appendChild(op);
+                });
+
+                if (!listaRequisito.children.length) {
+                    listaRequisito.appendChild(crear('p', 'px-3 py-2 text-sm text-slate-400', 'No hay materias que coincidan.'));
+                }
+
+                // Pie fijo: cantidad elegida y botón para cerrar la lista
+                const pie = crear('div', 'sticky bottom-0 -mx-1 -mb-1 mt-1 flex items-center justify-between gap-2 border-t border-slate-100 bg-white px-3 py-2');
+                pie.appendChild(crear('span', 'text-xs font-semibold text-slate-500',
+                    requisitos.length + (requisitos.length === 1 ? ' materia elegida' : ' materias elegidas')));
+                const listo = crear('button', 'sg-btn sg-btn--azul sg-btn--chico', 'Listo');
+                listo.type = 'button';
+                listo.dataset.cerrarLista = '';
+                listo.addEventListener('click', function () {
+                    listaRequisito.classList.add('hidden');
+                    buscarRequisito.value = '';
+                    buscarRequisito.blur();
+                });
+                pie.appendChild(listo);
+                listaRequisito.appendChild(pie);
+
+                listaRequisito.classList.remove('hidden');
+                listaRequisito.scrollTop = scroll;
             }
 
             function limpiar() {
@@ -346,7 +417,7 @@
                 const vacio = el('requisitos-vacio');
                 vacio.classList.toggle('hidden', requisitos.length > 0);
                 vacio.textContent = destino
-                    ? 'Todavía no agregaste materias requeridas. Buscalas arriba.'
+                    ? 'Todavía no elegiste materias requeridas. Tildalas en la lista de arriba.'
                     : 'Primero elegí la materia destino; después agregá las materias que necesita.';
 
                 const contador = el('contador-requisitos');
@@ -355,24 +426,23 @@
             }
 
             // ---------- Eventos ----------
-            function excluirRequisito(m) {
-                return (destino && m.id === destino.id) || requisitos.some(function (r) { return String(r.id) === String(m.id); });
-            }
             function abrirDestino() { mostrarOpciones(buscarDestino, listaDestino, function () { return false; }, function (m) { elegirDestino(m, true); }); }
-            function abrirRequisito() { mostrarOpciones(buscarRequisito, listaRequisito, excluirRequisito, agregarRequisito); }
 
             buscarDestino.addEventListener('focus', abrirDestino);
             buscarDestino.addEventListener('input', abrirDestino);
             buscarRequisito.addEventListener('focus', abrirRequisito);
-            buscarRequisito.addEventListener('input', abrirRequisito);
+            buscarRequisito.addEventListener('click', abrirRequisito);
+            buscarRequisito.addEventListener('input', function () { listaRequisito.scrollTop = 0; abrirRequisito(); });
             [buscarDestino, buscarRequisito].forEach(function (input) {
-                input.addEventListener('blur', function () { input.nextElementSibling.classList.add('hidden'); });
+                const lista = input.nextElementSibling;
+                // Hacer clic dentro de la lista (opciones o su barra de scroll) no le saca el foco al buscador.
+                lista.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                input.addEventListener('blur', function () { lista.classList.add('hidden'); });
                 input.addEventListener('keydown', function (e) {
-                    const lista = input.nextElementSibling;
                     if (e.key === 'Escape') { lista.classList.add('hidden'); }
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        const primera = lista.querySelector('button');
+                        const primera = lista.querySelector('button:not([data-cerrar-lista])');
                         if (primera && !lista.classList.contains('hidden')) primera.click();
                     }
                 });
