@@ -27,6 +27,7 @@ class CursadaController extends Controller
         $periodosAbiertos = $anioLectivo && $inscripcionCarrera
             ? PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
                 ->where('id_carrera', $inscripcionCarrera->id_carrera)
+                ->where('id_anio_cursada', $inscripcionCarrera->id_anio_cursada)
                 ->where('abierto', true)
                 ->pluck('id_periodo')
             : collect();
@@ -80,6 +81,7 @@ class CursadaController extends Controller
         $periodoAbierto = PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
             ->where('id_periodo', $materia->id_periodo)
             ->where('id_carrera', $inscripcionCarrera->id_carrera)
+            ->where('id_anio_cursada', $inscripcionCarrera->id_anio_cursada)
             ->where('abierto', true)
             ->exists();
 

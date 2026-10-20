@@ -49,6 +49,9 @@ class Auditor
             'id_usuario' => $usuario->id_usuario,
             'accion' => $accion,
             'tabla' => $model->getTable(),
+            // Los modelos con clave compuesta (ej. Correlativa) devuelven un
+            // array acá — id_registro es una sola columna, así que ahí no
+            // guardamos nada; la clave completa igual queda en la descripción.
             'id_registro' => is_array($clave) ? null : $clave,
             'descripcion' => self::describir($accion, $model, $clave),
             'cambios' => $cambios,
@@ -96,14 +99,10 @@ class Auditor
             'eliminado' => 'Eliminó',
         ][$accion];
 
-        $identificador = is_array($clave)
-            ? implode(', ', array_map(
-                fn ($campo, $valor) => "{$campo}={$valor}",
-                array_keys($clave),
-                $clave
-            ))
+        $claveLegible = is_array($clave)
+            ? collect($clave)->map(fn ($valor, $columna) => "{$columna}={$valor}")->implode(', ')
             : "#{$clave}";
 
-        return "{$verbo} un registro en \"{$model->getTable()}\" ({$identificador})";
+        return "{$verbo} un registro en \"{$model->getTable()}\" ({$claveLegible})";
     }
 }
