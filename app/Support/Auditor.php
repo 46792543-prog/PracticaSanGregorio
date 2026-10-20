@@ -43,12 +43,14 @@ class Auditor
             return;
         }
 
+        $clave = $model->getKey();
+
         Auditoria::create([
             'id_usuario' => $usuario->id_usuario,
             'accion' => $accion,
             'tabla' => $model->getTable(),
-            'id_registro' => $model->getKey(),
-            'descripcion' => self::describir($accion, $model),
+            'id_registro' => is_array($clave) ? null : $clave,
+            'descripcion' => self::describir($accion, $model, $clave),
             'cambios' => $cambios,
         ]);
     }
@@ -86,7 +88,7 @@ class Auditor
         return $atributos;
     }
 
-    private static function describir(string $accion, Model $model): string
+    private static function describir(string $accion, Model $model, mixed $clave): string
     {
         $verbo = [
             'creado' => 'Creó',
@@ -94,6 +96,14 @@ class Auditor
             'eliminado' => 'Eliminó',
         ][$accion];
 
-        return "{$verbo} un registro en \"{$model->getTable()}\" (#{$model->getKey()})";
+        $identificador = is_array($clave)
+            ? implode(', ', array_map(
+                fn ($campo, $valor) => "{$campo}={$valor}",
+                array_keys($clave),
+                $clave
+            ))
+            : "#{$clave}";
+
+        return "{$verbo} un registro en \"{$model->getTable()}\" ({$identificador})";
     }
 }

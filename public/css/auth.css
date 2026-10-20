@@ -38,8 +38,8 @@ body.acc { font-family: 'Inter', 'Segoe UI', sans-serif; color: var(--acc-texto)
 
 .acc-panel__fondo { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .acc-panel__luz { position: absolute; border-radius: 50%; filter: blur(60px); }
-.acc-panel__luz--1 { width: 460px; height: 460px; top: -160px; right: -120px; background: rgba(79,195,247,.38); animation: acc-deriva 20s ease-in-out infinite; }
-.acc-panel__luz--2 { width: 340px; height: 340px; bottom: -140px; left: -100px; background: rgba(255,193,7,.16); animation: acc-deriva 26s ease-in-out infinite reverse; }
+.acc-panel__luz--1 { width: 460px; height: 460px; top: -160px; right: -120px; background: rgba(79,195,247,.38); }
+.acc-panel__luz--2 { width: 340px; height: 340px; bottom: -140px; left: -100px; background: rgba(255,193,7,.16); }
 .acc-panel__anillo { position: absolute; border-radius: 50%; border: 1.5px dashed rgba(255,255,255,.14); }
 .acc-panel__anillo--1 { width: 520px; height: 520px; right: -200px; bottom: -220px; animation: acc-girar 80s linear infinite; }
 .acc-panel__anillo--2 { width: 300px; height: 300px; right: -60px; bottom: -80px; border: 14px solid rgba(255,193,7,.12); animation: acc-girar 50s linear infinite reverse; }
@@ -93,7 +93,7 @@ body.acc { font-family: 'Inter', 'Segoe UI', sans-serif; color: var(--acc-texto)
 .acc-tarjetas { display: grid; gap: 14px; max-width: 420px; }
 .acc-tarjeta {
     display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px;
-    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px);
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14);
     box-shadow: 0 18px 36px -24px rgba(0,0,0,.6);
     transition: background-color .3s, transform .3s;
 }
@@ -267,7 +267,6 @@ body.acc { font-family: 'Inter', 'Segoe UI', sans-serif; color: var(--acc-texto)
 
 /* ============================== Animaciones ============================== */
 @keyframes acc-degradado { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes acc-deriva { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-50px, 40px) scale(1.1); } }
 @keyframes acc-girar { to { transform: rotate(360deg); } }
 @keyframes acc-flotar { 0%, 100% { transform: translate(0, 0) rotate(0); } 25% { transform: translate(8px, -16px) rotate(8deg); } 50% { transform: translate(-6px, -28px) rotate(-6deg); } 75% { transform: translate(-10px, -12px) rotate(4deg); } }
 @keyframes acc-flotar-suave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }

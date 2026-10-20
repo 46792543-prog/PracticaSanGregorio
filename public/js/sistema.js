@@ -1,24 +1,16 @@
 /*
  * Movimiento de los paneles internos (solo visual, no toca datos ni formularios).
- *  - .sg-revelar: el elemento aparece suavemente al entrar en pantalla.
- *  - [data-sg-escalonar]: sus hijos directos aparecen uno detrás de otro.
- *  - [data-sg-contar]: el número se cuenta desde 0 cuando entra en pantalla.
+ *  - [data-sg-contar]: el número se cuenta desde 0 cuando entra en pantalla (cuenta corta).
  *  - Tarjetas .sg-card: brillo que sigue al mouse; las .sg-card--hover además se inclinan levemente.
  *  - Botones .sg-btn: onda al hacer clic.
- *  - Fondo ambiental, barra de progreso de scroll, botón "volver arriba" y transición entre páginas.
+ *  - Fondo ambiental, barra de progreso de scroll y botón "volver arriba".
+ *
+ * Para que la navegación se sienta inmediata ya no hay fundido al salir de una pantalla
+ * ni aparición escalonada del contenido (.sg-revelar / [data-sg-escalonar] se muestran tal cual).
  */
 (function () {
     var reducido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var conPuntero = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-
-    function prepararEscalonados() {
-        document.querySelectorAll('[data-sg-escalonar]').forEach(function (grupo) {
-            Array.prototype.forEach.call(grupo.children, function (hijo, i) {
-                hijo.classList.add('sg-revelar');
-                hijo.style.setProperty('--sg-retraso', Math.min(i, 8) * 75 + 'ms');
-            });
-        });
-    }
 
     function observar(selector, alEntrar, opciones) {
         var elementos = document.querySelectorAll(selector);
@@ -37,19 +29,6 @@
         elementos.forEach(function (el) { observador.observe(el); });
     }
 
-    function revelar() {
-        observar('.sg-revelar', function (el, inmediato) {
-            el.classList.add('sg-visible');
-            if (inmediato) return;
-            // Al terminar la entrada se quitan las clases para no interferir con los efectos hover.
-            var retraso = parseInt(getComputedStyle(el).getPropertyValue('--sg-retraso'), 10) || 0;
-            setTimeout(function () {
-                el.classList.remove('sg-revelar', 'sg-visible');
-                el.style.removeProperty('--sg-retraso');
-            }, 750 + retraso);
-        });
-    }
-
     // Cuenta números enteros con separador de miles "." (formato es-AR), conservando prefijos/sufijos.
     function contar() {
         observar('[data-sg-contar]', function (el, inmediato) {
@@ -58,7 +37,7 @@
             if (!partes || inmediato) return;
             var destino = parseInt(partes[2].replace(/\./g, ''), 10);
             if (!destino) return;
-            var inicio = null, duracion = Math.min(1600, 700 + destino * 8);
+            var inicio = null, duracion = Math.min(600, 300 + destino * 4);
             function paso(t) {
                 if (!inicio) inicio = t;
                 var avance = Math.min((t - inicio) / duracion, 1);
@@ -152,33 +131,11 @@
         actualizar();
     }
 
-    // Transición suave al navegar entre pantallas del sistema (solo enlaces internos comunes).
-    function transicionPaginas() {
-        if (reducido) return;
-        document.addEventListener('click', function (e) {
-            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-            var a = e.target.closest && e.target.closest('a[href]');
-            if (!a || a.target || a.hasAttribute('download') || a.dataset.sinTransicion !== undefined) return;
-            var destino = a.getAttribute('href');
-            if (!destino || destino.charAt(0) === '#' || /^(javascript|mailto|tel):/i.test(destino)) return;
-            var url = new URL(a.href, location.href);
-            if (url.origin !== location.origin || (url.pathname === location.pathname && url.hash)) return;
-            if (/\.(pdf|xlsx?|csv|zip)$/i.test(url.pathname) || /pdf|excel|descarga/i.test(url.pathname)) return;
-            document.body.classList.add('sg-saliendo');
-            // Por si la navegación no ocurre (descarga, error de red), la pantalla vuelve a mostrarse sola.
-            setTimeout(function () { document.body.classList.remove('sg-saliendo'); }, 3000);
-        });
-        window.addEventListener('pageshow', function () { document.body.classList.remove('sg-saliendo'); });
-    }
-
     function iniciar() {
-        prepararEscalonados();
-        revelar();
         contar();
         efectosTarjetas();
         ondasBotones();
         ambiente();
-        transicionPaginas();
     }
 
     if (document.readyState === 'loading') {

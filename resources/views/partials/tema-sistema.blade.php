@@ -8,7 +8,7 @@
 --}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
     :root {
         --sg-azul: #0B3D91;
@@ -107,10 +107,9 @@
         body.sg-menu-abierto .sg-velo { display: block; }
     }
 
-    @keyframes sg-aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .sg-aparecer { animation: sg-aparecer .35s ease-out backwards; }
+    /* El contenido se muestra al instante (sin animación de entrada) para que la navegación se sienta inmediata. */
     @media (prefers-reduced-motion: reduce) {
-        .sg-aparecer, .sg-sidebar { animation: none !important; transition: none !important; }
+        .sg-sidebar { animation: none !important; transition: none !important; }
     }
 </style>
 <link rel="stylesheet" href="{{ asset('css/sistema.css') }}?v={{ filemtime(public_path('css/sistema.css')) }}">
@@ -118,6 +117,26 @@
      (que compilaba todo en el navegador en cada página y hacía lento el sistema). --}}
 <link rel="stylesheet" href="{{ asset('css/tailwind.css') }}?v={{ filemtime(public_path('css/tailwind.css')) }}">
 <script>document.documentElement.classList.add('sg-js');</script>
+{{-- Precarga la pantalla de un enlace interno cuando el mouse se apoya sobre él (o al tocarlo en el
+     celular), así al hacer clic ya está descargada. Solo pide la página (no ejecuta nada) y se excluyen
+     las descargas. Los navegadores que no lo soportan lo ignoran. --}}
+<script type="speculationrules">
+{
+    "prefetch": [{
+        "where": {
+            "and": [
+                { "href_matches": "/*" },
+                { "not": { "href_matches": "/*/pdf" } },
+                { "not": { "href_matches": "/*/excel" } },
+                { "not": { "href_matches": "/*/descarga" } },
+                { "not": { "href_matches": "/*/archivo/*" } },
+                { "not": { "selector_matches": "[download], [target], [data-sin-precarga]" } }
+            ]
+        },
+        "eagerness": "moderate"
+    }]
+}
+</script>
 <script src="{{ asset('js/sistema.js') }}?v={{ filemtime(public_path('js/sistema.js')) }}" defer></script>
 <script>
     // Abre/cierra el menú lateral en celulares y tablets (solo visual).
