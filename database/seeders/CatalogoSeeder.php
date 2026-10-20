@@ -41,7 +41,7 @@ class CatalogoSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['Alumno', 'Secretario', 'Director'] as $nombre) {
+        foreach (['Alumno', 'Secretario', 'Secretario Administrativo', 'Director'] as $nombre) {
             Rol::firstOrCreate(['nombre_rol' => $nombre]);
         }
 

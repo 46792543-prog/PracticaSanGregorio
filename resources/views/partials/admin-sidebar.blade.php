@@ -74,7 +74,7 @@
         @endforeach
     </nav>
 
-    @if (auth()->user()->esDirector())
+    @if (auth()->user()->accedeADireccion())
         <div class="relative px-4 pt-2">
             <a href="{{ route('director.panel.index') }}"
                class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold bg-[#FFC107]/10 text-[#FFD54F] ring-1 ring-inset ring-[#FFC107]/25 hover:bg-[#FFC107]/20 transition-colors">
