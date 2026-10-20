@@ -16,11 +16,15 @@ class Usuario extends Authenticatable
     protected $primaryKey = 'id_usuario';
 
     protected $fillable = [
-        'id_persona', 'email', 'password', 'id_rol', 'id_estado',
+        'id_persona', 'email', 'password', 'debe_cambiar_clave', 'id_rol', 'id_estado',
     ];
 
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'debe_cambiar_clave' => 'boolean',
     ];
 
     public function persona()

@@ -22,7 +22,7 @@
 
             <div class="sg-aviso sg-aviso--info mb-6">
                 <x-sg.icono nombre="info" class="h-5 w-5 shrink-0" />
-                <span>El usuario se crea con el email ingresado. La clave inicial se genera automáticamente en formato ISG-[últimos 4 del DNI]-[código] y debe entregarse al alumno al registrar.</span>
+                <span>El usuario se crea con el email ingresado. La clave inicial se genera automáticamente en formato ISG-[últimos 4 del DNI]-[código] y se le envía al alumno por mail al registrar. En su primer ingreso el sistema le pide cambiarla por una contraseña propia.</span>
             </div>
 
             <form method="POST" action="{{ route('admin.alumnos.confirmar') }}">
