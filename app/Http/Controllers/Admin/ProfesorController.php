@@ -8,6 +8,7 @@ use App\Models\AsignacionProfesorMateria;
 use App\Models\Carrera;
 use App\Models\EspecialidadProfesor;
 use App\Models\HorarioAsignacion;
+use App\Models\Materia;
 use App\Models\Persona;
 use App\Models\Profesor;
 use App\Support\CorteActivo;
@@ -21,6 +22,7 @@ class ProfesorController extends Controller
     public function index(Request $request): View
     {
         $anioLectivo = CorteActivo::actual() ?? AnioLectivo::orderByDesc('anio')->first();
+        $sinAsignar = $request->boolean('sin_asignar');
 
         $asignaciones = AsignacionProfesorMateria::with('profesor.persona', 'materia.carrera', 'materia.nombreMateria', 'horarios')
             ->when($anioLectivo, fn ($q) => $q->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo))
@@ -28,6 +30,15 @@ class ProfesorController extends Controller
             ->when($request->query('dia'), fn ($q, $dia) => $q->whereHas('horarios', fn ($w) => $w->where('dia_semana', ucfirst($dia))))
             ->when($request->query('materia'), fn ($q, $m) => $q->whereHas('materia.nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$m}%")))
             ->orderByDesc('id_asignacion')
+            ->paginate(15, ['*'], 'pagina_asignaciones')
+            ->withQueryString();
+
+        $materiasSinAsignar = Materia::with('carrera', 'nombreMateria', 'anioCursada')
+            ->where('activa', true)
+            ->when($anioLectivo, fn ($q) => $q->whereDoesntHave('asignaciones', fn ($w) => $w->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)))
+            ->when($request->query('materia'), fn ($q, $m) => $q->whereHas('nombreMateria', fn ($w) => $w->where('nombre', 'like', "%{$m}%")))
+            ->orderBy('id_carrera')
+            ->orderBy('id_anio_cursada')
             ->paginate(15, ['*'], 'pagina_asignaciones')
             ->withQueryString();
 
@@ -48,6 +59,8 @@ class ProfesorController extends Controller
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'anioLectivo' => $anioLectivo,
             'asignaciones' => $asignaciones,
+            'materiasSinAsignar' => $materiasSinAsignar,
+            'sinAsignar' => $sinAsignar,
             'especialidades' => EspecialidadProfesor::orderBy('nombre_especialidad')->get(),
             'filtros' => $request->only('profesor', 'dia', 'materia'),
         ]);
