@@ -42,6 +42,18 @@ class ProfesorController extends Controller
             ->paginate(15, ['*'], 'pagina_asignaciones')
             ->withQueryString();
 
+        // Días ya tomados de cada materia, para ocultarla del combo cuando otro profesor la dicta ese día.
+        $materiasOcupadas = HorarioAsignacion::with('asignacion.profesor.persona')
+            ->get()
+            ->map(fn ($h) => [
+                'id_materia' => $h->asignacion->id_materia,
+                'id_anio_lectivo' => $h->asignacion->id_anio_lectivo,
+                'id_profesor' => $h->asignacion->id_profesor,
+                'profesor' => $h->asignacion->profesor->apellido . ', ' . $h->asignacion->profesor->nombre,
+                'dia' => $h->dia_semana,
+            ])
+            ->values();
+
         $profesores = Profesor::with('persona', 'especialidad')->get()->sortBy('apellido');
 
         $profesoresPaginados = Profesor::with('persona', 'especialidad')
@@ -60,6 +72,7 @@ class ProfesorController extends Controller
             'anioLectivo' => $anioLectivo,
             'asignaciones' => $asignaciones,
             'materiasSinAsignar' => $materiasSinAsignar,
+            'materiasOcupadas' => $materiasOcupadas,
             'sinAsignar' => $sinAsignar,
             'especialidades' => EspecialidadProfesor::orderBy('nombre_especialidad')->get(),
             'filtros' => $request->only('profesor', 'dia', 'materia'),
@@ -192,6 +205,21 @@ class ProfesorController extends Controller
             'id_materia' => $data['id_materia'],
             'id_anio_lectivo' => $data['id_anio_lectivo'],
         ])->value('id_asignacion');
+
+        // Una materia ya asignada a otro profesor en el mismo año lectivo no se puede volver a asignar.
+        $materiaOcupada = AsignacionProfesorMateria::where('id_materia', $data['id_materia'])
+            ->where('id_anio_lectivo', $data['id_anio_lectivo'])
+            ->where('id_profesor', '!=', $data['id_profesor'])
+            ->with('profesor.persona', 'materia')
+            ->first();
+
+        if ($materiaOcupada) {
+            $otroProfesor = $materiaOcupada->profesor;
+
+            return back()->withErrors([
+                'id_materia' => "\"{$materiaOcupada->materia->nombre}\" ya está asignada a {$otroProfesor->apellido}, {$otroProfesor->nombre} en este año lectivo. Elegí otra materia.",
+            ])->withInput();
+        }
 
         // Un profesor no puede dar dos materias el mismo día en horarios que se pisan.
         $conflicto = HorarioAsignacion::whereIn('dia_semana', $data['dias'])

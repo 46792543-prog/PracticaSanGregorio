@@ -33,13 +33,12 @@
                             @endforeach
                         </optgroup>
                     @endforeach
-                </select>
-            </div>
+                </select>            </div>
             <div>
                 <label class="sg-label">AÑO LECTIVO *</label>
                 <select name="id_anio_lectivo" id="input-id-anio-lectivo" required class="sg-input w-full">
                     @foreach ($aniosLectivos as $anio)
-                        <option value="{{ $anio->id_anio_lectivo }}">{{ $anio->anio }}</option>
+                        <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo == $anioLectivo?->id_anio_lectivo)>{{ $anio->anio }}</option>
                     @endforeach
                 </select>
             </div>
@@ -258,13 +257,55 @@
                 checkbox.checked = asignacion.dias.includes(checkbox.value);
             });
 
+            actualizarMateriasDisponibles();
             document.getElementById('editando-aviso').classList.remove('hidden');
             document.getElementById('form-asignacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function cancelarEdicionAsignacion() {
             document.getElementById('editando-aviso').classList.add('hidden');
+            // El reset del form se aplica después del click: recalculamos cuando ya terminó.
+            setTimeout(actualizarMateriasDisponibles);
         }
+
+        // Una materia ya asignada a otro profesor en el año lectivo elegido no se ofrece en el combo.
+        const materiasOcupadas = @json($materiasOcupadas);
+
+        function materiaTomadaPorOtro(idMateria) {
+            const idProfesor = document.getElementById('input-id-profesor').value;
+            const idAnio = document.getElementById('input-id-anio-lectivo').value;
+
+            return materiasOcupadas.some(function (o) {
+                return String(o.id_materia) === String(idMateria)
+                    && String(o.id_anio_lectivo) === String(idAnio)
+                    && String(o.id_profesor) !== String(idProfesor);
+            });
+        }
+
+        function actualizarMateriasDisponibles() {
+            const selectMateria = document.getElementById('input-id-materia');
+
+            selectMateria.querySelectorAll('option[value]:not([value=""])').forEach(function (opcion) {
+                const ocultar = materiaTomadaPorOtro(opcion.value);
+                opcion.hidden = ocultar;
+                opcion.disabled = ocultar;
+            });
+
+            selectMateria.querySelectorAll('optgroup').forEach(function (grupo) {
+                grupo.hidden = !grupo.querySelector('option:not([hidden])');
+            });
+
+            if (selectMateria.selectedOptions[0]?.hidden) {
+                selectMateria.value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            ['input-id-profesor', 'input-id-anio-lectivo'].forEach(function (id) {
+                document.getElementById(id).addEventListener('change', actualizarMateriasDisponibles);
+            });
+            actualizarMateriasDisponibles();
+        });
 
         const rutaBaseProfesores = @json(url('/admin/profesores'));
         const rutaGuardarProfesor = @json(route('admin.profesores.store'));
@@ -427,6 +468,7 @@
     <script>
         function preseleccionarMateria(idMateria) {
             document.getElementById('input-id-materia').value = idMateria;
+            actualizarMateriasDisponibles();
             document.getElementById('form-asignacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     </script>
