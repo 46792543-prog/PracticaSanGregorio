@@ -7,6 +7,7 @@
     <title>@yield('titulo', 'Panel de Secretaría') · Instituto Superior San Gregorio</title>
     @include('partials.tema-sistema')
     @include('partials.validacion-inputs')
+    @include('partials.mantener-scroll')
 </head>
 <body class="text-slate-800">
     <div class="flex min-h-screen">

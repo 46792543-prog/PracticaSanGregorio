@@ -33,13 +33,12 @@
                             @endforeach
                         </optgroup>
                     @endforeach
-                </select>
-            </div>
+                </select>            </div>
             <div>
                 <label class="sg-label">AÑO LECTIVO *</label>
                 <select name="id_anio_lectivo" id="input-id-anio-lectivo" required class="sg-input w-full">
                     @foreach ($aniosLectivos as $anio)
-                        <option value="{{ $anio->id_anio_lectivo }}">{{ $anio->anio }}</option>
+                        <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo == $anioLectivo?->id_anio_lectivo)>{{ $anio->anio }}</option>
                     @endforeach
                 </select>
             </div>
@@ -258,13 +257,55 @@
                 checkbox.checked = asignacion.dias.includes(checkbox.value);
             });
 
+            actualizarMateriasDisponibles();
             document.getElementById('editando-aviso').classList.remove('hidden');
             document.getElementById('form-asignacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function cancelarEdicionAsignacion() {
             document.getElementById('editando-aviso').classList.add('hidden');
+            // El reset del form se aplica después del click: recalculamos cuando ya terminó.
+            setTimeout(actualizarMateriasDisponibles);
         }
+
+        // Una materia ya asignada a otro profesor en el año lectivo elegido no se ofrece en el combo.
+        const materiasOcupadas = @json($materiasOcupadas);
+
+        function materiaTomadaPorOtro(idMateria) {
+            const idProfesor = document.getElementById('input-id-profesor').value;
+            const idAnio = document.getElementById('input-id-anio-lectivo').value;
+
+            return materiasOcupadas.some(function (o) {
+                return String(o.id_materia) === String(idMateria)
+                    && String(o.id_anio_lectivo) === String(idAnio)
+                    && String(o.id_profesor) !== String(idProfesor);
+            });
+        }
+
+        function actualizarMateriasDisponibles() {
+            const selectMateria = document.getElementById('input-id-materia');
+
+            selectMateria.querySelectorAll('option[value]:not([value=""])').forEach(function (opcion) {
+                const ocultar = materiaTomadaPorOtro(opcion.value);
+                opcion.hidden = ocultar;
+                opcion.disabled = ocultar;
+            });
+
+            selectMateria.querySelectorAll('optgroup').forEach(function (grupo) {
+                grupo.hidden = !grupo.querySelector('option:not([hidden])');
+            });
+
+            if (selectMateria.selectedOptions[0]?.hidden) {
+                selectMateria.value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            ['input-id-profesor', 'input-id-anio-lectivo'].forEach(function (id) {
+                document.getElementById(id).addEventListener('change', actualizarMateriasDisponibles);
+            });
+            actualizarMateriasDisponibles();
+        });
 
         const rutaBaseProfesores = @json(url('/admin/profesores'));
         const rutaGuardarProfesor = @json(route('admin.profesores.store'));
@@ -298,23 +339,66 @@
         <h2>Asignaciones ya cargadas</h2>
     </div>
     <div class="sg-card sg-revelar overflow-hidden">
+        <div class="flex flex-wrap gap-2 p-4 pb-0">
+            <a href="{{ route('admin.profesores.index', array_filter(['materia' => $filtros['materia'] ?? null])) }}"
+               class="sg-btn sg-btn--chico {{ $sinAsignar ? 'sg-btn--borde' : 'sg-btn--azul' }}">Asignaciones cargadas</a>
+            <a href="{{ route('admin.profesores.index', array_filter(['materia' => $filtros['materia'] ?? null, 'sin_asignar' => 1])) }}"
+               class="sg-btn sg-btn--chico {{ $sinAsignar ? 'sg-btn--azul' : 'sg-btn--borde' }}">Materias sin profesor asignado
+               @if ($materiasSinAsignar->total() > 0)<span class="sg-badge sg-badge--sin-punto sg-badge--rojo ml-1">{{ $materiasSinAsignar->total() }}</span>@endif</a>
+        </div>
+
         <form method="GET" class="flex flex-wrap gap-3 p-4 border-b border-slate-100 bg-slate-50/60">
-            <select name="profesor" onchange="this.form.submit()" class="sg-input w-auto">
-                <option value="">Todos los profesores</option>
-                @foreach ($profesores as $profesor)
-                    <option value="{{ $profesor->id_profesor }}" @selected(($filtros['profesor'] ?? null) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
-                @endforeach
-            </select>
-            <select name="dia" onchange="this.form.submit()" class="sg-input w-auto">
-                <option value="">Todos los días</option>
-                @foreach (['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'] as $dia)
-                    <option value="{{ $dia }}" @selected(($filtros['dia'] ?? null) === $dia)>{{ $dia }}</option>
-                @endforeach
-            </select>
+            @if ($sinAsignar)
+                <input type="hidden" name="sin_asignar" value="1">
+            @else
+                <select name="profesor" onchange="this.form.submit()" class="sg-input w-auto">
+                    <option value="">Todos los profesores</option>
+                    @foreach ($profesores as $profesor)
+                        <option value="{{ $profesor->id_profesor }}" @selected(($filtros['profesor'] ?? null) == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                    @endforeach
+                </select>
+                <select name="dia" onchange="this.form.submit()" class="sg-input w-auto">
+                    <option value="">Todos los días</option>
+                    @foreach (['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'] as $dia)
+                        <option value="{{ $dia }}" @selected(($filtros['dia'] ?? null) === $dia)>{{ $dia }}</option>
+                    @endforeach
+                </select>
+            @endif
             <input type="text" name="materia" value="{{ $filtros['materia'] ?? '' }}" placeholder="Buscar materia..." maxlength="50" class="sg-input w-auto flex-1 min-w-[180px]">
             <button class="sg-btn sg-btn--azul"><x-sg.icono nombre="search" /> Buscar</button>
         </form>
 
+        @if ($sinAsignar)
+        <div class="overflow-x-auto">
+        <table class="sg-tabla">
+            <thead>
+                <tr>
+                    <th>Materia</th>
+                    <th>Carrera</th>
+                    <th>Año</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody class="sg-filas">
+                @forelse ($materiasSinAsignar as $materia)
+                    <tr>
+                        <td class="text-slate-700">{{ $materia->nombre }}</td>
+                        <td class="text-xs text-blue-600">{{ $materia->carrera->nombre_carrera }}</td>
+                        <td class="text-slate-500">{{ $materia->anioCursada->nombre_anio }}</td>
+                        <td class="text-right">
+                            <button type="button" class="sg-btn sg-btn--suave sg-btn--chico" onclick="preseleccionarMateria({{ $materia->id_materia }})">Asignar profesor</button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4"><x-sg.vacio icono="calendar">No hay materias activas sin profesor asignado — ¡todas tienen al menos un profesor para este año lectivo!</x-sg.vacio></td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        </div>
+        @if ($materiasSinAsignar->hasPages())
+            <div class="sg-card__foot">{{ $materiasSinAsignar->links() }}</div>
+        @endif
+        @else
         <div class="overflow-x-auto">
         <table class="sg-tabla">
             <thead>
@@ -378,5 +462,14 @@
         @if ($asignaciones->hasPages())
             <div class="sg-card__foot">{{ $asignaciones->links() }}</div>
         @endif
+        @endif
     </div>
+
+    <script>
+        function preseleccionarMateria(idMateria) {
+            document.getElementById('input-id-materia').value = idMateria;
+            actualizarMateriasDisponibles();
+            document.getElementById('form-asignacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    </script>
 @endsection
