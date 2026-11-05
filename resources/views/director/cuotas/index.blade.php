@@ -128,7 +128,7 @@
                                         <label class="sg-label">MONTO *</label>
                                         <div class="flex items-center gap-1">
                                             <span class="text-slate-400 text-sm">$</span>
-                                            <input type="number" step="0.01" min="0" name="monto" required
+                                            <input type="number" step="0.01" min="0.01" name="monto" required
                                                    class="sg-input w-full">
                                         </div>
                                     </div>
@@ -193,6 +193,13 @@
                             </p>
                         @endif
 
+                        @if ($montoActual)
+                            <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 mb-4">
+                                <span class="text-sm font-semibold text-slate-600">Adeuda {{ $cuotasPendientes->count() }} cuota{{ $cuotasPendientes->count() === 1 ? '' : 's' }} × $ {{ number_format($montoActual, 0, ',', '.') }} (monto actual)</span>
+                                <span class="font-display font-bold text-[#0B3D91]">$ {{ number_format($cuotasPendientes->count() * $montoActual, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
+
                         <p class="sg-label mb-1">Cuotas pendientes — Seleccioná las que se están pagando y ajustá el monto si corresponde:</p>
                         <p class="text-xs text-slate-400 mb-2">Se cobran en orden: al tildar una cuota se tildan también las anteriores, y no se puede saltear ningún mes.</p>
                         <div class="space-y-2 mb-4">
@@ -227,7 +234,7 @@
                                             <label class="sg-label">Monto</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
+                                                <input type="number" step="0.01" min="0.01" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
                                                        class="sg-input sg-input--chico cuota-monto w-full" data-id="{{ $cuota->id_cuota }}">
                                             </div>
                                         </div>
@@ -235,14 +242,14 @@
                                             <label class="sg-label !text-amber-600">Recargo por mora</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="0"
+                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="{{ $cuota->recargo }}"
                                                        class="sg-input sg-input--chico cuota-recargo w-full border-amber-200" data-id="{{ $cuota->id_cuota }}">
                                             </div>
                                         </div>
                                         <div class="col-span-2 sm:col-span-1">
                                             <label class="sg-label">Subtotal</label>
                                             <p class="cuota-subtotal font-display font-bold text-[#0B3D91] text-base py-1" data-id="{{ $cuota->id_cuota }}">
-                                                $ {{ number_format($cuota->monto, 0, ',', '.') }}
+                                                $ {{ number_format($cuota->montoTotal(), 0, ',', '.') }}
                                             </p>
                                         </div>
                                     </div>
@@ -259,7 +266,7 @@
                                             </div>
                                             <div>
                                                 <label class="sg-label">Monto</label>
-                                                <input type="number" step="0.01" min="0" name="monto" value="{{ $cuota->monto }}" required
+                                                <input type="number" step="0.01" min="0.01" name="monto" value="{{ $cuota->monto }}" required
                                                        class="sg-input sg-input--chico w-full">
                                             </div>
                                             <div>
@@ -293,7 +300,7 @@
 
                         <div class="flex items-center justify-between rounded-2xl bg-gradient-to-r from-[#0B3D91] to-[#1565C0] text-white px-5 py-4 mb-4 shadow-lg shadow-blue-900/20">
                             <span class="font-semibold text-blue-100 text-sm flex items-center gap-2"><x-sg.icono nombre="banknotes" /> Total a registrar</span>
-                            <span id="total-cobro" class="font-display font-extrabold text-2xl text-[#FFD54F]">$ {{ number_format($cuotasPendientes->sum('monto'), 0, ',', '.') }}</span>
+                            <span id="total-cobro" class="font-display font-extrabold text-2xl text-[#FFD54F]">$ {{ number_format($cuotasPendientes->sum(fn ($c) => $c->montoTotal()), 0, ',', '.') }}</span>
                         </div>
 
                         <p class="sg-aviso sg-aviso--exito mb-4 text-xs">
