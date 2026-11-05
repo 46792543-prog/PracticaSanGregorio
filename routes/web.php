@@ -25,6 +25,7 @@ use App\Http\Controllers\Director\AuditoriaController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\PagoDocenteController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
+use App\Http\Controllers\Director\ConfiguracionCuotaController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
@@ -228,6 +229,13 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
     Route::put('/cuotas/{cuota}', [DirectorCuotaController::class, 'actualizar'])->name('cuotas.actualizar');
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
+
+    // Configuración económica de cuotas (monto/vencimiento/interés por
+    // mora): acceden Director y Secretario Administrativo, igual que al
+    // resto del panel de dirección. El Secretario (sin más) no entra.
+    Route::get('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'index'])->name('configuracion-cuotas.index');
+    Route::post('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'store'])->name('configuracion-cuotas.store');
+    Route::post('/configuracion-cuotas/calcular-mora', [ConfiguracionCuotaController::class, 'calcularMora'])->name('configuracion-cuotas.calcular-mora');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
