@@ -126,6 +126,65 @@
         </div>
     </div>
 
+    @php
+        $cuotasOrdenadas = $alumno->cuotas->sortBy([['id_anio_lectivo', 'asc'], ['id_mes', 'asc']]);
+        $cuotasAdeudadasCount = $cuotasOrdenadas->where('pagado', false)->count();
+        $totalEstimadoAdeudado = $montoActualCuota ? $cuotasAdeudadasCount * (float) $montoActualCuota : null;
+    @endphp
+
+    <x-sg.tarjeta titulo="Historial de Cuotas" subtitulo="Todas las cuotas generadas para este alumno, pagadas y pendientes" icono="banknotes" tono="verde" class="mb-6" :cuerpo="false">
+        @if ($cuotasAdeudadasCount > 0 && $montoActualCuota)
+            <div class="mx-5 mt-4 flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-[#0B3D91] to-[#1565C0] text-white px-5 py-3">
+                <span class="text-sm font-semibold text-blue-100">Adeuda {{ $cuotasAdeudadasCount }} cuota{{ $cuotasAdeudadasCount === 1 ? '' : 's' }} × $ {{ number_format($montoActualCuota, 0, ',', '.') }} (monto actual)</span>
+                <span class="font-display font-extrabold text-xl text-[#FFD54F]">$ {{ number_format($totalEstimadoAdeudado, 0, ',', '.') }}</span>
+            </div>
+        @endif
+        <div class="overflow-x-auto mt-4">
+            <table class="sg-tabla">
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th>Concepto</th>
+                        <th>Monto</th>
+                        <th>Recargo</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha de pago</th>
+                    </tr>
+                </thead>
+                <tbody class="sg-filas">
+                    @forelse ($cuotasOrdenadas as $cuota)
+                        <tr>
+                            <td class="text-slate-500">{{ $cuota->mes->nombre_mes }} {{ $cuota->anioLectivo->anio }}</td>
+                            <td class="text-slate-500">{{ $cuota->concepto ?: '—' }}</td>
+                            <td class="font-medium text-slate-700">$ {{ number_format($cuota->monto, 0, ',', '.') }}</td>
+                            <td>
+                                @if ($cuota->recargo > 0)
+                                    <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto">+$ {{ number_format($cuota->recargo, 0, ',', '.') }}</span>
+                                @else
+                                    <span class="text-slate-300">—</span>
+                                @endif
+                            </td>
+                            <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($cuota->montoTotal(), 0, ',', '.') }}</td>
+                            <td>
+                                @if ($cuota->pagado)
+                                    <span class="sg-badge sg-badge--verde">Pagada</span>
+                                @elseif ($cuota->vencida)
+                                    <span class="sg-badge sg-badge--rojo">Vencida</span>
+                                @else
+                                    <span class="sg-badge sg-badge--amarillo">Pendiente</span>
+                                @endif
+                            </td>
+                            <td class="text-slate-500">{{ $cuota->fecha_pago ? \App\Support\FechaEsp::corta($cuota->fecha_pago) : '—' }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7"><x-sg.vacio icono="banknotes">Todavía no se generó ninguna cuota para este alumno.</x-sg.vacio></td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </x-sg.tarjeta>
+
     <x-sg.tarjeta titulo="Historial académico" subtitulo="Solo consulta — para cargar o corregir una materia, usá 'Cargar historial previo' desde Alumnos" icono="book" class="mb-6" :cuerpo="false">
         <div class="px-5 pt-4 pb-3 grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm border-b border-slate-100">
             <div class="flex justify-between gap-3"><dt class="text-slate-400">Carrera</dt><dd class="text-slate-700 font-medium text-right">{{ $inscripcion?->carrera?->nombre_carrera ?? '—' }}</dd></div>
