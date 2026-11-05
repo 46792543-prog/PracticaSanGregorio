@@ -7,6 +7,7 @@
         ['ruta' => 'director.panel.index', 'texto' => 'Panel principal', 'icono' => 'home'],
         ['ruta' => 'director.alertas.index', 'texto' => 'Central de Alertas', 'icono' => 'bell', 'badge' => $alertasBadge],
         ['ruta' => 'director.cuotas.index', 'texto' => 'Registrar Cuotas', 'icono' => 'card', 'badge' => $cuotasPendientesBadge],
+        ['ruta' => 'director.configuracion-cuotas.index', 'texto' => 'Configuración de Cuotas', 'icono' => 'settings'],
         ['ruta' => 'director.pagos.index', 'texto' => 'Estado de Pagos', 'icono' => 'chart'],
         ['ruta' => 'director.caja.index', 'texto' => 'Libro de caja', 'icono' => 'book'],
         ['ruta' => 'director.pagos-docentes.index', 'texto' => 'Pago de Docentes', 'icono' => 'card'],
