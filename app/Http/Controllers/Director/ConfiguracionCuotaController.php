@@ -7,6 +7,7 @@ use App\Models\AnioLectivo;
 use App\Models\ConfiguracionCuota;
 use App\Models\CuotaAlumno;
 use App\Models\InscripcionCarrera;
+use App\Support\CalculadoraMora;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,30 +76,11 @@ class ConfiguracionCuotaController extends Controller
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
         ]);
 
-        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $data['id_anio_lectivo'])->first();
-
-        if (! $configuracion) {
+        if (! ConfiguracionCuota::where('id_anio_lectivo', $data['id_anio_lectivo'])->exists()) {
             return back()->withErrors(['id_anio_lectivo' => 'Todavía no hay una configuración de cuotas guardada para ese año lectivo.']);
         }
 
-        $vencidas = CuotaAlumno::where('id_anio_lectivo', $data['id_anio_lectivo'])
-            ->where('pagado', false)
-            ->where('mora_aplicada', false)
-            ->whereDate('fecha_vencimiento', '<', now()->toDateString())
-            ->get();
-
-        $afectadas = 0;
-
-        DB::transaction(function () use ($vencidas, $configuracion, &$afectadas) {
-            foreach ($vencidas as $cuota) {
-                $cuota->update([
-                    'recargo' => round((float) $cuota->monto * ((float) $configuracion->porcentaje_interes_mora / 100), 2),
-                    'mora_aplicada' => true,
-                ]);
-
-                $afectadas++;
-            }
-        });
+        $afectadas = CalculadoraMora::aplicarParaAnio($data['id_anio_lectivo']);
 
         $mensaje = $afectadas > 0
             ? "Se calculó el interés por mora en {$afectadas} cuota(s) vencida(s)."
