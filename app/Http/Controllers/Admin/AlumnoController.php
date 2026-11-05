@@ -110,6 +110,7 @@ class AlumnoController extends Controller
             'historialAlumno.materia.nombreMateria',
             'historialAlumno.condicion',
             'cuotas.mes',
+            'cuotas.anioLectivo',
             'documentacion.documentoRequisito',
         ]);
 
@@ -144,6 +145,8 @@ class AlumnoController extends Controller
             ->count();
         $porcentajeAvance = $totalMateriasPlan > 0 ? (int) round($materiasAprobadasTotal / $totalMateriasPlan * 100) : 0;
 
+        $montoActualCuota = CorteActivo::actual()?->configuracionCuota?->monto_mensual;
+
         return view('admin.alumnos.show', [
             'alumno' => $persona,
             'fichaSecciones' => $fichaSecciones,
@@ -154,6 +157,7 @@ class AlumnoController extends Controller
             'totalMateriasPlan' => $totalMateriasPlan,
             'materiasAprobadasTotal' => $materiasAprobadasTotal,
             'porcentajeAvance' => $porcentajeAvance,
+            'montoActualCuota' => $montoActualCuota,
         ]);
     }
 
