@@ -18,6 +18,7 @@ class CuotaAlumno extends Model
         'fecha_vencimiento',
         'monto',
         'recargo',
+        'mora_aplicada',
         'pagado',
         'fecha_pago',
         'id_movimiento_caja',
@@ -26,6 +27,7 @@ class CuotaAlumno extends Model
     protected $casts = [
         'monto' => 'decimal:2',
         'recargo' => 'decimal:2',
+        'mora_aplicada' => 'boolean',
         'pagado' => 'boolean',
         'fecha_vencimiento' => 'date',
         'fecha_pago' => 'date',
