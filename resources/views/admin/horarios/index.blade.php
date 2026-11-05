@@ -3,6 +3,11 @@
 @section('titulo', 'Horarios de Carrera')
 
 @section('contenido')
+    @php
+        $camposModulo = ['id_carrera', 'id_turno_cursada', 'modulo', 'hora_inicio', 'hora_fin'];
+        $hayErroresModulo = $errors->hasAny($camposModulo);
+    @endphp
+
     <div class="mb-6">
         <h1 class="text-xl font-bold text-slate-800">Horarios de Carrera</h1>
         <p class="text-sm text-slate-400">Armá y editá el cuadro de horarios de cada carrera y turno</p>
@@ -26,7 +31,13 @@
                     @endforeach
                 </select>
             </div>
-            <div class="ml-auto">
+            <div class="ml-auto flex flex-wrap gap-3">
+                @if ($modulos->isNotEmpty())
+                    <a href="{{ route('admin.horarios.pdf', ['id_carrera' => $idCarrera, 'id_turno_cursada' => $idTurno]) }}"
+                       class="rounded-xl border border-slate-200 bg-white shadow-sm hover:bg-slate-50 transition text-slate-600 font-semibold text-sm px-5 py-2.5">
+                        Descargar PDF
+                    </a>
+                @endif
                 <button type="button" onclick="abrirModalModulo()"
                         class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow-md hover:brightness-105 transition text-white font-semibold text-sm px-5 py-2.5">
                     + Agregar módulo
@@ -112,8 +123,19 @@
             <form method="POST" action="{{ route('admin.horarios.modulos.store') }}" id="form-modulo">
                 @csrf
                 <input type="hidden" name="_method" id="input-modulo-method" value="">
+                <input type="hidden" name="id_horario_modulo" id="input-modulo-id" value="">
                 <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                 <input type="hidden" name="id_turno_cursada" value="{{ $idTurno }}">
+
+                @if ($hayErroresModulo)
+                    <ul class="rounded-lg bg-red-50 text-red-700 text-xs px-3 py-2 mb-4 space-y-1">
+                        @foreach ($camposModulo as $campo)
+                            @foreach ($errors->get($campo) as $mensaje)
+                                <li>{{ $mensaje }}</li>
+                            @endforeach
+                        @endforeach
+                    </ul>
+                @endif
 
                 <label class="block text-xs font-semibold text-slate-500 mb-1">NÚMERO DE MÓDULO *</label>
                 <input type="number" name="modulo" id="input-modulo-numero" min="1" max="20" required placeholder="Ej: 1"
@@ -174,8 +196,10 @@
             document.getElementById('form-modulo').reset();
             document.getElementById('form-modulo').action = rutaModulosStore;
             document.getElementById('input-modulo-method').value = '';
+            document.getElementById('input-modulo-id').value = '';
             document.getElementById('modal-modulo-titulo').textContent = '➕ Agregar módulo';
             document.getElementById('input-modulo-submit').textContent = 'Guardar módulo';
+            validarHorasModulo();
             const modal = document.getElementById('modal-modulo');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -188,15 +212,27 @@
         function editarModulo(modulo) {
             document.getElementById('form-modulo').action = rutaModulosBase + '/' + modulo.id;
             document.getElementById('input-modulo-method').value = 'PUT';
+            document.getElementById('input-modulo-id').value = modulo.id;
             document.getElementById('input-modulo-numero').value = modulo.modulo;
             document.getElementById('input-modulo-hora-inicio').value = modulo.hora_inicio;
             document.getElementById('input-modulo-hora-fin').value = modulo.hora_fin;
             document.getElementById('modal-modulo-titulo').textContent = '✏️ Editar módulo';
             document.getElementById('input-modulo-submit').textContent = 'Guardar cambios';
+            validarHorasModulo();
             const modal = document.getElementById('modal-modulo');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
+
+        // Avisa antes de enviar; la validación obligatoria sigue siendo la del servidor.
+        function validarHorasModulo() {
+            const inicio = document.getElementById('input-modulo-hora-inicio');
+            const fin = document.getElementById('input-modulo-hora-fin');
+            const invalido = inicio.value && fin.value && fin.value <= inicio.value;
+            fin.setCustomValidity(invalido ? 'La hora de fin debe ser posterior a la hora de inicio.' : '');
+        }
+        document.getElementById('input-modulo-hora-inicio').addEventListener('input', validarHorasModulo);
+        document.getElementById('input-modulo-hora-fin').addEventListener('input', validarHorasModulo);
 
         function abrirModalCelda(idModulo, dia, contexto, contenidoActual) {
             document.getElementById('form-celda').action = rutaModulosBase + '/' + idModulo + '/celdas';
@@ -212,5 +248,27 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
+
+        @if ($hayErroresModulo)
+            // Si el servidor rechazó el módulo, se reabre el modal con lo que se había cargado.
+            @php
+                $moduloRechazado = [
+                    'id' => old('id_horario_modulo'),
+                    'modulo' => old('modulo'),
+                    'hora_inicio' => old('hora_inicio'),
+                    'hora_fin' => old('hora_fin'),
+                ];
+            @endphp
+            const moduloRechazado = {{ \Illuminate\Support\Js::from($moduloRechazado) }};
+            if (moduloRechazado.id) {
+                editarModulo(moduloRechazado);
+            } else {
+                abrirModalModulo();
+                document.getElementById('input-modulo-numero').value = moduloRechazado.modulo ?? '';
+                document.getElementById('input-modulo-hora-inicio').value = moduloRechazado.hora_inicio ?? '';
+                document.getElementById('input-modulo-hora-fin').value = moduloRechazado.hora_fin ?? '';
+                validarHorasModulo();
+            }
+        @endif
     </script>
 @endsection

@@ -7,9 +7,14 @@ use App\Models\Carrera;
 use App\Models\HorarioCelda;
 use App\Models\HorarioModulo;
 use App\Models\TurnoCursada;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class HorarioCarreraController extends Controller
@@ -24,17 +29,7 @@ class HorarioCarreraController extends Controller
         $idCarrera = (int) ($request->query('id_carrera') ?: $carreras->first()?->id_carrera);
         $idTurno = (int) ($request->query('id_turno_cursada') ?: $turnos->first()?->id_turno_cursada);
 
-        $modulos = HorarioModulo::with('celdas')
-            ->where('id_carrera', $idCarrera)
-            ->where('id_turno_cursada', $idTurno)
-            ->orderBy('hora_inicio')
-            ->orderBy('modulo')
-            ->get()
-            ->map(function (HorarioModulo $modulo) {
-                $modulo->celdasPorDia = $modulo->celdas->keyBy('dia_semana');
-
-                return $modulo;
-            });
+        $modulos = $this->modulosDelCuadro($idCarrera, $idTurno);
 
         return view('admin.horarios.index', [
             'carreras' => $carreras,
@@ -46,45 +41,46 @@ class HorarioCarreraController extends Controller
         ]);
     }
 
+    public function pdf(Request $request): Response
+    {
+        $carrera = Carrera::findOrFail($request->query('id_carrera'));
+        $turno = TurnoCursada::findOrFail($request->query('id_turno_cursada'));
+
+        $pdf = Pdf::loadView('admin.horarios.pdf', [
+            'carrera' => $carrera,
+            'turno' => $turno,
+            'modulos' => $this->modulosDelCuadro($carrera->id_carrera, $turno->id_turno_cursada),
+            'dias' => self::DIAS,
+        ])->setPaper('a4', 'landscape');
+
+        $archivo = Str::slug("horario {$carrera->nombre_carrera} {$turno->nombre_turno}");
+
+        return $pdf->download("{$archivo}.pdf");
+    }
+
     public function storeModulo(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $cuadro = $request->validate([
             'id_carrera' => ['required', 'exists:carrera,id_carrera'],
             'id_turno_cursada' => ['required', 'exists:turno_cursada,id_turno_cursada'],
-            'modulo' => [
-                'required', 'integer', 'min:1', 'max:20',
-                Rule::unique('horario_modulo', 'modulo')->where(fn ($q) => $q
-                    ->where('id_carrera', $request->id_carrera)
-                    ->where('id_turno_cursada', $request->id_turno_cursada)),
-            ],
-            'hora_inicio' => ['required', 'date_format:H:i'],
-            'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
         ], [
-            'modulo.unique' => 'Ya existe un módulo con ese número para esta carrera y turno.',
+            'id_carrera.required' => 'Seleccioná una carrera.',
+            'id_carrera.exists' => 'La carrera seleccionada no existe.',
+            'id_turno_cursada.required' => 'Seleccioná un turno.',
+            'id_turno_cursada.exists' => 'El turno seleccionado no existe.',
         ]);
 
-        HorarioModulo::create($data);
+        $data = $this->validarModulo($request, (int) $cuadro['id_carrera'], (int) $cuadro['id_turno_cursada']);
 
-        return redirect()->route('admin.horarios.index', ['id_carrera' => $data['id_carrera'], 'id_turno_cursada' => $data['id_turno_cursada']])
+        HorarioModulo::create($cuadro + $data);
+
+        return redirect()->route('admin.horarios.index', $cuadro)
             ->with('status', 'Se agregó el módulo correctamente.');
     }
 
     public function updateModulo(Request $request, HorarioModulo $horarioModulo): RedirectResponse
     {
-        $data = $request->validate([
-            'modulo' => [
-                'required', 'integer', 'min:1', 'max:20',
-                Rule::unique('horario_modulo', 'modulo')
-                    ->where(fn ($q) => $q
-                        ->where('id_carrera', $horarioModulo->id_carrera)
-                        ->where('id_turno_cursada', $horarioModulo->id_turno_cursada))
-                    ->ignore($horarioModulo->id_horario_modulo, 'id_horario_modulo'),
-            ],
-            'hora_inicio' => ['required', 'date_format:H:i'],
-            'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
-        ], [
-            'modulo.unique' => 'Ya existe un módulo con ese número para esta carrera y turno.',
-        ]);
+        $data = $this->validarModulo($request, $horarioModulo->id_carrera, $horarioModulo->id_turno_cursada, $horarioModulo);
 
         $horarioModulo->update($data);
 
@@ -108,6 +104,10 @@ class HorarioCarreraController extends Controller
         $data = $request->validate([
             'dia_semana' => ['required', Rule::in(self::DIAS)],
             'contenido' => ['nullable', 'string', 'max:150'],
+        ], [
+            'dia_semana.required' => 'Seleccioná un día de la semana.',
+            'dia_semana.in' => 'El día seleccionado no es válido.',
+            'contenido.max' => 'El contenido no puede superar los 150 caracteres.',
         ]);
 
         HorarioCelda::updateOrCreate(
@@ -117,5 +117,69 @@ class HorarioCarreraController extends Controller
 
         return redirect()->route('admin.horarios.index', ['id_carrera' => $horarioModulo->id_carrera, 'id_turno_cursada' => $horarioModulo->id_turno_cursada])
             ->with('status', 'Se guardó el contenido correctamente.');
+    }
+
+    private function modulosDelCuadro(int $idCarrera, int $idTurno): Collection
+    {
+        return HorarioModulo::with('celdas')
+            ->where('id_carrera', $idCarrera)
+            ->where('id_turno_cursada', $idTurno)
+            ->orderBy('hora_inicio')
+            ->orderBy('modulo')
+            ->get()
+            ->map(function (HorarioModulo $modulo) {
+                $modulo->celdasPorDia = $modulo->celdas->keyBy('dia_semana');
+
+                return $modulo;
+            });
+    }
+
+    /**
+     * Valida número y horas de un módulo. $actual es el módulo en edición, que
+     * se excluye de los chequeos de número repetido y de superposición.
+     */
+    private function validarModulo(Request $request, int $idCarrera, int $idTurno, ?HorarioModulo $actual = null): array
+    {
+        $numeroUnico = Rule::unique('horario_modulo', 'modulo')->where(fn ($q) => $q
+            ->where('id_carrera', $idCarrera)
+            ->where('id_turno_cursada', $idTurno));
+
+        if ($actual) {
+            $numeroUnico->ignore($actual->id_horario_modulo, 'id_horario_modulo');
+        }
+
+        $data = $request->validate([
+            'modulo' => ['required', 'integer', 'min:1', 'max:20', $numeroUnico],
+            'hora_inicio' => ['required', 'date_format:H:i'],
+            'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
+        ], [
+            'modulo.required' => 'Ingresá el número de módulo.',
+            'modulo.integer' => 'El número de módulo debe ser un número entero.',
+            'modulo.min' => 'El número de módulo debe ser como mínimo 1.',
+            'modulo.max' => 'El número de módulo no puede ser mayor a 20.',
+            'modulo.unique' => 'Ya existe un módulo con ese número para esta carrera y turno.',
+            'hora_inicio.required' => 'Ingresá la hora de inicio.',
+            'hora_inicio.date_format' => 'La hora de inicio no tiene un formato válido (HH:MM).',
+            'hora_fin.required' => 'Ingresá la hora de fin.',
+            'hora_fin.date_format' => 'La hora de fin no tiene un formato válido (HH:MM).',
+            'hora_fin.after' => 'La hora de fin debe ser posterior a la hora de inicio.',
+        ]);
+
+        // Dos módulos pueden ser contiguos (uno termina 09:00 y el otro empieza 09:00).
+        $superpuesto = HorarioModulo::where('id_carrera', $idCarrera)
+            ->where('id_turno_cursada', $idTurno)
+            ->when($actual, fn ($q) => $q->whereKeyNot($actual->id_horario_modulo))
+            ->where('hora_inicio', '<', $data['hora_fin'])
+            ->where('hora_fin', '>', $data['hora_inicio'])
+            ->orderBy('hora_inicio')
+            ->first();
+
+        if ($superpuesto) {
+            throw ValidationException::withMessages([
+                'hora_inicio' => "El horario se superpone con el módulo {$superpuesto->modulo}° ({$superpuesto->hora_inicio->format('H:i')} a {$superpuesto->hora_fin->format('H:i')}).",
+            ]);
+        }
+
+        return $data;
     }
 }

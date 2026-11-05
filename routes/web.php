@@ -168,6 +168,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/carreras/{carrera}/correlativas', [CarreraController::class, 'storeCorrelativa'])->name('carreras.correlativas.store');
 
     Route::get('/horarios', [HorarioCarreraController::class, 'index'])->name('horarios.index');
+    Route::get('/horarios/pdf', [HorarioCarreraController::class, 'pdf'])->name('horarios.pdf');
     Route::post('/horarios/modulos', [HorarioCarreraController::class, 'storeModulo'])->name('horarios.modulos.store');
     Route::put('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'updateModulo'])->name('horarios.modulos.update');
     Route::delete('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'destroyModulo'])->name('horarios.modulos.destroy');
