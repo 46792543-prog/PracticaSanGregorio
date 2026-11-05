@@ -53,6 +53,7 @@ class CuotaController extends Controller
         }
 
         $corteActivo = CorteActivo::actual();
+        $montoActual = $corteActivo?->configuracionCuota?->monto_mensual;
 
         $historial = CuotaAlumno::where('pagado', true)
             ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
@@ -73,6 +74,7 @@ class CuotaController extends Controller
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
             'meses' => Mes::orderBy('id_mes')->get(),
             'corteActivo' => $corteActivo,
+            'montoActual' => $montoActual,
         ]);
     }
 
@@ -85,8 +87,12 @@ class CuotaController extends Controller
             'meses' => ['required', 'array', 'min:1'],
             'meses.*' => ['integer', 'exists:mes,id_mes'],
             'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
-            'monto' => ['required', 'numeric', 'min:0'],
+            'monto' => ['required', 'numeric', 'min:0.01'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
+        ], [
+            'monto.required' => 'Ingresá el importe de la cuota.',
+            'monto.numeric' => 'El importe tiene que ser un número.',
+            'monto.min' => 'El importe tiene que ser mayor a $0.',
         ]);
 
         $anio = AnioLectivo::findOrFail($data['id_anio_lectivo']);
@@ -140,8 +146,12 @@ class CuotaController extends Controller
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
             'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
-            'monto' => ['required', 'numeric', 'min:0'],
+            'monto' => ['required', 'numeric', 'min:0.01'],
             'fecha_vencimiento' => ['nullable', 'date'],
+        ], [
+            'monto.required' => 'Ingresá el importe de la cuota.',
+            'monto.numeric' => 'El importe tiene que ser un número.',
+            'monto.min' => 'El importe tiene que ser mayor a $0.',
         ]);
 
         $cuota->update([
@@ -176,8 +186,13 @@ class CuotaController extends Controller
             'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
             'cuotas' => ['required', 'array', 'min:1'],
             'cuotas.*.pagar' => ['nullable'],
-            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0'],
+            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0.01'],
             'cuotas.*.recargo' => ['nullable', 'numeric', 'min:0'],
+        ], [
+            'cuotas.*.monto.numeric' => 'El importe tiene que ser un número.',
+            'cuotas.*.monto.min' => 'El importe a cobrar tiene que ser mayor a $0.',
+            'cuotas.*.recargo.numeric' => 'El recargo tiene que ser un número.',
+            'cuotas.*.recargo.min' => 'El recargo no puede ser negativo.',
         ]);
 
         $seleccionadas = collect($data['cuotas'])->filter(fn ($item) => ! empty($item['pagar']));
