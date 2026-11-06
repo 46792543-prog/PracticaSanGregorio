@@ -65,9 +65,10 @@
                         </label>
                     @endforeach
                 </div>
+                <p class="text-xs text-slate-400 mt-1.5">La hora de arriba se aplica a todos los días que tildes acá. Si el mismo profesor da la misma materia otro día con otro horario, guardá esto primero y después volvé a cargar ese otro día con su hora — no se pisan entre sí.</p>
             </div>
             <div class="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <span id="editando-aviso" class="hidden sg-badge sg-badge--amarillo self-center mr-auto">Editando una asignación existente — al guardar se actualizará.</span>
+                <span id="editando-aviso" class="hidden sg-badge sg-badge--amarillo self-center mr-auto">Editando un día de una asignación existente — al guardar se actualiza solo ese día, los demás no se tocan.</span>
                 <button type="reset" onclick="cancelarEdicionAsignacion()" class="sg-btn sg-btn--borde">Limpiar</button>
                 <button type="submit" class="sg-btn sg-btn--primario"><x-sg.icono nombre="check" /> Guardar asignación</button>
             </div>
@@ -200,31 +201,27 @@
             </div>
             <p class="text-xs text-slate-400 -mt-2 mb-4">Áreas de formación del profesor (ej. Enfermería Pediátrica, Farmacología) — no es el nombre de una materia puntual, eso se elige al armar la asignación.</p>
 
-            @if ($errors->has('nombre_especialidad'))
-                <p class="text-xs text-red-500 mb-3">{{ $errors->first('nombre_especialidad') }}</p>
-            @endif
+            <p id="especialidad-error" class="hidden text-xs text-red-500 mb-3"></p>
 
-            @if ($especialidades->isNotEmpty())
-                <div class="space-y-2 mb-5">
-                    @foreach ($especialidades as $especialidad)
-                        <div class="flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors">
-                            <form method="POST" action="{{ route('admin.profesores.especialidades.update', $especialidad) }}" class="flex flex-1 gap-2 items-center min-w-0">
-                                @csrf @method('PUT')
-                                <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="45"
-                                       class="sg-input sg-input--chico min-w-0 flex-1">
-                                <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.profesores.especialidades.destroy', $especialidad) }}" onsubmit="return confirm('¿Eliminar la especialidad \'{{ $especialidad->nombre_especialidad }}\'?');">
-                                @csrf @method('DELETE')
-                                <button type="submit" title="Eliminar especialidad" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
-                            </form>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
+            <div id="lista-especialidades" class="space-y-2 mb-5">
+                @foreach ($especialidades as $especialidad)
+                    <div class="flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors" data-id="{{ $especialidad->id_especialidad }}">
+                        <form method="POST" action="{{ route('admin.profesores.especialidades.update', $especialidad) }}" class="form-especialidad-update flex flex-1 gap-2 items-center min-w-0">
+                            @csrf @method('PUT')
+                            <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="45"
+                                   class="sg-input sg-input--chico min-w-0 flex-1">
+                            <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.profesores.especialidades.destroy', $especialidad) }}" class="form-especialidad-destroy" data-confirm-especialidad="{{ $especialidad->nombre_especialidad }}">
+                            @csrf @method('DELETE')
+                            <button type="submit" title="Eliminar especialidad" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
 
             <p class="sg-label mb-2">Agregar nueva especialidad</p>
-            <form method="POST" action="{{ route('admin.profesores.especialidades.store') }}" class="flex gap-2">
+            <form id="form-especialidad-nueva" method="POST" action="{{ route('admin.profesores.especialidades.store') }}" class="flex gap-2">
                 @csrf
                 <input type="text" name="nombre_especialidad" required autofocus maxlength="45" placeholder="Ej: Enfermería Pediátrica"
                        class="sg-input sg-input--chico min-w-0 flex-1">
@@ -244,6 +241,142 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
+
+        // Las 3 acciones del modal de especialidades (agregar, guardar, eliminar) se
+        // mandan por fetch en vez de un submit normal, para que el modal no se
+        // cierre ni la página recargue al usarlas.
+        (function () {
+            const csrfToken = @json(csrf_token());
+            const lista = document.getElementById('lista-especialidades');
+            const errorBox = document.getElementById('especialidad-error');
+            const selectEspecialidad = document.getElementById('input-profesor-especialidad');
+
+            function mostrarError(mensaje) {
+                errorBox.textContent = mensaje;
+                errorBox.classList.remove('hidden');
+            }
+
+            function ocultarError() {
+                errorBox.classList.add('hidden');
+                errorBox.textContent = '';
+            }
+
+            function escaparHtml(texto) {
+                const div = document.createElement('div');
+                div.textContent = texto;
+                return div.innerHTML;
+            }
+
+            function filaEspecialidad(id, nombre) {
+                const nombreSeguro = escaparHtml(nombre);
+                const div = document.createElement('div');
+                div.className = 'flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors';
+                div.dataset.id = id;
+                div.innerHTML = `
+                    <form method="POST" action="/admin/profesores/especialidades/${id}" class="form-especialidad-update flex flex-1 gap-2 items-center min-w-0">
+                        <input type="hidden" name="_token" value="${csrfToken}">
+                        <input type="hidden" name="_method" value="PUT">
+                        <input type="text" name="nombre_especialidad" value="${nombreSeguro}" required maxlength="45" class="sg-input sg-input--chico min-w-0 flex-1">
+                        <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
+                    </form>
+                    <form method="POST" action="/admin/profesores/especialidades/${id}" class="form-especialidad-destroy" data-confirm-especialidad="${nombreSeguro}">
+                        <input type="hidden" name="_token" value="${csrfToken}">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" title="Eliminar especialidad" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="!h-4 !w-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                        </button>
+                    </form>
+                `;
+
+                return div;
+            }
+
+            function agregarOptionSelect(id, nombre) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = nombre;
+                selectEspecialidad.appendChild(option);
+            }
+
+            lista.addEventListener('submit', function (evento) {
+                const form = evento.target;
+
+                if (form.classList.contains('form-especialidad-update')) {
+                    evento.preventDefault();
+                    ocultarError();
+
+                    const input = form.querySelector('[name="nombre_especialidad"]');
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                        body: new FormData(form),
+                    })
+                        .then(async (res) => {
+                            const datos = await res.json();
+                            if (! res.ok) throw datos;
+
+                            const option = selectEspecialidad.querySelector(`option[value="${datos.especialidad.id_especialidad}"]`);
+                            if (option) option.textContent = datos.especialidad.nombre_especialidad;
+
+                            input.classList.add('ring-2', 'ring-emerald-300');
+                            setTimeout(() => input.classList.remove('ring-2', 'ring-emerald-300'), 1200);
+                        })
+                        .catch((datos) => mostrarError(datos.message || Object.values(datos.errors ?? {}).flat().join(' ') || 'No se pudo guardar la especialidad.'));
+
+                    return;
+                }
+
+                if (form.classList.contains('form-especialidad-destroy')) {
+                    evento.preventDefault();
+
+                    if (! confirm(`¿Eliminar la especialidad '${form.dataset.confirmEspecialidad}'?`)) return;
+
+                    ocultarError();
+                    const fila = form.closest('[data-id]');
+                    const id = fila.dataset.id;
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                        body: new FormData(form),
+                    })
+                        .then(async (res) => {
+                            const datos = await res.json();
+                            if (! res.ok) throw datos;
+
+                            fila.remove();
+                            const option = selectEspecialidad.querySelector(`option[value="${id}"]`);
+                            if (option) option.remove();
+                        })
+                        .catch((datos) => mostrarError(datos.message || 'No se pudo eliminar la especialidad.'));
+                }
+            });
+
+            document.getElementById('form-especialidad-nueva').addEventListener('submit', function (evento) {
+                evento.preventDefault();
+                ocultarError();
+
+                const form = evento.target;
+                const input = form.querySelector('[name="nombre_especialidad"]');
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: new FormData(form),
+                })
+                    .then(async (res) => {
+                        const datos = await res.json();
+                        if (! res.ok) throw datos;
+
+                        lista.appendChild(filaEspecialidad(datos.especialidad.id_especialidad, datos.especialidad.nombre_especialidad));
+                        agregarOptionSelect(datos.especialidad.id_especialidad, datos.especialidad.nombre_especialidad);
+                        input.value = '';
+                        input.focus();
+                    })
+                    .catch((datos) => mostrarError(datos.message || Object.values(datos.errors ?? {}).flat().join(' ') || 'No se pudo agregar la especialidad.'));
+            });
+        })();
 
         function editarAsignacion(asignacion) {
             document.getElementById('input-id-profesor').value = asignacion.id_profesor;
@@ -405,8 +538,7 @@
                 <tr>
                     <th>Profesor</th>
                     <th>Materia</th>
-                    <th>Días</th>
-                    <th>Horario</th>
+                    <th>Días y horarios</th>
                     <th>Aula</th>
                     <th>Año</th>
                     <th></th>
@@ -414,7 +546,6 @@
             </thead>
             <tbody class="sg-filas">
                 @forelse ($asignaciones as $asignacion)
-                    @php $primerHorario = $asignacion->horarios->first(); @endphp
                     <tr>
                         <td>
                             <p class="font-semibold text-slate-800">{{ $asignacion->profesor->apellido }}, {{ $asignacion->profesor->nombre }}</p>
@@ -427,34 +558,43 @@
                             <p class="text-slate-700">{{ $asignacion->materia->nombre }}</p>
                             <p class="text-xs text-blue-600">{{ $asignacion->materia->carrera->nombre_carrera }}</p>
                         </td>
-                        <td><div class="flex flex-wrap gap-1">@foreach ($asignacion->horarios->pluck('dia_semana') as $d)<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-[#0B3D91]">{{ \Illuminate\Support\Str::limit($d, 3, '') }}</span>@endforeach</div></td>
-                        <td class="text-slate-500">{{ $primerHorario ? substr($primerHorario->hora_desde, 0, 5) . ' – ' . substr($primerHorario->hora_fin, 0, 5) : '—' }}</td>
+                        <td>
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach ($asignacion->horarios as $horario)
+                                    @php
+                                        $payloadHorario = [
+                                            'id_profesor' => $asignacion->id_profesor,
+                                            'id_materia' => $asignacion->id_materia,
+                                            'id_anio_lectivo' => $asignacion->id_anio_lectivo,
+                                            'aula' => $asignacion->aula,
+                                            'hora_inicio' => substr($horario->hora_desde, 0, 5),
+                                            'hora_fin' => substr($horario->hora_fin, 0, 5),
+                                            'dias' => [$horario->dia_semana],
+                                        ];
+                                    @endphp
+                                    <span class="inline-flex items-center gap-1 rounded-md bg-blue-50 pl-1.5 pr-1 py-0.5 text-[11px] font-bold text-[#0B3D91]">
+                                        {{ \Illuminate\Support\Str::limit($horario->dia_semana, 3, '') }} {{ substr($horario->hora_desde, 0, 5) }}–{{ substr($horario->hora_fin, 0, 5) }}
+                                        <button type="button" title="Editar este día" class="h-4 w-4 grid place-items-center rounded text-[#0B3D91]/50 hover:text-[#0B3D91] hover:bg-blue-100 transition-colors"
+                                                onclick='editarAsignacion(@json($payloadHorario))'><x-sg.icono nombre="pencil" class="!h-3 !w-3" /></button>
+                                        <form method="POST" action="{{ route('admin.profesores.asignaciones.horarios.destroy', [$asignacion, $horario]) }}" onsubmit="return confirm('¿Quitar el {{ $horario->dia_semana }} de esta asignación?');" class="inline-flex">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" title="Quitar este día" class="h-4 w-4 grid place-items-center rounded text-[#0B3D91]/50 hover:text-red-600 hover:bg-red-50 transition-colors"><x-sg.icono nombre="x" class="!h-3 !w-3" /></button>
+                                        </form>
+                                    </span>
+                                @endforeach
+                            </div>
+                        </td>
                         <td class="text-slate-500">{{ $asignacion->aula ?? '—' }}</td>
                         <td class="text-slate-500">{{ $asignacion->materia->anioCursada->nombre_anio }}</td>
-                        @php
-                            $edicionPayload = [
-                                'id_profesor' => $asignacion->id_profesor,
-                                'id_materia' => $asignacion->id_materia,
-                                'id_anio_lectivo' => $asignacion->id_anio_lectivo,
-                                'aula' => $asignacion->aula,
-                                'hora_inicio' => $primerHorario ? substr($primerHorario->hora_desde, 0, 5) : '',
-                                'hora_fin' => $primerHorario ? substr($primerHorario->hora_fin, 0, 5) : '',
-                                'dias' => $asignacion->horarios->pluck('dia_semana'),
-                            ];
-                        @endphp
                         <td>
-                            <div class="flex items-center gap-3">
-                                <button type="button" class="sg-btn sg-btn--suave sg-btn--chico"
-                                        onclick='editarAsignacion(@json($edicionPayload))'>Editar</button>
-                                <form method="POST" action="{{ route('admin.profesores.asignaciones.destroy', $asignacion) }}" onsubmit="return confirm('¿Eliminar esta asignación?');">
-                                    @csrf @method('DELETE')
-                                    <button class="sg-btn sg-btn--peligro sg-btn--icono" title="Eliminar"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
-                                </form>
-                            </div>
+                            <form method="POST" action="{{ route('admin.profesores.asignaciones.destroy', $asignacion) }}" onsubmit="return confirm('¿Eliminar esta asignación completa, con todos sus días?');">
+                                @csrf @method('DELETE')
+                                <button class="sg-btn sg-btn--peligro sg-btn--icono" title="Eliminar toda la asignación"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                            </form>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7"><x-sg.vacio icono="calendar">No hay asignaciones cargadas.</x-sg.vacio></td></tr>
+                    <tr><td colspan="6"><x-sg.vacio icono="calendar">No hay asignaciones cargadas.</x-sg.vacio></td></tr>
                 @endforelse
             </tbody>
         </table>
