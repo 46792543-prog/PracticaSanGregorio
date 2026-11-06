@@ -9,6 +9,11 @@ class Persona extends Model
 {
     use HasFactory;
 
+    /** A partir de esta cantidad de meses adeudados (no hace falta que sean
+     * consecutivos) el alumno queda bloqueado para inscribirse a cursar o a
+     * rendir — ver Persona::superaLimiteDeuda(). */
+    public const MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE = 3;
+
     protected $table = 'persona';
     protected $primaryKey = 'id_persona';
 
@@ -120,6 +125,16 @@ class Persona extends Model
         return $this->estadoMensualCuotas($hastaMes)
             ->reject(fn ($item) => $item['pagado'])
             ->pluck('mes');
+    }
+
+    /**
+     * True si el alumno acumula 3 o más meses adeudados (no hace falta que
+     * sean consecutivos) — a partir de ahí queda bloqueado para inscribirse
+     * a cursar materias o a rendir exámenes.
+     */
+    public function superaLimiteDeuda(): bool
+    {
+        return $this->mesesAdeudados()->count() >= self::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE;
     }
 
     /**
