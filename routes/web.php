@@ -188,6 +188,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::delete('/profesores/especialidades/{especialidad}', [ProfesorController::class, 'destroyEspecialidad'])->name('profesores.especialidades.destroy');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
     Route::delete('/profesores/asignaciones/{asignacion}', [ProfesorController::class, 'destroyAsignacion'])->name('profesores.asignaciones.destroy');
+    Route::delete('/profesores/asignaciones/{asignacion}/horarios/{horario}', [ProfesorController::class, 'destroyHorario'])->name('profesores.asignaciones.horarios.destroy');
 
     Route::get('/mesas', [MesaController::class, 'index'])->name('mesas.index');
     Route::get('/mesas/nueva', [MesaController::class, 'create'])->name('mesas.create');
