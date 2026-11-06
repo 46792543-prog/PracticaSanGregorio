@@ -242,8 +242,9 @@
                                             <label class="sg-label !text-amber-600">Recargo por mora</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][recargo]" value="{{ $cuota->recargo }}"
-                                                       class="sg-input sg-input--chico cuota-recargo w-full border-amber-200" data-id="{{ $cuota->id_cuota }}">
+                                                <input type="number" step="0.01" min="0" value="{{ $cuota->recargo }}"
+                                                       readonly title="Se calcula solo desde Configuración de Cuotas — no se edita acá."
+                                                       class="sg-input sg-input--chico cuota-recargo w-full border-amber-200 bg-slate-50 text-slate-500 cursor-not-allowed" data-id="{{ $cuota->id_cuota }}">
                                             </div>
                                         </div>
                                         <div class="col-span-2 sm:col-span-1">
