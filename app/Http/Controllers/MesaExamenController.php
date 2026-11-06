@@ -63,8 +63,8 @@ class MesaExamenController extends Controller
             return back()->withErrors(['mesa' => 'No cumplís las correlativas necesarias para esta mesa.']);
         }
 
-        if ($alumno->mesesAdeudados()->isNotEmpty()) {
-            return back()->withErrors(['mesa' => 'Tu situación de pagos no está al día. Consultá con secretaría.']);
+        if ($alumno->superaLimiteDeuda()) {
+            return back()->withErrors(['mesa' => 'Tenés ' . Persona::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE . ' cuotas o más sin pagar. Consultá con secretaría.']);
         }
 
         $yaInscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)
