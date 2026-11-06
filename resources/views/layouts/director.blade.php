@@ -35,5 +35,7 @@
             </main>
         </div>
     </div>
+
+    @include('partials.guia-asistente')
 </body>
 </html>

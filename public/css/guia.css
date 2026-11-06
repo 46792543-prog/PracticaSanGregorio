@@ -1,0 +1,136 @@
+/* Asistente "Goyo" (partials/guia-asistente). CSS propio porque Tailwind va precompilado. */
+
+.sg-guia-simbolos { position: absolute; }
+
+/* El botón "volver arriba" comparte la esquina: sube para dejarle lugar a Goyo. */
+.sg-arriba { bottom: 6.25rem; }
+
+/* ---------- Botón flotante ---------- */
+.sg-guia-boton {
+    position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 45;
+    width: 3.9rem; height: 3.9rem; padding: .35rem; border: 3px solid #fff; border-radius: 50%; cursor: pointer;
+    background: linear-gradient(135deg, #1565C0, var(--sg-azul));
+    box-shadow: 0 14px 28px -10px rgba(11, 61, 145, .75);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.sg-guia-boton:hover { transform: translateY(-3px); box-shadow: 0 18px 32px -10px rgba(11, 61, 145, .85); }
+.sg-guia-boton:focus-visible { outline: 3px solid var(--sg-celeste); outline-offset: 3px; }
+.sg-guia-boton__goyo { display: block; width: 100%; height: 100%; }
+.sg-guia-boton__pregunta {
+    position: absolute; top: -.3rem; right: -.3rem; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+    display: grid; place-items: center; background: var(--sg-amarillo); color: var(--sg-azul-oscuro);
+    border: 2px solid #fff; font-size: .78rem; font-weight: 800; line-height: 1;
+}
+.sg-guia-boton__texto {
+    position: absolute; right: calc(100% + .7rem); top: 50%; transform: translate(6px, -50%);
+    padding: .4rem .75rem; border-radius: .75rem; white-space: nowrap; pointer-events: none;
+    background: var(--sg-azul-oscuro); color: #fff; font-size: .8rem; font-weight: 600;
+    opacity: 0; transition: opacity .2s ease, transform .2s ease;
+}
+.sg-guia-boton:hover .sg-guia-boton__texto,
+.sg-guia-boton:focus-visible .sg-guia-boton__texto { opacity: 1; transform: translate(0, -50%); }
+
+/* ---------- Panel ---------- */
+/* Va por encima de los modales del sistema para seguir viendo los pasos mientras se completa uno. */
+.sg-guia-panel {
+    position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 80;
+    width: 24rem; max-width: calc(100vw - 2rem); height: 36rem; max-height: calc(100vh - 3rem);
+    display: flex; flex-direction: column; overflow: hidden;
+    background: #fff; border: 1px solid var(--sg-borde); border-radius: 1.25rem;
+    box-shadow: 0 28px 60px -20px rgba(8, 42, 102, .55);
+    animation: sg-guia-entrar .22s ease-out;
+}
+.sg-guia-panel[hidden] { display: none; }
+
+@keyframes sg-guia-entrar {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+.sg-guia-panel__cabecera {
+    display: flex; align-items: center; gap: .65rem; padding: .8rem .85rem; color: #fff;
+    background: linear-gradient(135deg, var(--sg-azul), var(--sg-azul-oscuro));
+}
+.sg-guia-panel__avatar {
+    flex: none; width: 2.5rem; height: 2.5rem; padding: .2rem; border-radius: 50%; background: rgba(255, 255, 255, .16);
+}
+.sg-guia-panel__avatar svg { display: block; width: 100%; height: 100%; }
+.sg-guia-panel__nombre { flex: 1; min-width: 0; }
+.sg-guia-panel__nombre h2 { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.2; }
+.sg-guia-panel__nombre p { margin: 0; font-size: .74rem; color: #BFE3FA; }
+.sg-guia-panel__accion {
+    flex: none; width: 2rem; height: 2rem; padding: .4rem; border: 0; border-radius: .6rem; cursor: pointer;
+    background: transparent; color: #fff;
+}
+.sg-guia-panel__accion:hover { background: rgba(255, 255, 255, .16); }
+.sg-guia-panel__accion:focus-visible { outline: 2px solid var(--sg-celeste); }
+.sg-guia-panel__accion svg { display: block; width: 100%; height: 100%; }
+
+.sg-guia-panel__chat {
+    flex: 1; min-height: 0; overflow-y: auto; padding: .9rem; background: var(--sg-fondo);
+    display: flex; flex-direction: column; gap: .6rem;
+}
+
+.sg-guia-panel__form { display: flex; gap: .5rem; padding: .7rem; border-top: 1px solid var(--sg-borde); background: #fff; }
+.sg-guia-panel__form input {
+    flex: 1; min-width: 0; padding: .6rem .8rem; border: 1.5px solid var(--sg-borde); border-radius: .75rem;
+    font: inherit; font-size: .875rem; color: var(--sg-texto); background: #fff;
+}
+.sg-guia-panel__form input:focus { outline: none; border-color: var(--sg-azul); box-shadow: 0 0 0 3px rgba(79, 195, 247, .25); }
+.sg-guia-panel__form button {
+    flex: none; width: 2.6rem; padding: .55rem; border: 0; border-radius: .75rem; cursor: pointer;
+    background: var(--sg-azul); color: #fff;
+}
+.sg-guia-panel__form button:hover { background: var(--sg-azul-oscuro); }
+.sg-guia-panel__form button svg { display: block; width: 100%; height: 100%; }
+
+/* ---------- Mensajes ---------- */
+.sg-guia-msj { max-width: 92%; padding: .6rem .8rem; border-radius: .9rem; font-size: .85rem; line-height: 1.45; overflow-wrap: anywhere; }
+.sg-guia-msj--goyo { align-self: flex-start; background: #fff; border: 1px solid var(--sg-borde); border-bottom-left-radius: .25rem; color: var(--sg-texto); }
+.sg-guia-msj--usuario { align-self: flex-end; background: var(--sg-azul); color: #fff; border-bottom-right-radius: .25rem; }
+
+.sg-guia-opciones { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sg-guia-opcion {
+    padding: .4rem .7rem; border: 1px solid #BDE5FA; border-radius: 999px; cursor: pointer;
+    background: #fff; color: var(--sg-azul); font: inherit; font-size: .78rem; font-weight: 600; text-align: left;
+}
+.sg-guia-opcion:hover { background: var(--sg-celeste-claro); }
+.sg-guia-opcion:focus-visible { outline: 2px solid var(--sg-azul); outline-offset: 1px; }
+.sg-guia-opcion--suave { border-color: var(--sg-borde); color: var(--sg-suave); }
+
+.sg-guia-grupo { margin: .35rem 0 0; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--sg-suave); }
+
+/* ---------- Guía paso a paso ---------- */
+.sg-guia-tarjeta { align-self: stretch; padding: .8rem .9rem; border-radius: .9rem; background: #fff; border: 1px solid var(--sg-borde); font-size: .85rem; line-height: 1.45; }
+.sg-guia-tarjeta h3 { margin: 0; font-size: .92rem; font-weight: 700; color: var(--sg-azul-oscuro); }
+.sg-guia-tarjeta__panel { margin: .1rem 0 0; font-size: .72rem; color: var(--sg-suave); }
+.sg-guia-tarjeta ol { margin: .6rem 0 0; padding: 0; list-style: none; counter-reset: sg-paso; }
+.sg-guia-tarjeta li { position: relative; padding: 0 0 .5rem 1.85rem; counter-increment: sg-paso; }
+.sg-guia-tarjeta li::before {
+    content: counter(sg-paso); position: absolute; left: 0; top: .05rem; width: 1.35rem; height: 1.35rem; border-radius: 50%;
+    display: grid; place-items: center; background: var(--sg-celeste-claro); color: var(--sg-azul); font-size: .72rem; font-weight: 700;
+}
+.sg-guia-tarjeta__nota { margin: .15rem 0 0; padding: .5rem .65rem; border-radius: .6rem; background: #FFF8E1; color: #6B5200; font-size: .78rem; }
+.sg-guia-tarjeta__ir {
+    display: block; margin-top: .7rem; padding: .55rem .8rem; border-radius: .7rem; text-align: center; text-decoration: none;
+    background: var(--sg-azul); color: #fff; font-size: .82rem; font-weight: 600;
+}
+.sg-guia-tarjeta__ir:hover { background: var(--sg-azul-oscuro); color: #fff; }
+.sg-guia-tarjeta__aca { margin: .7rem 0 0; font-size: .78rem; font-weight: 600; text-align: center; color: #047857; }
+
+/* ---------- Celular ---------- */
+@media (max-width: 640px) {
+    .sg-guia-boton { right: 1rem; bottom: 1rem; }
+    .sg-arriba { right: 1rem; bottom: 5.5rem; }
+    .sg-guia-panel { right: 0; bottom: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; border: 0; border-radius: 0; }
+    .sg-guia-panel__form input { font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sg-guia-panel { animation: none; }
+    .sg-guia-boton, .sg-guia-boton__texto { transition: none; }
+}
+
+@media print {
+    .sg-guia-boton, .sg-guia-panel { display: none !important; }
+}
