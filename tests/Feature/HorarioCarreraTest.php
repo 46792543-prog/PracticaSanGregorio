@@ -79,11 +79,11 @@ class HorarioCarreraTest extends TestCase
     {
         $filtros = ['id_carrera' => $this->carrera->id_carrera, 'id_turno_cursada' => $this->turno->id_turno_cursada];
 
-        $this->get(route('admin.horarios.index', $filtros))->assertDontSee('Descargar PDF');
+        $this->get(route('admin.horarios.index', $filtros))->assertDontSee('admin/horarios/pdf', false);
 
         $this->crearModulo(1, '08:00', '09:00');
 
-        $this->get(route('admin.horarios.index', $filtros))->assertSee('Descargar PDF');
+        $this->get(route('admin.horarios.index', $filtros))->assertSee('admin/horarios/pdf', false);
     }
 
     public function test_rechaza_un_modulo_superpuesto()
