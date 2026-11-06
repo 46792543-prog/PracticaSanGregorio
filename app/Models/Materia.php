@@ -189,8 +189,8 @@ class Materia extends Model
             return "Correlativa pendiente: {$requisito->nombre}";
         }
 
-        if ($alumno->cuotas()->where('pagado', false)->exists()) {
-            return 'Tiene cuotas pendientes de pago.';
+        if ($alumno->superaLimiteDeuda()) {
+            return 'Tiene ' . Persona::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE . ' cuotas o más sin pagar.';
         }
 
         $documentacionIncompleta = DocumentoRequisito::where('es_obligatorio', true)
