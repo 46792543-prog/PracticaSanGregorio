@@ -187,12 +187,9 @@ class CuotaController extends Controller
             'cuotas' => ['required', 'array', 'min:1'],
             'cuotas.*.pagar' => ['nullable'],
             'cuotas.*.monto' => ['nullable', 'numeric', 'min:0.01'],
-            'cuotas.*.recargo' => ['nullable', 'numeric', 'min:0'],
         ], [
             'cuotas.*.monto.numeric' => 'El importe tiene que ser un número.',
             'cuotas.*.monto.min' => 'El importe a cobrar tiene que ser mayor a $0.',
-            'cuotas.*.recargo.numeric' => 'El recargo tiene que ser un número.',
-            'cuotas.*.recargo.min' => 'El recargo no puede ser negativo.',
         ]);
 
         $seleccionadas = collect($data['cuotas'])->filter(fn ($item) => ! empty($item['pagar']));
@@ -226,7 +223,10 @@ class CuotaController extends Controller
                 }
 
                 $monto = round((float) ($item['monto'] ?? $cuota->monto), 2);
-                $recargo = round((float) ($item['recargo'] ?? 0), 2);
+                // El recargo nunca sale del formulario: siempre es el que ya
+                // tiene calculado la cuota (desde Configuración de Cuotas /
+                // "Calcular moras"), para que no se pueda alterar al cobrar.
+                $recargo = round((float) $cuota->recargo, 2);
                 $conceptoTexto = $cuota->concepto ?: "Cuota {$cuota->mes->nombre_mes}";
 
                 $descripcion = "{$conceptoTexto} — {$cuota->personaAlumno->apellido}, {$cuota->personaAlumno->nombre}";
