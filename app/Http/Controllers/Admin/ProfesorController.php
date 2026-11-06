@@ -12,6 +12,7 @@ use App\Models\Materia;
 use App\Models\Persona;
 use App\Models\Profesor;
 use App\Support\CorteActivo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -154,18 +155,22 @@ class ProfesorController extends Controller
         return back()->with('status', 'Profesor reactivado.');
     }
 
-    public function storeEspecialidad(Request $request): RedirectResponse
+    public function storeEspecialidad(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad'],
         ]);
 
-        EspecialidadProfesor::create($data);
+        $especialidad = EspecialidadProfesor::create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'Especialidad agregada correctamente.', 'especialidad' => $especialidad]);
+        }
 
         return back()->with('status', 'Especialidad agregada correctamente.');
     }
 
-    public function updateEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse
+    public function updateEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad,' . $especialidad->id_especialidad . ',id_especialidad'],
@@ -173,16 +178,30 @@ class ProfesorController extends Controller
 
         $especialidad->update($data);
 
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'Especialidad actualizada correctamente.', 'especialidad' => $especialidad]);
+        }
+
         return back()->with('status', 'Especialidad actualizada correctamente.');
     }
 
-    public function destroyEspecialidad(EspecialidadProfesor $especialidad): RedirectResponse
+    public function destroyEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse|JsonResponse
     {
         if (Profesor::where('id_especialidad', $especialidad->id_especialidad)->exists()) {
-            return back()->withErrors(['nombre_especialidad' => 'No se puede eliminar: hay profesores cargados con esta especialidad. Cambiales la especialidad primero.']);
+            $mensaje = 'No se puede eliminar: hay profesores cargados con esta especialidad. Cambiales la especialidad primero.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $mensaje], 422);
+            }
+
+            return back()->withErrors(['nombre_especialidad' => $mensaje]);
         }
 
         $especialidad->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['status' => 'Especialidad eliminada.']);
+        }
 
         return back()->with('status', 'Especialidad eliminada.');
     }
@@ -256,7 +275,12 @@ class ProfesorController extends Controller
             ]
         );
 
-        $asignacion->horarios()->delete();
+        // Solo se reemplazan los horarios de los días que vienen en este envío
+        // — así se puede cargar un día con un horario y, en otro envío
+        // aparte, agregarle otro día con un horario distinto sin perder el
+        // primero (es el mismo profesor+materia+año, una sola asignación con
+        // varios bloques de día/hora).
+        $asignacion->horarios()->whereIn('dia_semana', $data['dias'])->delete();
 
         foreach ($data['dias'] as $dia) {
             HorarioAsignacion::create([
@@ -276,5 +300,26 @@ class ProfesorController extends Controller
         $asignacion->delete();
 
         return back()->with('status', 'Asignación eliminada.');
+    }
+
+    /**
+     * Quita un solo bloque de día/horario de una asignación (ej. solo el
+     * Viernes, dejando el Miércoles intacto). Si era el último que le
+     * quedaba, no tiene sentido una asignación sin ningún horario, así que
+     * se borra también.
+     */
+    public function destroyHorario(AsignacionProfesorMateria $asignacion, HorarioAsignacion $horario): RedirectResponse
+    {
+        abort_unless($horario->id_asignacion === $asignacion->id_asignacion, 404);
+
+        $horario->delete();
+
+        if ($asignacion->horarios()->doesntExist()) {
+            $asignacion->delete();
+
+            return back()->with('status', 'Se quitó el horario y, al no quedarle ninguno, se eliminó la asignación.');
+        }
+
+        return back()->with('status', 'Se quitó ese día de la asignación.');
     }
 }
