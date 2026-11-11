@@ -158,7 +158,7 @@ class ProfesorController extends Controller
     public function storeEspecialidad(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
-            'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad'],
+            'nombre_especialidad' => ['required', 'string', 'max:120', 'unique:especialidad_profesor,nombre_especialidad'],
         ]);
 
         $especialidad = EspecialidadProfesor::create($data);
@@ -173,7 +173,7 @@ class ProfesorController extends Controller
     public function updateEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
-            'nombre_especialidad' => ['required', 'string', 'max:45', 'unique:especialidad_profesor,nombre_especialidad,' . $especialidad->id_especialidad . ',id_especialidad'],
+            'nombre_especialidad' => ['required', 'string', 'max:120', 'unique:especialidad_profesor,nombre_especialidad,' . $especialidad->id_especialidad . ',id_especialidad'],
         ]);
 
         $especialidad->update($data);
