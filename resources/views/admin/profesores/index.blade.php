@@ -208,7 +208,7 @@
                     <div class="flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors" data-id="{{ $especialidad->id_especialidad }}">
                         <form method="POST" action="{{ route('admin.profesores.especialidades.update', $especialidad) }}" class="form-especialidad-update flex flex-1 gap-2 items-center min-w-0">
                             @csrf @method('PUT')
-                            <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="45"
+                            <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="120"
                                    class="sg-input sg-input--chico min-w-0 flex-1">
                             <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
                         </form>
@@ -223,7 +223,7 @@
             <p class="sg-label mb-2">Agregar nueva especialidad</p>
             <form id="form-especialidad-nueva" method="POST" action="{{ route('admin.profesores.especialidades.store') }}" class="flex gap-2">
                 @csrf
-                <input type="text" name="nombre_especialidad" required autofocus maxlength="45" placeholder="Ej: Enfermería Pediátrica"
+                <input type="text" name="nombre_especialidad" required autofocus maxlength="120" placeholder="Ej: Enfermería Pediátrica"
                        class="sg-input sg-input--chico min-w-0 flex-1">
                 <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico shrink-0">Agregar</button>
             </form>
@@ -276,7 +276,7 @@
                     <form method="POST" action="/admin/profesores/especialidades/${id}" class="form-especialidad-update flex flex-1 gap-2 items-center min-w-0">
                         <input type="hidden" name="_token" value="${csrfToken}">
                         <input type="hidden" name="_method" value="PUT">
-                        <input type="text" name="nombre_especialidad" value="${nombreSeguro}" required maxlength="45" class="sg-input sg-input--chico min-w-0 flex-1">
+                        <input type="text" name="nombre_especialidad" value="${nombreSeguro}" required maxlength="120" class="sg-input sg-input--chico min-w-0 flex-1">
                         <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
                     </form>
                     <form method="POST" action="/admin/profesores/especialidades/${id}" class="form-especialidad-destroy" data-confirm-especialidad="${nombreSeguro}">
