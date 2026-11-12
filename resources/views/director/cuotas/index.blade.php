@@ -71,6 +71,40 @@
                         <a href="{{ route('director.cuotas.index') }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="refresh" /> Cambiar alumno</a>
                     </div>
 
+                    @if ($matricula)
+                        <div class="mb-5 rounded-2xl border-[1.5px] px-4 py-3 {{ $matricula->pagado ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50' }}">
+                            @if ($matricula->pagado)
+                                <p class="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                                    <x-sg.icono nombre="check-circle" class="h-4 w-4 shrink-0" />
+                                    Matrícula {{ $matricula->anioLectivo->anio }} pagada el {{ \App\Support\FechaEsp::corta($matricula->fecha_pago) }} — $ {{ number_format($matricula->monto, 0, ',', '.') }}
+                                </p>
+                            @else
+                                <p class="flex items-center gap-2 text-sm font-semibold text-rose-700 mb-3">
+                                    <x-sg.icono nombre="x-circle" class="h-4 w-4 shrink-0" />
+                                    Matrícula {{ $matricula->anioLectivo->anio }} pendiente — $ {{ number_format($matricula->monto, 0, ',', '.') }}. No se pueden cobrar cuotas de este año hasta pagarla.
+                                </p>
+                                <form method="POST" action="{{ route('director.matricula.cobrar') }}" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                                    @csrf
+                                    <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                                    <input type="hidden" name="id_matricula" value="{{ $matricula->id_matricula }}">
+                                    <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                    <div>
+                                        <label class="sg-label">FECHA DE PAGO *</label>
+                                        <input type="date" name="fecha_pago" value="{{ now()->toDateString() }}" required class="sg-input w-full">
+                                    </div>
+                                    <div>
+                                        <label class="sg-label">MEDIO DE PAGO *</label>
+                                        <select name="medio_pago" required class="sg-input w-full">
+                                            <option value="Efectivo">Efectivo</option>
+                                            <option value="Transferencia">Transferencia</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="sg-btn sg-btn--verde"><x-sg.icono nombre="check-circle" /> Cobrar matrícula</button>
+                                </form>
+                            @endif
+                        </div>
+                    @endif
+
                     @if ($estadoMensual->isNotEmpty())
                         <div class="mb-5">
                             <p class="sg-label mb-2">Estado mes a mes (ciclo {{ now()->year }})</p>
@@ -175,7 +209,9 @@
                         })();
                     </script>
 
-                    @if ($cuotasPendientes->isEmpty() && $mesesAdeudados->isNotEmpty())
+                    @if ($matricula && ! $matricula->pagado)
+                        <p class="sg-aviso sg-aviso--alerta">Cobrá la matrícula {{ $matricula->anioLectivo->anio }} de arriba antes de poder registrar el cobro de cuotas.</p>
+                    @elseif ($cuotasPendientes->isEmpty() && $mesesAdeudados->isNotEmpty())
                         <p class="sg-aviso sg-aviso--alerta">
                             Debe {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}, pero todavía no se le generó la cuota de {{ $mesesAdeudados->count() > 1 ? 'esos meses' : 'ese mes' }}. Generala más abajo para poder cobrarla.
                         </p>
