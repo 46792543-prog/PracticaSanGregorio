@@ -41,15 +41,25 @@
                         </select>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <label class="sg-label">AÑO AL QUE INGRESA *</label>
-                    <select name="anio_cursada_id" required class="sg-input w-full">
-                        @foreach ($aniosCursada as $anioCursada)
-                            <option value="{{ $anioCursada->id_anio_cursada }}" @selected(($academicos['anio_cursada_id'] ?? null) == $anioCursada->id_anio_cursada)>{{ $anioCursada->nombre_anio }}</option>
-                        @endforeach
-                    </select>
+                <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="sg-label">AÑO AL QUE INGRESA *</label>
+                        <select name="anio_cursada_id" required class="sg-input w-full">
+                            @foreach ($aniosCursada as $anioCursada)
+                                <option value="{{ $anioCursada->id_anio_cursada }}" @selected(($academicos['anio_cursada_id'] ?? null) == $anioCursada->id_anio_cursada)>{{ $anioCursada->nombre_anio }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="sg-label">TURNO *</label>
+                        <select name="turno_cursada_id" required class="sg-input w-full">
+                            <option value="">Seleccioná turno...</option>
+                            @foreach ($turnos as $turno)
+                                <option value="{{ $turno->id_turno_cursada }}" @selected(($academicos['turno_cursada_id'] ?? null) == $turno->id_turno_cursada)>{{ $turno->nombre_turno }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-                <p class="text-xs text-slate-400 mb-6">El turno de cursada se asigna más adelante, una vez que el alumno complete su ficha de inscripción.</p>
 
                 <div class="flex justify-between gap-3 pt-5 mt-2 border-t border-slate-100">
                     <a href="{{ route('admin.alumnos.create') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver</a>
