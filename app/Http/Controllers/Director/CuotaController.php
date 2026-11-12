@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
 use App\Models\ConceptoCaja;
 use App\Models\CuotaAlumno;
+use App\Models\MatriculaAlumno;
 use App\Models\MedioPago;
 use App\Models\Mes;
 use App\Models\MovimientoCaja;
@@ -55,6 +56,13 @@ class CuotaController extends Controller
         $corteActivo = CorteActivo::actual();
         $montoActual = $corteActivo?->configuracionCuota?->monto_mensual;
 
+        $anioMatricula = $corteActivo?->id_anio_lectivo ?? AnioLectivo::orderByDesc('anio')->value('id_anio_lectivo');
+        $matricula = $alumnoSeleccionado
+            ? MatriculaAlumno::where('id_persona_alumno', $alumnoSeleccionado->persona->id_persona)
+                ->where('id_anio_lectivo', $anioMatricula)
+                ->first()
+            : null;
+
         $historial = CuotaAlumno::where('pagado', true)
             ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
             ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
@@ -75,6 +83,7 @@ class CuotaController extends Controller
             'meses' => Mes::orderBy('id_mes')->get(),
             'corteActivo' => $corteActivo,
             'montoActual' => $montoActual,
+            'matricula' => $matricula,
         ]);
     }
 
@@ -198,7 +207,14 @@ class CuotaController extends Controller
             return back()->withErrors(['cuotas' => 'Seleccioná al menos una cuota para registrar el cobro.']);
         }
 
-        if ($error = $this->validarOrdenDeCobro(Persona::findOrFail($data['persona_id']), $seleccionadas->keys()->map(fn ($id) => (int) $id))) {
+        $alumno = Persona::findOrFail($data['persona_id']);
+        $idsSeleccionados = $seleccionadas->keys()->map(fn ($id) => (int) $id);
+
+        if ($error = $this->validarMatriculaPagada($alumno, $idsSeleccionados)) {
+            return back()->withErrors(['cuotas' => $error]);
+        }
+
+        if ($error = $this->validarOrdenDeCobro($alumno, $idsSeleccionados)) {
             return back()->withErrors(['cuotas' => $error]);
         }
 
@@ -258,6 +274,70 @@ class CuotaController extends Controller
 
         return redirect()->route('director.cuotas.index')
             ->with('status', "Se registró el cobro de {$cantidad} cuota(s) por $" . number_format($totalCobrado, 0, ',', '.') . ' y se asentó en el Libro de Caja.');
+    }
+
+    public function cobrarMatricula(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'persona_id' => ['required', 'exists:persona,id_persona'],
+            'id_matricula' => ['required', 'exists:matricula_alumno,id_matricula'],
+            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
+            'fecha_pago' => ['required', 'date'],
+            'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
+        ]);
+
+        $matricula = MatriculaAlumno::where('id_persona_alumno', $data['persona_id'])
+            ->where('pagado', false)
+            ->findOrFail($data['id_matricula']);
+
+        DB::transaction(function () use ($matricula, $data) {
+            $medioPago = MedioPago::where('nombre_medio', $data['medio_pago'])->firstOrFail();
+            $tipoIngreso = TipoMovimiento::where('nombre_tipo', 'Ingreso')->firstOrFail();
+            $conceptoMatricula = ConceptoCaja::firstOrCreate(
+                ['nombre_concepto' => 'Matrícula'],
+                ['id_tipo_movimiento' => $tipoIngreso->id_tipo_movimiento]
+            );
+
+            $descripcion = "Matrícula {$matricula->anioLectivo->anio} — {$matricula->personaAlumno->apellido}, {$matricula->personaAlumno->nombre}";
+
+            $movimiento = MovimientoCaja::create([
+                'id_concepto' => $conceptoMatricula->id_concepto,
+                'monto' => $matricula->monto,
+                'fecha_movimiento' => $data['fecha_pago'],
+                'descripcion_detalle' => $descripcion,
+                'id_secretario_registra' => Auth::user()->id_persona,
+                'id_medio_pago' => $medioPago->id_medio_pago,
+            ]);
+
+            $matricula->update([
+                'pagado' => true,
+                'fecha_pago' => $data['fecha_pago'],
+                'id_movimiento_caja' => $movimiento->id_movimiento,
+            ]);
+        });
+
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+            ->with('status', 'Se registró el pago de la matrícula y se asentó en el Libro de Caja.');
+    }
+
+    /**
+     * No se puede cobrar cuotas de un año lectivo si la matrícula de ese
+     * mismo año todavía está impaga (y fue generada — si nunca se configuró
+     * matrícula para ese año, no se bloquea nada).
+     */
+    private function validarMatriculaPagada(Persona $alumno, Collection $idsSeleccionados): ?string
+    {
+        $aniosInvolucrados = CuotaAlumno::whereIn('id_cuota', $idsSeleccionados)->pluck('id_anio_lectivo')->unique();
+
+        foreach ($aniosInvolucrados as $idAnio) {
+            if (! $alumno->matriculaPagada($idAnio)) {
+                $anio = AnioLectivo::find($idAnio);
+
+                return "No se pueden cobrar cuotas de {$anio->anio}: primero hay que cobrar la matrícula de ese año.";
+            }
+        }
+
+        return null;
     }
 
     /**
