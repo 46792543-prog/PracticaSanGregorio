@@ -37,11 +37,8 @@
             </div>
             <div>
                 <label class="sg-label">Duración de la Carrera *</label>
-                <select name="duracion_anos" class="sg-input w-full">
-                    @foreach ([1, 2, 3, 4] as $anio)
-                        <option value="{{ $anio }}" @selected(old('duracion_anos', $carrera->duracion_anos) == $anio)>{{ $anio }} {{ $anio === 1 ? 'Año' : 'Años' }}</option>
-                    @endforeach
-                </select>
+                <input type="number" name="duracion_anos" min="1" max="10" value="{{ old('duracion_anos', $carrera->duracion_anos) }}" required
+                       class="sg-input w-full">
             </div>
             <div>
                 <label class="sg-label">Estado</label>
