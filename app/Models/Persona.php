@@ -50,6 +50,24 @@ class Persona extends Model
         return $this->hasMany(CuotaAlumno::class, 'id_persona_alumno', 'id_persona');
     }
 
+    public function matriculas()
+    {
+        return $this->hasMany(MatriculaAlumno::class, 'id_persona_alumno', 'id_persona');
+    }
+
+    /**
+     * True si para ese año lectivo no hay matrícula generada (no se bloquea,
+     * nunca se configuró) o si la que hay ya está pagada. False solo cuando
+     * existe una matrícula generada y sigue impaga — ahí es cuando se
+     * bloquea el cobro de cuotas de ese año (ver CuotaController::cobrar()).
+     */
+    public function matriculaPagada(int $idAnioLectivo): bool
+    {
+        $matricula = $this->matriculas()->where('id_anio_lectivo', $idAnioLectivo)->first();
+
+        return ! $matricula || $matricula->pagado;
+    }
+
     public function inscripcionesMesa()
     {
         return $this->hasMany(InscripcionMesa::class, 'id_persona_alumno', 'id_persona');
