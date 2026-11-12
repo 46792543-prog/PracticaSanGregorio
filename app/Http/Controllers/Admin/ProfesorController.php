@@ -25,7 +25,7 @@ class ProfesorController extends Controller
         $anioLectivo = CorteActivo::actual() ?? AnioLectivo::orderByDesc('anio')->first();
         $sinAsignar = $request->boolean('sin_asignar');
 
-        $asignaciones = AsignacionProfesorMateria::with('profesor.persona', 'materia.carrera', 'materia.nombreMateria', 'horarios')
+        $asignaciones = AsignacionProfesorMateria::with('profesor.persona', 'profesor.especialidades', 'materia.carrera', 'materia.nombreMateria', 'horarios')
             ->when($anioLectivo, fn ($q) => $q->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo))
             ->when($request->query('profesor'), fn ($q, $p) => $q->where('id_profesor', $p))
             ->when($request->query('dia'), fn ($q, $dia) => $q->whereHas('horarios', fn ($w) => $w->where('dia_semana', ucfirst($dia))))
@@ -55,9 +55,9 @@ class ProfesorController extends Controller
             ])
             ->values();
 
-        $profesores = Profesor::with('persona', 'especialidad')->get()->sortBy('apellido');
+        $profesores = Profesor::with('persona', 'especialidades')->get()->sortBy('apellido');
 
-        $profesoresPaginados = Profesor::with('persona', 'especialidad')
+        $profesoresPaginados = Profesor::with('persona', 'especialidades')
             ->join('persona', 'persona.id_persona', '=', 'profesor.id_persona')
             ->orderBy('persona.apellido')
             ->select('profesor.*')
@@ -87,7 +87,8 @@ class ProfesorController extends Controller
             'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
             'email' => ['nullable', 'email', 'max:25', 'unique:profesor,email'],
-            'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
+            'id_especialidad' => ['required', 'array', 'min:1'],
+            'id_especialidad.*' => ['exists:especialidad_profesor,id_especialidad'],
             'condicion' => ['required', 'in:Titular,Suplente'],
         ]);
 
@@ -97,12 +98,13 @@ class ProfesorController extends Controller
             'apellido' => $data['apellido'],
         ]);
 
-        Profesor::create([
+        $profesor = Profesor::create([
             'id_persona' => $persona->id_persona,
             'email' => $data['email'] ?? null,
-            'id_especialidad' => $data['id_especialidad'],
             'condicion' => $data['condicion'],
         ]);
+
+        $profesor->especialidades()->sync($data['id_especialidad']);
 
         return back()->with('status', 'Profesor agregado correctamente.');
     }
@@ -114,7 +116,8 @@ class ProfesorController extends Controller
             'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
             'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
             'email' => ['nullable', 'email', 'max:100', 'unique:profesor,email,' . $profesor->id_profesor . ',id_profesor'],
-            'id_especialidad' => ['required', 'exists:especialidad_profesor,id_especialidad'],
+            'id_especialidad' => ['required', 'array', 'min:1'],
+            'id_especialidad.*' => ['exists:especialidad_profesor,id_especialidad'],
             'condicion' => ['required', 'in:Titular,Suplente'],
         ]);
 
@@ -126,9 +129,10 @@ class ProfesorController extends Controller
 
         $profesor->update([
             'email' => $data['email'] ?? null,
-            'id_especialidad' => $data['id_especialidad'],
             'condicion' => $data['condicion'],
         ]);
+
+        $profesor->especialidades()->sync($data['id_especialidad']);
 
         return back()->with('status', 'Profesor actualizado correctamente.');
     }
@@ -187,7 +191,7 @@ class ProfesorController extends Controller
 
     public function destroyEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse|JsonResponse
     {
-        if (Profesor::where('id_especialidad', $especialidad->id_especialidad)->exists()) {
+        if ($especialidad->profesores()->exists()) {
             $mensaje = 'No se puede eliminar: hay profesores cargados con esta especialidad. Cambiales la especialidad primero.';
 
             if ($request->expectsJson()) {
