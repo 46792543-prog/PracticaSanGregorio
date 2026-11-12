@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Profesor extends Model
@@ -13,7 +14,6 @@ class Profesor extends Model
 
     protected $fillable = [
         'id_persona',
-        'id_especialidad',
         'condicion',
         'email',
         'activo',
@@ -44,9 +44,14 @@ class Profesor extends Model
         return $this->belongsTo(Persona::class, 'id_secretario_reactiva', 'id_persona');
     }
 
-    public function especialidad(): BelongsTo
+    public function especialidades(): BelongsToMany
     {
-        return $this->belongsTo(EspecialidadProfesor::class, 'id_especialidad', 'id_especialidad');
+        return $this->belongsToMany(EspecialidadProfesor::class, 'profesor_especialidad', 'id_profesor', 'id_especialidad');
+    }
+
+    public function getEspecialidadesTextoAttribute(): string
+    {
+        return $this->especialidades->pluck('nombre_especialidad')->join(', ');
     }
 
     // Proxies de identidad: el profesor ya no duplica estos datos, vienen de persona.
