@@ -17,6 +17,7 @@ use App\Models\InscripcionCarrera;
 use App\Models\Materia;
 use App\Models\Persona;
 use App\Models\Rol;
+use App\Models\TurnoCursada;
 use App\Models\Usuario;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
@@ -193,6 +194,7 @@ class AlumnoController extends Controller
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'corteActivoId' => CorteActivo::id(),
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
+            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
         ]);
     }
 
@@ -204,6 +206,7 @@ class AlumnoController extends Controller
             'carrera_id' => ['required', 'exists:carrera,id_carrera'],
             'anio_cursada_id' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'anio_lectivo_id' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
         ]);
 
         session([self::SESSION_KEY . '.academicos' => $datos]);
@@ -257,7 +260,7 @@ class AlumnoController extends Controller
             'id_carrera' => $academicos['carrera_id'],
             'id_anio_cursada' => $academicos['anio_cursada_id'],
             'id_anio_lectivo' => $academicos['anio_lectivo_id'],
-            'id_turno_cursada' => null,
+            'id_turno_cursada' => $academicos['turno_cursada_id'],
             'id_condicion' => CondicionAlumno::where('nombre_condicion', 'Regular')->value('id_condicion'),
             'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
             'id_secretario_registra' => Auth::user()->id_persona,
