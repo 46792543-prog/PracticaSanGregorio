@@ -49,7 +49,7 @@ class CarreraController extends Controller
             'nombre_carrera' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/', 'unique:carrera,nombre_carrera'],
             'familia_profesional' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
             'resolucion_ministerial' => ['nullable', 'digits_between:1,4'],
-            'duracion_anos' => ['required', 'integer', 'min:1', 'max:6'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
         ]);
 
@@ -77,7 +77,7 @@ class CarreraController extends Controller
             'nombre_carrera' => ['required', 'string', 'max:50', 'unique:carrera,nombre_carrera,' . $carrera->id_carrera . ',id_carrera'],
             'familia_profesional' => ['nullable', 'string', 'max:100'],
             'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
-            'duracion_anos' => ['required', 'integer', 'min:1', 'max:6'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
         ]);
 
