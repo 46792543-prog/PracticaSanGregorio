@@ -44,13 +44,16 @@ class DocumentacionController extends Controller
                 return $alumno;
             });
 
+        // Antes de aplicar el filtro de la pestaña (Todos/Pendientes/Completos),
+        // se guarda una copia completa para que las tarjetas de arriba siempre
+        // muestren el total real y no cambien según qué pestaña esté elegida.
+        $todos = $alumnos;
+
         if ($filtro === 'pendientes') {
             $alumnos = $alumnos->whereIn('estado_documentacion', ['pendiente', 'revision', 'sin_enviar']);
         } elseif ($filtro === 'completos') {
             $alumnos = $alumnos->where('estado_documentacion', 'completo');
         }
-
-        $pendientesTotal = $alumnos->whereIn('estado_documentacion', ['pendiente', 'sin_enviar'])->count();
 
         $perPage = 15;
         $pagina = LengthAwarePaginator::resolveCurrentPage();
@@ -67,13 +70,10 @@ class DocumentacionController extends Controller
             'filtro' => $filtro,
             'busqueda' => $busqueda,
             'totales' => [
-                'total' => Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))->count(),
-                'en_revision' => ControlDocumentacion::whereHas('estadoDocumento', fn ($q) => $q->where('nombre_estado', 'Entregado'))
-                    ->distinct('id_persona_alumno')->count('id_persona_alumno'),
-                'completos' => Persona::whereHas('usuario.rol', fn ($q) => $q->where('nombre_rol', 'Alumno'))
-                    ->whereDoesntHave('documentacion.estadoDocumento', fn ($q) => $q->whereIn('nombre_estado', ['Pendiente', 'Entregado', 'Rechazado']))
-                    ->count(),
-                'pendientes' => $pendientesTotal,
+                'total' => $todos->count(),
+                'en_revision' => $todos->where('estado_documentacion', 'revision')->count(),
+                'completos' => $todos->where('estado_documentacion', 'completo')->count(),
+                'pendientes' => $todos->whereIn('estado_documentacion', ['pendiente', 'sin_enviar'])->count(),
             ],
         ]);
     }
