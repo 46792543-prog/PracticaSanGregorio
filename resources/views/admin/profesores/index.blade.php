@@ -18,7 +18,7 @@
                 <select name="id_profesor" id="input-id-profesor" required class="sg-input w-full">
                     <option value="">Seleccioná profesor...</option>
                     @foreach ($profesoresActivos as $profesor)
-                        <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }} — {{ $profesor->especialidad->nombre_especialidad }} ({{ $profesor->condicion }})</option>
+                        <option value="{{ $profesor->id_profesor }}">{{ $profesor->apellido }}, {{ $profesor->nombre }} — {{ $profesor->especialidades_texto }} ({{ $profesor->condicion }})</option>
                     @endforeach
                 </select>
             </div>
@@ -84,15 +84,17 @@
                 <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="apellido" id="input-profesor-apellido" placeholder="Apellido" required class="sg-input">
                 <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" id="input-profesor-nombre" placeholder="Nombre" required class="sg-input">
                 <input type="email" maxlength="25" name="email" id="input-profesor-email" placeholder="Email (opcional)" class="sg-input">
-                <div class="flex gap-2 min-w-0">
-                    <select name="id_especialidad" id="input-profesor-especialidad" required class="sg-input min-w-0 flex-1">
-                        <option value="">Especialidad...</option>
-                        @foreach ($especialidades as $especialidad)
-                            <option value="{{ $especialidad->id_especialidad }}">{{ $especialidad->nombre_especialidad }}</option>
-                        @endforeach
-                    </select>
-                    <button type="button" onclick="abrirModalEspecialidad()" title="Agregar nueva especialidad"
-                            class="shrink-0 w-[46px] flex items-center justify-center rounded-xl bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="plus" /></button>
+                <div class="sm:col-span-1">
+                    <div class="flex gap-2 min-w-0">
+                        <select name="id_especialidad[]" id="input-profesor-especialidad" multiple required size="4" class="sg-input min-w-0 flex-1">
+                            @foreach ($especialidades as $especialidad)
+                                <option value="{{ $especialidad->id_especialidad }}">{{ $especialidad->nombre_especialidad }}</option>
+                            @endforeach
+                        </select>
+                        <button type="button" onclick="abrirModalEspecialidad()" title="Agregar nueva especialidad"
+                                class="shrink-0 w-[46px] h-fit flex items-center justify-center rounded-xl bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="plus" /></button>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Mantené Ctrl (o Cmd) presionado para elegir varias especialidades.</p>
                 </div>
                 <select name="condicion" id="input-profesor-condicion" required class="sg-input">
                     <option value="">Condición...</option>
@@ -135,7 +137,7 @@
                             'apellido' => $profesor->apellido,
                             'nombre' => $profesor->nombre,
                             'email' => $profesor->email,
-                            'id_especialidad' => $profesor->id_especialidad,
+                            'id_especialidad' => $profesor->especialidades->pluck('id_especialidad'),
                             'condicion' => $profesor->condicion,
                         ];
                     @endphp
@@ -152,7 +154,7 @@
                         <td>
                             <span class="inline-flex items-center gap-1.5 text-sm text-slate-600">
                                 <x-sg.icono nombre="academic" class="h-4 w-4 shrink-0 text-[#4FC3F7]" />
-                                <span class="leading-tight">{{ $profesor->especialidad->nombre_especialidad }}</span>
+                                <span class="leading-tight">{{ $profesor->especialidades_texto }}</span>
                             </span>
                         </td>
                         <td>
@@ -450,7 +452,10 @@
             document.getElementById('input-profesor-apellido').value = profesor.apellido;
             document.getElementById('input-profesor-nombre').value = profesor.nombre;
             document.getElementById('input-profesor-email').value = profesor.email ?? '';
-            document.getElementById('input-profesor-especialidad').value = profesor.id_especialidad;
+            const idsEspecialidad = (profesor.id_especialidad || []).map(String);
+            Array.from(document.getElementById('input-profesor-especialidad').options).forEach(function (opcion) {
+                opcion.selected = idsEspecialidad.includes(opcion.value);
+            });
             document.getElementById('input-profesor-condicion').value = profesor.condicion;
             document.getElementById('input-profesor-submit').textContent = 'Guardar cambios';
             document.getElementById('editando-profesor-aviso').classList.remove('hidden');
@@ -550,7 +555,7 @@
                         <td>
                             <p class="font-semibold text-slate-800">{{ $asignacion->profesor->apellido }}, {{ $asignacion->profesor->nombre }}</p>
                             <p class="text-xs text-slate-400">
-                                {{ $asignacion->profesor->especialidad->nombre_especialidad }}
+                                {{ $asignacion->profesor->especialidades_texto }}
                                 <span class="ml-1 sg-badge sg-badge--sin-punto !py-0.5 {{ $asignacion->profesor->condicion === 'Titular' ? 'sg-badge--azul' : 'sg-badge--amarillo' }}">{{ $asignacion->profesor->condicion }}</span>
                             </p>
                         </td>
