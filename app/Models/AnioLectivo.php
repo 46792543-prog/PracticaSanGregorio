@@ -36,6 +36,16 @@ class AnioLectivo extends Model
         return $this->hasOne(ConfiguracionCuota::class, 'id_anio_lectivo', 'id_anio_lectivo');
     }
 
+    public function configuracionMatricula(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ConfiguracionMatricula::class, 'id_anio_lectivo', 'id_anio_lectivo');
+    }
+
+    public function matriculas(): HasMany
+    {
+        return $this->hasMany(MatriculaAlumno::class, 'id_anio_lectivo', 'id_anio_lectivo');
+    }
+
     public function historialAlumno(): HasMany
     {
         return $this->hasMany(HistorialAlumno::class, 'id_anio_lectivo', 'id_anio_lectivo');
