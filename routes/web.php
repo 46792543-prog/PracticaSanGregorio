@@ -26,6 +26,7 @@ use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\PagoDocenteController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
 use App\Http\Controllers\Director\ConfiguracionCuotaController;
+use App\Http\Controllers\Director\ConfiguracionMatriculaController;
 use App\Http\Controllers\Director\CuotaController as DirectorCuotaController;
 use App\Http\Controllers\Director\EstadoPagosController;
 use App\Http\Controllers\Director\PanelController as DirectorPanelController;
@@ -231,6 +232,14 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
     Route::put('/cuotas/{cuota}', [DirectorCuotaController::class, 'actualizar'])->name('cuotas.actualizar');
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
+
+    Route::post('/matricula/cobrar', [DirectorCuotaController::class, 'cobrarMatricula'])->name('matricula.cobrar');
+
+    // Configuración económica de la matrícula (monto/mes de habilitación/día
+    // límite): se genera una sola matrícula por alumno con inscripción
+    // activa en el año (no una por mes, a diferencia de la cuota).
+    Route::get('/configuracion-matricula', [ConfiguracionMatriculaController::class, 'index'])->name('configuracion-matricula.index');
+    Route::post('/configuracion-matricula', [ConfiguracionMatriculaController::class, 'store'])->name('configuracion-matricula.store');
 
     // Configuración económica de cuotas (monto/vencimiento/interés por
     // mora): acceden Director y Secretario Administrativo, igual que al
