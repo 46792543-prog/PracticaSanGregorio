@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsignacionProfesorMateria;
 use App\Models\Carrera;
 use App\Models\HorarioCelda;
 use App\Models\HorarioModulo;
 use App\Models\TurnoCursada;
+use App\Support\CorteActivo;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,6 +40,7 @@ class HorarioCarreraController extends Controller
             'idTurno' => $idTurno,
             'modulos' => $modulos,
             'dias' => self::DIAS,
+            'asignaciones' => $this->asignacionesDisponibles($idCarrera),
         ]);
     }
 
@@ -117,6 +120,28 @@ class HorarioCarreraController extends Controller
 
         return redirect()->route('admin.horarios.index', ['id_carrera' => $horarioModulo->id_carrera, 'id_turno_cursada' => $horarioModulo->id_turno_cursada])
             ->with('status', 'Se guardó el contenido correctamente.');
+    }
+
+    /**
+     * "Materia — Apellido, Nombre" de cada profesor ya asignado a una materia
+     * de esta carrera en el año lectivo activo, para elegir en el modal de
+     * carga en vez de escribirlo a mano (evita typos/inconsistencias con lo
+     * ya cargado en "Asignación de Materias y Horarios"). No se filtra por
+     * turno: esa pantalla hoy no pide el turno al asignar un profesor, así
+     * que la mayoría de las asignaciones existentes no lo tienen guardado.
+     */
+    private function asignacionesDisponibles(int $idCarrera): Collection
+    {
+        $anioLectivo = CorteActivo::actual();
+
+        return AsignacionProfesorMateria::with(['materia.nombreMateria', 'profesor.persona'])
+            ->whereHas('materia', fn ($q) => $q->where('id_carrera', $idCarrera))
+            ->when($anioLectivo, fn ($q) => $q->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo))
+            ->get()
+            ->map(fn (AsignacionProfesorMateria $a) => mb_strtoupper("{$a->materia->nombre} — {$a->profesor->apellido}, {$a->profesor->nombre}"))
+            ->unique()
+            ->sort()
+            ->values();
     }
 
     private function modulosDelCuadro(int $idCarrera, int $idTurno): Collection
