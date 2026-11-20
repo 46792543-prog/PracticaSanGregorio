@@ -46,7 +46,7 @@ class PanelController extends Controller
         $actividad = collect()
             ->merge($alumno->cuotas()->where('pagado', true)->with('mes')->latest('fecha_pago')->take(1)->get()->map(fn ($c) => [
                 'titulo' => 'Pago de cuota registrado',
-                'detalle' => ($c->concepto ?: "Cuota {$c->mes->nombre_mes}") . ' · $' . number_format($c->monto, 0, ',', '.'),
+                'detalle' => $c->etiqueta . ' · $' . number_format($c->monto, 0, ',', '.'),
                 'fecha' => $c->fecha_pago,
             ]))
             ->merge($alumno->inscripcionesMesa()->with('mesaExamen.materia.nombreMateria', 'estadoInscripcion')->latest('fecha_inscripcion')->take(1)->get()->map(fn ($i) => [

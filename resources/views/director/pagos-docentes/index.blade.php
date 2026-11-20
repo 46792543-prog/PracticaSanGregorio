@@ -114,9 +114,10 @@
                         <select name="id_profesor" id="input-pago-profesor" required onchange="actualizarDniDocente()" class="sg-input w-full">
                             <option value="">Seleccioná docente...</option>
                             @foreach ($profesores as $profesor)
-                                <option value="{{ $profesor->id_profesor }}" @selected(old('id_profesor') == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
+                                <option value="{{ $profesor->id_profesor }}" data-nombre-base="{{ $profesor->apellido }}, {{ $profesor->nombre }}" @selected(old('id_profesor') == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
                             @endforeach
                         </select>
+                        <p class="text-xs text-slate-400 mt-1">Los docentes que ya tienen un pago cargado para el período elegido aparecen deshabilitados.</p>
                     </div>
                     <div>
                         <label class="sg-label">DNI</label>
@@ -124,7 +125,7 @@
                     </div>
                     <div>
                         <label class="sg-label">Período abonado *</label>
-                        <input type="month" name="periodo" required value="{{ old('periodo', now()->format('Y-m')) }}" class="sg-input w-full">
+                        <input type="month" name="periodo" id="input-pago-periodo" required value="{{ old('periodo', now()->format('Y-m')) }}" class="sg-input w-full">
                     </div>
                     <div>
                         <label class="sg-label">Fecha de pago *</label>
@@ -134,7 +135,7 @@
                         <label class="sg-label">Monto pagado *</label>
                         <div class="sg-campo-icono">
                             <x-sg.icono nombre="cash" />
-                            <input type="number" step="0.01" min="0.01" name="monto" required placeholder="0,00" value="{{ old('monto') }}"
+                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" required placeholder="0,00" value="{{ old('monto') }}"
                                    onkeydown="if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();"
                                    class="sg-input w-full">
                         </div>
@@ -214,11 +215,13 @@
 
     <script>
         const dniPorProfesor = @json($profesores->mapWithKeys(fn ($p) => [$p->id_profesor => $p->dni]));
+        const periodosPagadosPorProfesor = @json($periodosPagadosPorProfesor);
 
         function abrirModal(id) {
             const modal = document.getElementById(id);
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            if (id === 'modal-pago-docente') actualizarProfesoresDisponibles();
         }
         function cerrarModal(id) {
             const modal = document.getElementById(id);
@@ -229,6 +232,35 @@
             const id = document.getElementById('input-pago-profesor').value;
             document.getElementById('input-pago-dni').value = dniPorProfesor[id] ?? '';
         }
+
+        // Un docente solo puede tener un pago por período: las opciones del
+        // desplegable que ya tienen un pago cargado para el mes elegido
+        // quedan deshabilitadas (no ocultas, para que se entienda por qué
+        // no se pueden elegir).
+        function actualizarProfesoresDisponibles() {
+            const periodo = document.getElementById('input-pago-periodo').value;
+            const select = document.getElementById('input-pago-profesor');
+
+            Array.from(select.options).forEach(function (opcion) {
+                if (!opcion.value) return;
+
+                const periodosPagados = periodosPagadosPorProfesor[opcion.value] || [];
+                const yaPagado = periodosPagados.includes(periodo);
+
+                opcion.disabled = yaPagado;
+                opcion.textContent = yaPagado
+                    ? opcion.dataset.nombreBase + ' — ya tiene pago este período'
+                    : opcion.dataset.nombreBase;
+            });
+
+            if (select.selectedOptions[0]?.disabled) {
+                select.value = '';
+                actualizarDniDocente();
+            }
+        }
+
+        document.getElementById('input-pago-periodo').addEventListener('change', actualizarProfesoresDisponibles);
+        actualizarProfesoresDisponibles();
 
         @if ($errors->any())
             actualizarDniDocente();

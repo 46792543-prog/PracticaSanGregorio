@@ -35,7 +35,7 @@
                         <label class="sg-label">MONTO DE LA CUOTA MENSUAL *</label>
                         <div class="flex items-center gap-1">
                             <span class="text-slate-400 text-sm">$</span>
-                            <input type="number" step="0.01" min="0.01" name="monto_mensual" id="input-monto-mensual" required class="sg-input w-full">
+                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto_mensual" id="input-monto-mensual" required class="sg-input w-full">
                         </div>
                     </div>
                     <div>
@@ -50,7 +50,7 @@
 
                 <div class="mb-4">
                     <label class="sg-label">CONCEPTO</label>
-                    <input type="text" name="concepto" data-solo="alfanumerico" data-max-len="20" maxlength="20" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
+                    <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">

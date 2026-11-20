@@ -39,15 +39,17 @@ class ConfiguracionCuotaController extends Controller
     {
         $data = $request->validate([
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
-            'monto_mensual' => ['required', 'numeric', 'min:0.01'],
+            'monto_mensual' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
             'porcentaje_interes_mora' => ['required', 'numeric', 'min:0', 'max:100'],
-            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
+            'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
         ], [
             'monto_mensual.required' => 'Ingresá el monto de la cuota mensual.',
             'monto_mensual.numeric' => 'El monto tiene que ser un número.',
             'monto_mensual.min' => 'El monto tiene que ser mayor a $0.',
+            'monto_mensual.max' => 'El monto no puede tener más de 7 dígitos.',
             'porcentaje_interes_mora.max' => 'El interés por mora no puede superar el 100%.',
+            'concepto.regex' => 'El concepto solo puede tener letras.',
         ]);
 
         $configuracion = ConfiguracionCuota::updateOrCreate(

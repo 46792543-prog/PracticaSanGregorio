@@ -280,4 +280,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/usuarios', [DirectorUsuarioController::class, 'index'])->name('usuarios.index');
     Route::get('/usuarios/nuevo', [DirectorUsuarioController::class, 'create'])->name('usuarios.create');
     Route::post('/usuarios/nuevo', [DirectorUsuarioController::class, 'store'])->name('usuarios.store');
+    Route::post('/usuarios/roles', [DirectorUsuarioController::class, 'storeRol'])->name('usuarios.roles.store');
+    Route::put('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'updateRol'])->name('usuarios.roles.update');
+    Route::delete('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'destroyRol'])->name('usuarios.roles.destroy');
 });
