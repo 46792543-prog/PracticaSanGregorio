@@ -39,6 +39,17 @@
             }
         }
 
+        // Para campos de dinero (data-max-digitos="7"): recorta la parte entera
+        // a esa cantidad de dígitos, sin tocar los centavos después del punto.
+        if (el.dataset.maxDigitos) {
+            var limite = parseInt(el.dataset.maxDigitos, 10);
+            var partes = el.value.split('.');
+            if (partes[0].length > limite) {
+                partes[0] = partes[0].slice(0, limite);
+                el.value = partes.join('.');
+            }
+        }
+
         if ('nota' in el.dataset) {
             el.value = el.value.replace(/[^0-9]/g, '').slice(0, 2);
         }

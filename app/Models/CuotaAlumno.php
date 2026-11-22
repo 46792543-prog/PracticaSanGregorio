@@ -43,6 +43,20 @@ class CuotaAlumno extends Model
         return ! $this->pagado && $this->fecha_vencimiento !== null && $this->fecha_vencimiento->isPast();
     }
 
+    /**
+     * Texto para mostrar en pantalla: el concepto puede repetirse igual en
+     * varias cuotas de un mismo alumno (ej. "cuota mensual" cargado una
+     * sola vez en Configuración de Cuotas y copiado a todos los meses), así
+     * que acá siempre se agrega el mes para poder distinguir una tarjeta de
+     * otra.
+     */
+    public function getEtiquetaAttribute(): string
+    {
+        $mes = $this->mes->nombre_mes;
+
+        return $this->concepto ? "{$this->concepto} — {$mes}" : "Cuota {$mes}";
+    }
+
     public function personaAlumno(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_persona_alumno', 'id_persona');

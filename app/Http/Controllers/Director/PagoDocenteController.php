@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConceptoCaja;
 use App\Models\EstadoPagoDocente;
+use App\Models\MedioPago;
 use App\Models\MetodoPagoDocente;
+use App\Models\MovimientoCaja;
 use App\Models\PagoDocente;
 use App\Models\Profesor;
+use App\Models\TipoMovimiento;
+use App\Support\FechaEsp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,12 +35,23 @@ class PagoDocenteController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $profesores = Profesor::with('persona')->where('activo', true)->get()->sortBy(fn ($p) => $p->apellido);
+
+        // Para que el desplegable del modal sepa, por docente, en qué períodos
+        // (AAAA-MM) ya tiene un pago cargado y no deba dejarlo elegir de nuevo
+        // (un docente recibe un solo sueldo por mes).
+        $periodosPagadosPorProfesor = PagoDocente::select('id_profesor', 'periodo')
+            ->get()
+            ->groupBy('id_profesor')
+            ->map(fn ($pagos) => $pagos->map(fn (PagoDocente $p) => $p->periodo->format('Y-m'))->values());
+
         return view('director.pagos-docentes.index', [
             'pagos' => $pagos,
             'busqueda' => $busqueda,
             'fechaPago' => $fechaPago,
             'periodo' => $periodo,
-            'profesores' => Profesor::with('persona')->get()->sortBy(fn ($p) => $p->apellido),
+            'profesores' => $profesores,
+            'periodosPagadosPorProfesor' => $periodosPagadosPorProfesor,
             'metodosPago' => MetodoPagoDocente::orderBy('nombre_metodo')->get(),
             'estadosPago' => EstadoPagoDocente::orderBy('id_estado_pago_docente')->get(),
         ]);
@@ -47,15 +63,33 @@ class PagoDocenteController extends Controller
             'id_profesor' => ['required', 'exists:profesor,id_profesor'],
             'periodo' => ['required', 'date_format:Y-m'],
             'fecha_pago' => ['required', 'date'],
-            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999999'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'id_metodo_pago_docente' => ['required', 'exists:metodo_pago_docente,id_metodo_pago_docente'],
             'id_estado_pago_docente' => ['required', 'exists:estado_pago_docente,id_estado_pago_docente'],
             'observaciones' => ['nullable', 'string', 'max:255'],
+        ], [
+            'monto.max' => 'El monto no puede tener más de 7 dígitos.',
         ]);
 
-        PagoDocente::create([
+        $periodoFecha = $data['periodo'] . '-01';
+
+        // Un docente recibe un solo sueldo por mes: si ya tiene un pago
+        // cargado para ese período (del estado que sea), no se puede cargar
+        // otro. El desplegable de docentes ya lo deshabilita antes de
+        // llegar acá, esto es el respaldo del lado del servidor.
+        $yaTienePago = PagoDocente::where('id_profesor', $data['id_profesor'])
+            ->where('periodo', $periodoFecha)
+            ->exists();
+
+        if ($yaTienePago) {
+            return back()
+                ->withErrors(['periodo' => 'Este docente ya tiene un pago registrado para ese período. Un profesor solo puede recibir un sueldo por mes.'])
+                ->withInput();
+        }
+
+        $pago = PagoDocente::create([
             'id_profesor' => $data['id_profesor'],
-            'periodo' => $data['periodo'] . '-01',
+            'periodo' => $periodoFecha,
             'fecha_pago' => $data['fecha_pago'],
             'monto' => round((float) $data['monto'], 2),
             'id_metodo_pago_docente' => $data['id_metodo_pago_docente'],
@@ -64,7 +98,45 @@ class PagoDocenteController extends Controller
             'id_director_registra' => Auth::user()->id_persona,
         ]);
 
+        $this->asentarEnCajaSiPagado($pago);
+
         return back()->with('status', 'Se registró el pago al docente correctamente.');
+    }
+
+    /**
+     * El sueldo de un docente sale de la caja igual que cualquier otro
+     * gasto: si el estado elegido es "Pagado", se asienta solo como Egreso
+     * en el Libro de Caja. Si quedó en otro estado (ej. "Pendiente"), no se
+     * toca la caja — como los pagos no se pueden editar, ese egreso recién
+     * se generaría si más adelante se carga un pago nuevo ya en "Pagado".
+     */
+    private function asentarEnCajaSiPagado(PagoDocente $pago): void
+    {
+        if (strcasecmp($pago->estadoPago->nombre_estado, 'pagado') !== 0) {
+            return;
+        }
+
+        $tipoEgreso = TipoMovimiento::where('nombre_tipo', 'Egreso')->firstOrFail();
+        $concepto = ConceptoCaja::firstOrCreate(
+            ['nombre_concepto' => 'Pago a docente'],
+            ['id_tipo_movimiento' => $tipoEgreso->id_tipo_movimiento]
+        );
+
+        $medioPago = MedioPago::whereRaw('LOWER(nombre_medio) = ?', [mb_strtolower($pago->metodoPago->nombre_metodo)])->first()
+            ?? MedioPago::where('nombre_medio', 'Efectivo')->firstOrFail();
+
+        $descripcion = "Pago a {$pago->profesor->apellido}, {$pago->profesor->nombre} — período " . FechaEsp::mesAnio($pago->periodo);
+
+        $movimiento = MovimientoCaja::create([
+            'id_concepto' => $concepto->id_concepto,
+            'monto' => $pago->monto,
+            'fecha_movimiento' => $pago->fecha_pago,
+            'descripcion_detalle' => $descripcion,
+            'id_secretario_registra' => Auth::user()->id_persona,
+            'id_medio_pago' => $medioPago->id_medio_pago,
+        ]);
+
+        $pago->update(['id_movimiento_caja' => $movimiento->id_movimiento]);
     }
 
     public function storeMetodoPago(Request $request): RedirectResponse

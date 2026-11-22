@@ -55,7 +55,7 @@
                             {{ $cuota->pagado ? '✓' : '—' }}
                         </span>
                         <div>
-                            <p class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</p>
+                            <p class="font-semibold text-slate-700 text-sm">{{ $cuota->etiqueta }}</p>
                             <p class="text-xs text-slate-400">
                                 @if ($cuota->pagado)
                                     Pagada{{ $cuota->fecha_pago ? ' el ' . \App\Support\FechaEsp::corta($cuota->fecha_pago) : '' }}

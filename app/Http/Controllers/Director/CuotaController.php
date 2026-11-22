@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Director;
 use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
 use App\Models\ConceptoCaja;
+use App\Models\ConfiguracionCuota;
 use App\Models\CuotaAlumno;
 use App\Models\MatriculaAlumno;
 use App\Models\MedioPago;
@@ -56,6 +57,17 @@ class CuotaController extends Controller
         $corteActivo = CorteActivo::actual();
         $montoActual = $corteActivo?->configuracionCuota?->monto_mensual;
 
+        // Para que "Generar cuota nueva" autocomplete monto/concepto/día de
+        // vencimiento con lo cargado en Configuración de Cuotas, por cada
+        // año lectivo (el formulario permite elegir cualquiera, no solo el activo).
+        $configuracionesCuotaPorAnio = ConfiguracionCuota::all()
+            ->keyBy('id_anio_lectivo')
+            ->map(fn (ConfiguracionCuota $c) => [
+                'monto' => $c->monto_mensual,
+                'dia_vencimiento' => $c->dia_vencimiento,
+                'concepto' => $c->concepto,
+            ]);
+
         $anioMatricula = $corteActivo?->id_anio_lectivo ?? AnioLectivo::orderByDesc('anio')->value('id_anio_lectivo');
         $matricula = $alumnoSeleccionado
             ? MatriculaAlumno::where('id_persona_alumno', $alumnoSeleccionado->persona->id_persona)
@@ -83,6 +95,7 @@ class CuotaController extends Controller
             'meses' => Mes::orderBy('id_mes')->get(),
             'corteActivo' => $corteActivo,
             'montoActual' => $montoActual,
+            'configuracionesCuotaPorAnio' => $configuracionesCuotaPorAnio,
             'matricula' => $matricula,
         ]);
     }
@@ -95,13 +108,15 @@ class CuotaController extends Controller
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'meses' => ['required', 'array', 'min:1'],
             'meses.*' => ['integer', 'exists:mes,id_mes'],
-            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
-            'monto' => ['required', 'numeric', 'min:0.01'],
+            'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
         ], [
             'monto.required' => 'Ingresá el importe de la cuota.',
             'monto.numeric' => 'El importe tiene que ser un número.',
             'monto.min' => 'El importe tiene que ser mayor a $0.',
+            'monto.max' => 'El importe no puede tener más de 7 dígitos.',
+            'concepto.regex' => 'El concepto solo puede tener letras.',
         ]);
 
         $anio = AnioLectivo::findOrFail($data['id_anio_lectivo']);
@@ -154,13 +169,15 @@ class CuotaController extends Controller
 
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
-            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
-            'monto' => ['required', 'numeric', 'min:0.01'],
+            'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'fecha_vencimiento' => ['nullable', 'date'],
         ], [
             'monto.required' => 'Ingresá el importe de la cuota.',
             'monto.numeric' => 'El importe tiene que ser un número.',
             'monto.min' => 'El importe tiene que ser mayor a $0.',
+            'monto.max' => 'El importe no puede tener más de 7 dígitos.',
+            'concepto.regex' => 'El concepto solo puede tener letras.',
         ]);
 
         $cuota->update([
@@ -195,10 +212,11 @@ class CuotaController extends Controller
             'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
             'cuotas' => ['required', 'array', 'min:1'],
             'cuotas.*.pagar' => ['nullable'],
-            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0.01'],
+            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0.01', 'max:9999999.99'],
         ], [
             'cuotas.*.monto.numeric' => 'El importe tiene que ser un número.',
             'cuotas.*.monto.min' => 'El importe a cobrar tiene que ser mayor a $0.',
+            'cuotas.*.monto.max' => 'El importe no puede tener más de 7 dígitos.',
         ]);
 
         $seleccionadas = collect($data['cuotas'])->filter(fn ($item) => ! empty($item['pagar']));
@@ -243,7 +261,7 @@ class CuotaController extends Controller
                 // tiene calculado la cuota (desde Configuración de Cuotas /
                 // "Calcular moras"), para que no se pueda alterar al cobrar.
                 $recargo = round((float) $cuota->recargo, 2);
-                $conceptoTexto = $cuota->concepto ?: "Cuota {$cuota->mes->nombre_mes}";
+                $conceptoTexto = $cuota->etiqueta;
 
                 $descripcion = "{$conceptoTexto} — {$cuota->personaAlumno->apellido}, {$cuota->personaAlumno->nombre}";
                 if ($recargo > 0) {

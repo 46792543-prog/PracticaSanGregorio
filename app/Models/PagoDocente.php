@@ -19,6 +19,7 @@ class PagoDocente extends Model
         'id_estado_pago_docente',
         'observaciones',
         'id_director_registra',
+        'id_movimiento_caja',
     ];
 
     protected $casts = [
@@ -45,5 +46,10 @@ class PagoDocente extends Model
     public function directorRegistra(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_director_registra', 'id_persona');
+    }
+
+    public function movimientoCaja(): BelongsTo
+    {
+        return $this->belongsTo(MovimientoCaja::class, 'id_movimiento_caja', 'id_movimiento');
     }
 }

@@ -123,91 +123,11 @@
                         </div>
                     @endif
 
-                    @php
-                        $cuotasPorAnio = $alumnoSeleccionado->persona->cuotas->groupBy('id_anio_lectivo')->map(fn ($c) => $c->pluck('id_mes'));
-                        $anioVigenteId = $corteActivo?->id_anio_lectivo ?? $anios->first()?->id_anio_lectivo;
-                    @endphp
-
-                    <details class="mb-5 rounded-2xl border-[1.5px] border-dashed border-slate-200 bg-white open:border-[#BDE5FA] transition-colors">
-                        <summary class="cursor-pointer list-none flex items-center gap-3 px-4 py-3 font-semibold text-[#0B3D91] text-sm"><span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" /></span> Generar cuota nueva <x-sg.icono nombre="chevron-down" class="h-4 w-4 ml-auto" /></summary>
-                        <div class="px-4 pb-4 pt-1 border-t border-slate-100">
-                            <form method="POST" action="{{ route('director.cuotas.generar') }}" id="form-generar-cuota">
-                                @csrf
-                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
-                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
-
-                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="sg-label">AÑO LECTIVO *</label>
-                                        <select name="id_anio_lectivo" id="select-anio-generar" required class="sg-input w-full">
-                                            @foreach ($anios as $anio)
-                                                <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === $anioVigenteId)>{{ $anio->anio }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="sg-label">DÍA DE VENCIMIENTO (1-28) *</label>
-                                        <input type="number" name="dia_vencimiento" min="1" max="28" value="10" required
-                                               class="sg-input w-full">
-                                    </div>
-                                </div>
-
-                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="sg-label">CONCEPTO</label>
-                                        <input type="text" name="concepto" data-solo="alfanumerico" data-max-len="20" maxlength="20" placeholder="Cuota mensual"
-                                               class="sg-input w-full">
-                                    </div>
-                                    <div>
-                                        <label class="sg-label">MONTO *</label>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-slate-400 text-sm">$</span>
-                                            <input type="number" step="0.01" min="0.01" name="monto" required
-                                                   class="sg-input w-full">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p class="sg-label mb-2">Meses a generar</p>
-                                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4" id="grid-meses-generar">
-                                    @foreach ($meses as $mes)
-                                        <label class="flex items-center gap-2 rounded-xl border-[1.5px] border-slate-200 px-3 py-2 text-sm cursor-pointer transition-colors hover:border-[#4FC3F7] has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50 has-[:checked]:text-[#0B3D91] has-[:disabled]:opacity-40 has-[:disabled]:cursor-not-allowed">
-                                            <input type="checkbox" name="meses[]" value="{{ $mes->id_mes }}" class="chk-mes-generar h-4 w-4 rounded" data-mes="{{ $mes->id_mes }}">
-                                            {{ $mes->nombre_mes }}
-                                        </label>
-                                    @endforeach
-                                </div>
-                                <p class="text-xs text-slate-400 mb-4" id="aviso-meses-existentes"></p>
-
-                                <div class="flex justify-end">
-                                    <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="plus" /> Generar cuota(s)</button>
-                                </div>
-                            </form>
-                        </div>
-                    </details>
-
-                    <script>
-                        (function () {
-                            const cuotasPorAnio = @json($cuotasPorAnio);
-                            const selectAnio = document.getElementById('select-anio-generar');
-                            const aviso = document.getElementById('aviso-meses-existentes');
-
-                            function actualizarMesesDisponibles() {
-                                const mesesExistentes = cuotasPorAnio[selectAnio.value] || [];
-                                document.querySelectorAll('.chk-mes-generar').forEach(chk => {
-                                    const yaExiste = mesesExistentes.includes(parseInt(chk.dataset.mes));
-                                    chk.disabled = yaExiste;
-                                    chk.checked = false;
-                                });
-                                aviso.textContent = mesesExistentes.length
-                                    ? 'Los meses deshabilitados ya tienen una cuota generada para ese año.'
-                                    : '';
-                            }
-
-                            selectAnio.addEventListener('change', actualizarMesesDisponibles);
-                            actualizarMesesDisponibles();
-                        })();
-                    </script>
+                    <div class="flex items-center gap-2 mb-1 mt-2">
+                        <span class="sg-chip sg-chip--chico sg-chip--verde"><x-sg.icono nombre="card" class="h-4 w-4" /></span>
+                        <h3 class="font-display font-bold text-slate-800">Cobrar cuotas pendientes</h3>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Estas cuotas ya están generadas (se crean solas, mes a mes, según lo cargado en Configuración de Cuotas) y están esperando que se registre el pago. No hace falta generar nada para verlas acá.</p>
 
                     @if ($matricula && ! $matricula->pagado)
                         <p class="sg-aviso sg-aviso--alerta">Cobrá la matrícula {{ $matricula->anioLectivo->anio }} de arriba antes de poder registrar el cobro de cuotas.</p>
@@ -231,7 +151,7 @@
 
                         @if ($montoActual)
                             <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 mb-4">
-                                <span class="text-sm font-semibold text-slate-600">Adeuda {{ $cuotasPendientes->count() }} cuota{{ $cuotasPendientes->count() === 1 ? '' : 's' }} × $ {{ number_format($montoActual, 0, ',', '.') }} (monto actual)</span>
+                                <span class="text-sm font-semibold text-slate-600">{{ $cuotasPendientes->count() }} cuota{{ $cuotasPendientes->count() === 1 ? '' : 's' }} pendiente{{ $cuotasPendientes->count() === 1 ? '' : 's' }} de cobro × $ {{ number_format($montoActual, 0, ',', '.') }} (monto actual) — puede incluir meses ya vencidos y meses generados por adelantado</span>
                                 <span class="font-display font-bold text-[#0B3D91]">$ {{ number_format($cuotasPendientes->count() * $montoActual, 0, ',', '.') }}</span>
                             </div>
                         @endif
@@ -247,11 +167,15 @@
                                 @endphp
                                 <div class="rounded-2xl bg-white border-[1.5px] border-slate-200 px-4 py-3 transition-colors has-[.cuota-check:checked]:border-[#4FC3F7] has-[.cuota-check:checked]:shadow-md">
                                     <div class="flex items-center justify-between gap-3">
-                                        <label class="flex items-center gap-3 cursor-pointer flex-1">
+                                        <label class="flex items-center gap-3 cursor-pointer flex-1 flex-wrap">
                                             <input type="checkbox" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][pagar]" value="1" class="h-4 w-4 rounded cuota-check" data-id="{{ $cuota->id_cuota }}" data-orden="{{ $loop->index }}" @if ($bloqueada) disabled @else checked @endif>
-                                            <span class="font-semibold text-slate-700 text-sm">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</span>
+                                            <span class="font-semibold text-slate-700 text-sm">{{ $cuota->etiqueta }}</span>
                                             @if ($bloqueada)
                                                 <span class="sg-badge sg-badge--gris">Bloqueada: falta generar {{ $primerMesSinGenerar->nombre_mes }}</span>
+                                            @elseif ($cuota->vencida)
+                                                <span class="sg-badge sg-badge--rojo">Vencida desde el {{ \App\Support\FechaEsp::corta($cuota->fecha_vencimiento) }}</span>
+                                            @elseif ($cuota->fecha_vencimiento)
+                                                <span class="sg-badge sg-badge--gris">Vence el {{ \App\Support\FechaEsp::corta($cuota->fecha_vencimiento) }} — todavía no está vencida</span>
                                             @endif
                                         </label>
                                         <div class="flex items-center gap-1 shrink-0">
@@ -270,7 +194,7 @@
                                             <label class="sg-label">Monto</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0.01" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
+                                                <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
                                                        class="sg-input sg-input--chico cuota-monto w-full" data-id="{{ $cuota->id_cuota }}">
                                             </div>
                                         </div>
@@ -278,7 +202,7 @@
                                             <label class="sg-label !text-amber-600">Recargo por mora</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0" value="{{ $cuota->recargo }}"
+                                                <input type="number" step="0.01" min="0" max="9999999.99" data-max-digitos="7" value="{{ $cuota->recargo }}"
                                                        readonly title="Se calcula solo desde Configuración de Cuotas — no se edita acá."
                                                        class="sg-input sg-input--chico cuota-recargo w-full border-amber-200 bg-slate-50 text-slate-500 cursor-not-allowed" data-id="{{ $cuota->id_cuota }}">
                                             </div>
@@ -298,12 +222,12 @@
                                             <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
                                             <div class="col-span-2">
                                                 <label class="sg-label">Concepto</label>
-                                                <input type="text" name="concepto" data-solo="alfanumerico" data-max-len="20" maxlength="20" value="{{ $cuota->concepto }}"
+                                                <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" value="{{ $cuota->concepto }}"
                                                        class="sg-input sg-input--chico w-full">
                                             </div>
                                             <div>
                                                 <label class="sg-label">Monto</label>
-                                                <input type="number" step="0.01" min="0.01" name="monto" value="{{ $cuota->monto }}" required
+                                                <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" value="{{ $cuota->monto }}" required
                                                        class="sg-input sg-input--chico w-full">
                                             </div>
                                             <div>
@@ -382,6 +306,128 @@
                             });
                         </script>
                     @endif
+
+                    @php
+                        $cuotasPorAnio = $alumnoSeleccionado->persona->cuotas->groupBy('id_anio_lectivo')->map(fn ($c) => $c->pluck('id_mes'));
+                        $anioVigenteId = $corteActivo?->id_anio_lectivo ?? $anios->first()?->id_anio_lectivo;
+                    @endphp
+
+                    <div class="flex items-center gap-2 mb-1 mt-8 pt-6 border-t border-dashed border-slate-200">
+                        <span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" class="h-4 w-4" /></span>
+                        <h3 class="font-display font-bold text-slate-800">¿Falta una cuota puntual?</h3>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Las cuotas de cada mes se generan solas (ver "Configuración de Cuotas"). Abrí esto solo para un caso excepcional — por ejemplo, un alumno que se inscribió después de que ya se generaron las cuotas del año y le falta algún mes suelto.</p>
+
+                    <details class="mb-5 rounded-2xl border-[1.5px] border-dashed border-slate-200 bg-white open:border-[#BDE5FA] transition-colors">
+                        <summary class="cursor-pointer list-none flex items-center gap-3 px-4 py-3 font-semibold text-[#0B3D91] text-sm"><span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" /></span> Generar cuota extra (caso excepcional) <x-sg.icono nombre="chevron-down" class="h-4 w-4 ml-auto" /></summary>
+                        <div class="px-4 pb-4 pt-1 border-t border-slate-100">
+                            <form method="POST" action="{{ route('director.cuotas.generar') }}" id="form-generar-cuota">
+                                @csrf
+                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+
+                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="sg-label">AÑO LECTIVO *</label>
+                                        <select name="id_anio_lectivo" id="select-anio-generar" required class="sg-input w-full">
+                                            @foreach ($anios as $anio)
+                                                <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === $anioVigenteId)>{{ $anio->anio }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="sg-label">DÍA DE VENCIMIENTO (1-28) *</label>
+                                        <input type="number" name="dia_vencimiento" id="input-dia-vencimiento-generar" min="1" max="28" required
+                                               class="sg-input w-full">
+                                    </div>
+                                </div>
+
+                                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="sg-label">CONCEPTO</label>
+                                        <input type="text" name="concepto" id="input-concepto-generar" data-solo="letras" data-max-len="120" maxlength="120" placeholder="Cuota mensual"
+                                               class="sg-input w-full">
+                                    </div>
+                                    <div>
+                                        <label class="sg-label">MONTO *</label>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-slate-400 text-sm">$</span>
+                                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" id="input-monto-generar" required
+                                                   class="sg-input w-full">
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 -mt-2 mb-4" id="aviso-config-cuota"></p>
+
+                                <p class="sg-label mb-2">Meses a generar</p>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4" id="grid-meses-generar">
+                                    @foreach ($meses as $mes)
+                                        <label class="flex items-center gap-2 rounded-xl border-[1.5px] border-slate-200 px-3 py-2 text-sm cursor-pointer transition-colors hover:border-[#4FC3F7] has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50 has-[:checked]:text-[#0B3D91] has-[:disabled]:opacity-40 has-[:disabled]:cursor-not-allowed">
+                                            <input type="checkbox" name="meses[]" value="{{ $mes->id_mes }}" class="chk-mes-generar h-4 w-4 rounded" data-mes="{{ $mes->id_mes }}">
+                                            {{ $mes->nombre_mes }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <p class="text-xs text-slate-400 mb-4" id="aviso-meses-existentes"></p>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="plus" /> Generar cuota(s)</button>
+                                </div>
+                            </form>
+                        </div>
+                    </details>
+
+                    <script>
+                        (function () {
+                            const cuotasPorAnio = @json($cuotasPorAnio);
+                            const configuracionesPorAnio = @json($configuracionesCuotaPorAnio);
+                            const selectAnio = document.getElementById('select-anio-generar');
+                            const aviso = document.getElementById('aviso-meses-existentes');
+                            const inputDia = document.getElementById('input-dia-vencimiento-generar');
+                            const inputConcepto = document.getElementById('input-concepto-generar');
+                            const inputMonto = document.getElementById('input-monto-generar');
+                            const avisoConfig = document.getElementById('aviso-config-cuota');
+
+                            function actualizarMesesDisponibles() {
+                                const mesesExistentes = cuotasPorAnio[selectAnio.value] || [];
+                                document.querySelectorAll('.chk-mes-generar').forEach(chk => {
+                                    const yaExiste = mesesExistentes.includes(parseInt(chk.dataset.mes));
+                                    chk.disabled = yaExiste;
+                                    chk.checked = false;
+                                });
+                                aviso.textContent = mesesExistentes.length
+                                    ? 'Los meses deshabilitados ya tienen una cuota generada para ese año.'
+                                    : '';
+                            }
+
+                            // Precarga día de vencimiento / concepto / monto con lo que haya
+                            // cargado en "Configuración de Cuotas" para el año elegido, para no
+                            // tener que volver a tipearlo cada vez. Si el año no tiene
+                            // configuración cargada, se deja vacío y avisa.
+                            function precargarConfiguracion() {
+                                const config = configuracionesPorAnio[selectAnio.value];
+
+                                if (config) {
+                                    inputDia.value = config.dia_vencimiento ?? '';
+                                    inputConcepto.value = config.concepto ?? '';
+                                    inputMonto.value = config.monto ?? '';
+                                    avisoConfig.textContent = '';
+                                } else {
+                                    inputDia.value = '';
+                                    inputConcepto.value = '';
+                                    inputMonto.value = '';
+                                    avisoConfig.textContent = 'Este año todavía no tiene una Configuración de Cuotas cargada: completá los datos a mano o cargala primero.';
+                                }
+                            }
+
+                            selectAnio.addEventListener('change', function () {
+                                actualizarMesesDisponibles();
+                                precargarConfiguracion();
+                            });
+                            actualizarMesesDisponibles();
+                            precargarConfiguracion();
+                        })();
+                    </script>
                 </div>
             @endif
         </div>
@@ -416,7 +462,7 @@
                 @forelse ($historial as $cuota)
                     <tr>
                         <td><div class="flex items-center gap-3"><span class="sg-avatar">{{ mb_substr($cuota->personaAlumno->nombre, 0, 1) }}{{ mb_substr($cuota->personaAlumno->apellido, 0, 1) }}</span><span class="font-semibold text-slate-800">{{ $cuota->personaAlumno->apellido }}, {{ $cuota->personaAlumno->nombre }}</span></div></td>
-                        <td class="text-slate-500">{{ $cuota->concepto ?: 'Cuota ' . $cuota->mes->nombre_mes }}</td>
+                        <td class="text-slate-500">{{ $cuota->etiqueta }}</td>
                         <td class="text-slate-500">{{ $cuota->fecha_pago ? \App\Support\FechaEsp::corta($cuota->fecha_pago) : '—' }}</td>
                         <td class="font-display font-bold !text-emerald-600 whitespace-nowrap">$ {{ number_format($cuota->monto, 0, ',', '.') }}</td>
                         <td>

@@ -37,14 +37,16 @@ class ConfiguracionMatriculaController extends Controller
     {
         $data = $request->validate([
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
-            'monto' => ['required', 'numeric', 'min:0.01'],
+            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'mes_habilitacion' => ['required', 'integer', 'min:1', 'max:12'],
             'dia_limite' => ['required', 'integer', 'min:1', 'max:28'],
-            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL0-9\s]+$/u'],
+            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL\s\'-]+$/u'],
         ], [
             'monto.required' => 'Ingresá el monto de la matrícula.',
             'monto.numeric' => 'El monto tiene que ser un número.',
             'monto.min' => 'El monto tiene que ser mayor a $0.',
+            'monto.max' => 'El monto no puede tener más de 7 dígitos.',
+            'concepto.regex' => 'El concepto solo puede tener letras.',
         ]);
 
         $configuracion = ConfiguracionMatricula::updateOrCreate(

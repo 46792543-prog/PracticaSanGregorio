@@ -285,4 +285,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::put('/usuarios/{usuario}/baja', [DirectorUsuarioController::class, 'baja'])->name('usuarios.baja');
     Route::put('/usuarios/{usuario}/reactivar', [DirectorUsuarioController::class, 'reactivar'])->name('usuarios.reactivar');
     Route::put('/usuarios/{usuario}/reenviar-clave', [DirectorUsuarioController::class, 'reenviarClave'])->name('usuarios.reenviar-clave');
+    Route::post('/usuarios/roles', [DirectorUsuarioController::class, 'storeRol'])->name('usuarios.roles.store');
+    Route::put('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'updateRol'])->name('usuarios.roles.update');
+    Route::delete('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'destroyRol'])->name('usuarios.roles.destroy');
 });
