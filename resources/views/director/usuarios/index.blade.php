@@ -20,6 +20,7 @@
                     <th class="px-6 py-3">Email</th>
                     <th class="px-6 py-3">Rol</th>
                     <th class="px-6 py-3">Estado</th>
+                    <th class="px-6 py-3 text-right">Acciones</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -38,10 +39,30 @@
                                 {{ $usuario->estadoUsuario->nombre_estado }}
                             </span>
                         </td>
+                        <td class="px-6 py-3.5">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('director.usuarios.edit', $usuario) }}" class="text-[#1E4D8C] font-semibold text-xs hover:underline">Editar</a>
+                                <form method="POST" action="{{ route('director.usuarios.reenviar-clave', $usuario) }}" data-confirm="¿Generar una clave nueva para {{ $usuario->persona->apellido }}, {{ $usuario->persona->nombre }} y mandársela por mail? La clave anterior deja de funcionar.">
+                                    @csrf @method('PUT')
+                                    <button type="submit" class="text-amber-600 font-semibold text-xs hover:underline">Reenviar clave</button>
+                                </form>
+                                @if ($usuario->estadoUsuario->nombre_estado === 'Activo')
+                                    <form method="POST" action="{{ route('director.usuarios.baja', $usuario) }}" data-confirm="¿Dar de baja a {{ $usuario->persona->apellido }}, {{ $usuario->persona->nombre }}? No va a poder iniciar sesión hasta que lo reactives.">
+                                        @csrf @method('PUT')
+                                        <button type="submit" class="text-red-600 font-semibold text-xs hover:underline">Dar de baja</button>
+                                    </form>
+                                @else
+                                    <form method="POST" action="{{ route('director.usuarios.reactivar', $usuario) }}">
+                                        @csrf @method('PUT')
+                                        <button type="submit" class="text-emerald-600 font-semibold text-xs hover:underline">Reactivar</button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-10 text-center text-slate-400">Todavía no hay secretarios ni directores cargados.</td>
+                        <td colspan="6" class="px-6 py-10 text-center text-slate-400">Todavía no hay secretarios ni directores cargados.</td>
                     </tr>
                 @endforelse
             </tbody>
