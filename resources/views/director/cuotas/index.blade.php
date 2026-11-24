@@ -151,8 +151,8 @@
 
                         @if ($montoActual)
                             <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 mb-4">
-                                <span class="text-sm font-semibold text-slate-600">{{ $cuotasPendientes->count() }} cuota{{ $cuotasPendientes->count() === 1 ? '' : 's' }} pendiente{{ $cuotasPendientes->count() === 1 ? '' : 's' }} de cobro × $ {{ number_format($montoActual, 0, ',', '.') }} (monto actual) — puede incluir meses ya vencidos y meses generados por adelantado</span>
-                                <span class="font-display font-bold text-[#0B3D91]">$ {{ number_format($cuotasPendientes->count() * $montoActual, 0, ',', '.') }}</span>
+                                <span class="text-sm font-semibold text-slate-600">{{ $cuotasPendientes->count() }} cuota{{ $cuotasPendientes->count() === 1 ? '' : 's' }} pendiente{{ $cuotasPendientes->count() === 1 ? '' : 's' }} de cobro — puede incluir meses ya vencidos y meses generados por adelantado, cada uno con el monto que tenía al generarse</span>
+                                <span class="font-display font-bold text-[#0B3D91]">$ {{ number_format($cuotasPendientes->sum('monto'), 0, ',', '.') }}</span>
                             </div>
                         @endif
 
