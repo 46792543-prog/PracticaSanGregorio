@@ -19,3 +19,31 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Comprime HTML, CSS, JS y las respuestas del servidor antes de enviarlas:
+# con internet lento esto reduce bastante lo que viaja por la red en cada
+# pantalla (el HTML y el CSS/JS comprimen muy bien, suelen bajar 70-80%).
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json
+    AddOutputFilterByType DEFLATE application/xml application/rss+xml application/font-woff application/font-woff2
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Le dice al navegador que guarde en caché el CSS/JS/imágenes/fuentes por un
+# tiempo largo, así en la segunda visita (y siguientes) no se vuelven a
+# descargar. Los archivos CSS/JS del sistema ya se versionan con ?v=<fecha de
+# modificación> en el HTML, así que un cambio futuro se detecta solo aunque
+# el navegador tenga cacheada la versión vieja.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+</IfModule>
