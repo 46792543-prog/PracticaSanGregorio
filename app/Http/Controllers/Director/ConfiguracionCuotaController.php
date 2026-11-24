@@ -62,12 +62,15 @@ class ConfiguracionCuotaController extends Controller
             ]
         );
 
-        $creadas = $this->generarCuotasAutomaticas($configuracion);
+        [$creadas, $actualizadas] = $this->generarCuotasAutomaticas($configuracion);
 
         $mensaje = "Se guardó la configuración de cuotas para el año {$configuracion->anioLectivo->anio}.";
         $mensaje .= $creadas > 0
             ? " Se generaron {$creadas} cuota(s) nueva(s) para los alumnos con inscripción activa."
             : ' No se generaron cuotas nuevas: ya estaban todas generadas.';
+        $mensaje .= $actualizadas > 0
+            ? " Se actualizó el monto de {$actualizadas} cuota(s) pendiente(s) que todavía no estaban pagadas."
+            : '';
 
         return redirect()->route('director.configuracion-cuotas.index')->with('status', $mensaje);
     }
@@ -95,9 +98,13 @@ class ConfiguracionCuotaController extends Controller
      * Una cuota por mes (desde que arranca el ciclo lectivo del alumno hasta
      * diciembre) para cada alumno con inscripción activa en ese año —
      * mismo criterio de "inicio de ciclo" que Persona::estadoMensualCuotas().
-     * No duplica cuotas que ya existan.
+     * No duplica cuotas que ya existan; a las que ya existen y siguen
+     * pendientes de pago les actualiza el monto al nuevo valor configurado
+     * (las que ya están pagadas quedan intactas, como registro histórico).
+     *
+     * @return array{0: int, 1: int} [cuotas creadas, cuotas pendientes actualizadas]
      */
-    private function generarCuotasAutomaticas(ConfiguracionCuota $configuracion): int
+    private function generarCuotasAutomaticas(ConfiguracionCuota $configuracion): array
     {
         $anio = $configuracion->anioLectivo;
 
@@ -108,8 +115,9 @@ class ConfiguracionCuotaController extends Controller
             ->get();
 
         $creadas = 0;
+        $actualizadas = 0;
 
-        DB::transaction(function () use ($alumnos, $anio, $configuracion, &$creadas) {
+        DB::transaction(function () use ($alumnos, $anio, $configuracion, &$creadas, &$actualizadas) {
             foreach ($alumnos as $alumno) {
                 $inicioCiclo = max(3, Carbon::parse($alumno->fecha_inscripcion)->month);
 
@@ -121,6 +129,12 @@ class ConfiguracionCuotaController extends Controller
                     ]);
 
                     if ($cuota->exists) {
+                        if (! $cuota->pagado && bccomp((string) $cuota->monto, (string) $configuracion->monto_mensual, 2) !== 0) {
+                            $cuota->monto = $configuracion->monto_mensual;
+                            $cuota->save();
+                            $actualizadas++;
+                        }
+
                         continue;
                     }
 
@@ -137,6 +151,6 @@ class ConfiguracionCuotaController extends Controller
             }
         });
 
-        return $creadas;
+        return [$creadas, $actualizadas];
     }
 }
