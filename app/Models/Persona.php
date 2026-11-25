@@ -126,6 +126,62 @@ class Persona extends Model
         return $this->condicionInscripcion() === CondicionAlumno::CURSADA_COMPLETA;
     }
 
+    /**
+     * Año que el alumno está cursando ahora: el año lectivo de su
+     * inscripción, o el año calendario si es más nuevo (la inscripción
+     * guarda el año en que se lo cargó en el sistema y no se actualiza al
+     * promoverlo de año).
+     */
+    public function anioLectivoActualDeCursada(): ?int
+    {
+        $inscripcion = $this->inscripcionCarreraActiva()?->loadMissing('anioLectivo');
+
+        return $inscripcion ? max(now()->year, (int) $inscripcion->anioLectivo?->anio) : null;
+    }
+
+    /**
+     * Número del año de la carrera que cursa ahora (1 = Primer Año, 2 =
+     * Segundo, ...), según el orden de los años de cursada.
+     */
+    public function ordenAnioDeCursada(): ?int
+    {
+        $idAnioCursada = $this->inscripcionCarreraActiva()?->id_anio_cursada;
+
+        return $idAnioCursada ? AnioCursada::where('id_anio_cursada', '<=', $idAnioCursada)->count() : null;
+    }
+
+    /**
+     * Año en que entró a la carrera. No alcanza con el año lectivo de la
+     * inscripción: es el año en que lo cargaron en el sistema, y puede que
+     * lo hayan inscripto directo en 2do o 3er año. Se toma el más antiguo
+     * entre:
+     *  - el año actual menos los años que ya cursó (cursa Segundo Año en
+     *    2026 → entró en 2025),
+     *  - el año lectivo más viejo de su historial académico,
+     *  - el año lectivo de la inscripción.
+     */
+    public function anioIngresoCarrera(): ?int
+    {
+        $candidatos = collect();
+
+        $primeraInscripcion = $this->inscripcionesCarrera()->with('anioLectivo')->orderBy('id_inscripcion_carrera')->first();
+        $candidatos->push($primeraInscripcion?->anioLectivo?->anio);
+
+        $anioActual = $this->anioLectivoActualDeCursada();
+        $orden = $this->ordenAnioDeCursada();
+        if ($anioActual && $orden) {
+            $candidatos->push($anioActual - ($orden - 1));
+        }
+
+        $candidatos->push($this->historialAlumno()
+            ->join('anio_lectivo', 'anio_lectivo.id_anio_lectivo', '=', 'historial_alumno.id_anio_lectivo')
+            ->min('anio_lectivo.anio'));
+
+        $anio = $candidatos->filter()->map(fn ($a) => (int) $a)->min();
+
+        return $anio ?: null;
+    }
+
     public function inscripcionesMesa()
     {
         return $this->hasMany(InscripcionMesa::class, 'id_persona_alumno', 'id_persona');
@@ -159,7 +215,7 @@ class Persona extends Model
      */
     public function estadoMensualCuotas(?int $hastaMes = null): \Illuminate\Support\Collection
     {
-        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        $anioLectivoActivo = AnioLectivo::activo();
 
         if (! $anioLectivoActivo) {
             return collect();
@@ -238,7 +294,7 @@ class Persona extends Model
      */
     public function mesesSinCuotaGenerada(): \Illuminate\Support\Collection
     {
-        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        $anioLectivoActivo = AnioLectivo::activo();
 
         if (! $anioLectivoActivo) {
             return collect();

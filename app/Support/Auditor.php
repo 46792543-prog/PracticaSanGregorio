@@ -20,11 +20,27 @@ class Auditor
     private const CAMPOS_OCULTOS = ['password', 'remember_token'];
     private const CAMPOS_IGNORADOS = ['created_at', 'updated_at'];
 
+    /**
+     * Motivo de una rectificación puntual (ej. nota ya bloqueada que
+     * Dirección corrige): lo deja el controlador justo antes de guardar con
+     * self::conMotivo() y acá se consume una sola vez, para la próxima
+     * auditoría que se registre.
+     */
+    private static ?string $motivoPendiente = null;
+
+    public static function conMotivo(string $motivo): void
+    {
+        self::$motivoPendiente = $motivo;
+    }
+
     public static function registrar(string $accion, Model $model): void
     {
         if ($model instanceof Auditoria) {
             return;
         }
+
+        $motivo = self::$motivoPendiente;
+        self::$motivoPendiente = null;
 
         $usuario = Auth::user();
 
@@ -41,6 +57,13 @@ class Auditor
 
         if ($accion === 'actualizado' && empty($cambios)) {
             return;
+        }
+
+        // Se guarda como un campo más de "cambios" (no en la descripción,
+        // que la pantalla de auditoría recalcula aparte) para que aparezca
+        // en el detalle junto con el valor anterior y el nuevo.
+        if ($motivo !== null) {
+            $cambios['motivo'] = $motivo;
         }
 
         $clave = $model->getKey();

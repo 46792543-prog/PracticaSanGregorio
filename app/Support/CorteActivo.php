@@ -33,11 +33,7 @@ class CorteActivo
      */
     private static function porDefecto(): ?AnioLectivo
     {
-        $activos = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'));
-
-        return (clone $activos)->where('anio', now()->year)->first()
-            ?? (clone $activos)->where('anio', '<=', now()->year)->orderByDesc('anio')->first()
-            ?? (clone $activos)->orderBy('anio')->first()
+        return AnioLectivo::activo()
             ?? AnioLectivo::where('anio', '<=', now()->year)->orderByDesc('anio')->first()
             ?? AnioLectivo::orderByDesc('anio')->first();
     }

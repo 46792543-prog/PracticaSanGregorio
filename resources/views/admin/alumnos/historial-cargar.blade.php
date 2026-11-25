@@ -12,6 +12,7 @@
             ])->values(),
         ]);
         $materiasYaCargadas = ($historial ?? collect())->pluck('id_materia')->unique()->values();
+        $idAnioPorNumero = $aniosLectivos->mapWithKeys(fn ($a) => [$a->anio => $a->id_anio_lectivo]);
     @endphp
 
     <h1 class="text-xl font-bold text-slate-800 mb-1">Cargar historial académico de un alumno</h1>
@@ -35,6 +36,9 @@
                     @if ($anioIngreso)
                         — Ingresó en {{ $anioIngreso }}
                     @endif
+                    @if ($nombreAnioActual)
+                        · cursa {{ $nombreAnioActual }}
+                    @endif
                 </span>
             @elseif ($busqueda)
                 <span class="text-sm text-red-600 pb-2.5">No se encontró ningún alumno inscripto que coincida con "{{ $busqueda }}".</span>
@@ -49,7 +53,7 @@
         @endphp
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
             <h2 class="font-bold text-slate-700 mb-1">2. Cargar un año completo</h2>
-            <p class="text-xs text-slate-400 mb-4">Elegí la carrera y el año: aparecen todas sus materias. Completá cada una (o usá "Aplicar a todas" para no repetir) y guardalas juntas. Destildá las que no quieras cargar.</p>
+            <p class="text-xs text-slate-400 mb-4">Elegí la carrera y el año: aparecen todas sus materias. Elegí la condición de cada una (y nota si corresponde); el año lectivo y la fecha los podés copiar a todas con "Aplicar a todas". Guardalas juntas. Destildá las que no quieras cargar.</p>
 
             <form method="POST" action="{{ route('admin.alumnos.historial-previo.store-lote') }}" id="form-lote">
                 @csrf
@@ -86,14 +90,6 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">Condición</label>
-                            <select id="lote-todas-condicion" class="{{ $claseInput }}">
-                                @foreach ($condiciones as $condicion)
-                                    <option value="{{ $condicion->id_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">Fecha</label>
                             <input type="date" id="lote-todas-fecha" value="{{ now()->format('Y-m-d') }}" class="{{ $claseInput }}">
                         </div>
@@ -107,7 +103,7 @@
                                     <th class="px-3 py-2 w-10"><input type="checkbox" id="lote-tildar-todas" checked title="Tildar / destildar todas" class="h-4 w-4"></th>
                                     <th class="px-3 py-2">Materia</th>
                                     <th class="px-3 py-2 w-28">Año lectivo</th>
-                                    <th class="px-3 py-2 w-36">Condición</th>
+                                    <th class="px-3 py-2">Condición</th>
                                     <th class="px-3 py-2 w-36">Fecha</th>
                                     <th class="px-3 py-2 w-20">Nota</th>
                                     <th class="px-3 py-2 w-20">Veces</th>
@@ -139,17 +135,8 @@
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        <select data-campo="id_condicion" data-selector-condicion class="{{ $claseInput }}">
-                            <optgroup label="En curso">
-                                @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
-                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Aprobación definitiva">
-                                @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
-                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                                @endforeach
-                            </optgroup>
+                        <select data-campo="id_condicion" data-selector-condicion required class="{{ $claseInput }}" style="min-width:165px">
+                            @include('admin.alumnos.partials.opciones-condicion', ['conVacio' => true])
                         </select>
                     </td>
                     <td class="px-3 py-2"><input type="date" data-campo="fecha_ultima_modificacion" required class="{{ $claseInput }}"></td>
@@ -200,16 +187,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Condición:</label>
                         <select name="id_condicion" required data-selector-condicion class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
-                            <optgroup label="En curso">
-                                @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
-                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Aprobación definitiva">
-                                @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
-                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
-                                @endforeach
-                            </optgroup>
+                            @include('admin.alumnos.partials.opciones-condicion', ['conVacio' => true])
                         </select>
                     </div>
                     <div>
@@ -246,7 +224,7 @@
                 </div>
 
                 <p class="text-xs text-slate-400 mb-4">
-                    Mientras la materia está "en curso" (Cursando, Regular o Libre) no se carga nota — recién pide nota cuando se marca una aprobación definitiva (Promocionada, Examen Final o Equivalencia), y ahí tiene que ser de 4 a 10. "Libre" admite una nota opcional, pero menor a 4. Una "Equivalencia" además pide institución de origen y número de resolución, y no lleva veces rendida — "Cursando" y "Regular" tampoco, porque todavía no se rindió ningún final. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente, sin importar la condición tildada arriba.
+                    Notas: <strong>Final Aprobado</strong> y <strong>Equivalencia</strong> de 4 a 10, <strong>Promocionada</strong> de 7 a 10, <strong>Final Desaprobado</strong> de 1 a 3 (obligatoria). "Cursando" y "Regular" no llevan nota ni veces rendida; "Libre" admite una nota opcional menor a 4. Una "Equivalencia" además pide institución de origen y número de resolución. Si las veces rendida son más de 3, la materia se marca como "Libre" automáticamente.
                 </p>
 
                 <div class="flex justify-end">
@@ -257,7 +235,13 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <h2 class="font-bold text-slate-700 px-6 pt-5 pb-3">Historial actual del alumno</h2>
-            <p class="text-xs text-slate-400 px-6 pb-3 -mt-2">Para corregir una materia ya cargada, editá los campos y tocá "Guardar" en su fila.</p>
+            <p class="text-xs text-slate-400 px-6 pb-3 -mt-2">
+                @if ($esDireccion)
+                    Una materia ya cargada queda bloqueada: para rectificarla, cambiá lo que haga falta, indicá el motivo y tocá "Rectificar".
+                @else
+                    🔒 Una materia ya cargada queda bloqueada para corrección: solo Dirección puede rectificarla (con motivo).
+                @endif
+            </p>
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-slate-50 text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
@@ -268,6 +252,9 @@
                         <th class="px-6 py-3">Veces rendida</th>
                         <th class="px-6 py-3">Institución (equivalencia)</th>
                         <th class="px-6 py-3">N° resolución (equivalencia)</th>
+                        @if ($esDireccion)
+                            <th class="px-6 py-3">Motivo de rectificación</th>
+                        @endif
                         <th class="px-6 py-3"></th>
                     </tr>
                 </thead>
@@ -282,76 +269,80 @@
                                 @endif
                             </td>
                             <td class="px-6 py-3">
-                                <select form="{{ $formId }}" name="id_anio_lectivo" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                <select form="{{ $formId }}" name="id_anio_lectivo" @disabled(! $esDireccion) class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400">
                                     @foreach ($aniosLectivos as $anio)
                                         <option value="{{ $anio->id_anio_lectivo }}" @selected($item->id_anio_lectivo == $anio->id_anio_lectivo)>{{ $anio->anio }}</option>
                                     @endforeach
                                 </select>
                             </td>
                             <td class="px-6 py-3">
-                                <select form="{{ $formId }}" name="id_condicion" data-selector-condicion class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-                                    <optgroup label="En curso">
-                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
-                                            <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                    <optgroup label="Aprobación definitiva">
-                                        @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
-                                            <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}" @selected($item->id_condicion == $condicion->id_condicion)>{{ $condicion->nombre_condicion }}</option>
-                                        @endforeach
-                                    </optgroup>
+                                <select form="{{ $formId }}" name="id_condicion" data-selector-condicion @disabled(! $esDireccion) class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400" style="min-width:165px">
+                                    @include('admin.alumnos.partials.opciones-condicion', ['seleccionada' => $item->id_condicion])
                                 </select>
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-nota>
-                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada }}" data-input-nota
-                                           class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" value="{{ $item->nota_cursada !== null ? (int) $item->nota_cursada : '' }}" data-input-nota @disabled(! $esDireccion)
+                                           class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400">
                                 </div>
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-veces>
-                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces
-                                           class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="veces_rendida" value="{{ $item->veces_rendida }}" data-input-veces @disabled(! $esDireccion)
+                                           class="w-16 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400">
                                 </div>
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-equivalencia>
-                                    <input form="{{ $formId }}" type="text" name="institucion_equivalencia" value="{{ $item->institucion_equivalencia }}" data-input-equivalencia maxlength="255"
-                                           class="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    <input form="{{ $formId }}" type="text" name="institucion_equivalencia" value="{{ $item->institucion_equivalencia }}" data-input-equivalencia maxlength="255" @disabled(! $esDireccion)
+                                           class="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400">
                                 </div>
                             </td>
                             <td class="px-6 py-3">
                                 <div data-campo-equivalencia>
-                                    <input form="{{ $formId }}" type="text" name="resolucion_equivalencia" value="{{ $item->resolucion_equivalencia }}" data-input-equivalencia maxlength="255"
-                                           class="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                    <input form="{{ $formId }}" type="text" name="resolucion_equivalencia" value="{{ $item->resolucion_equivalencia }}" data-input-equivalencia maxlength="255" @disabled(! $esDireccion)
+                                           class="w-28 rounded-lg border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-50 disabled:text-slate-400">
                                 </div>
                             </td>
+                            @if ($esDireccion)
+                                <td class="px-6 py-3">
+                                    <input form="{{ $formId }}" type="text" name="motivo" required minlength="5" maxlength="500" placeholder="Ej: error de carga, Libro X Folio Y"
+                                           class="w-48 rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </td>
+                            @endif
                             <td class="px-6 py-3 text-right whitespace-nowrap">
-                                <button form="{{ $formId }}" type="submit" class="text-[#1E4D8C] hover:underline font-semibold text-xs">Guardar</button>
-                                <button form="form-eliminar-{{ $item->id_historial }}" type="submit" class="text-red-500 hover:underline font-semibold text-xs ml-2">Eliminar</button>
+                                @if ($esDireccion)
+                                    <button form="{{ $formId }}" type="submit" class="text-[#1E4D8C] hover:underline font-semibold text-xs">Rectificar</button>
+                                    <button type="button" data-eliminar-historial="{{ $item->id_historial }}" class="text-red-500 hover:underline font-semibold text-xs ml-2">Eliminar</button>
+                                @else
+                                    <span class="text-slate-400 text-xs">Bloqueado</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
+                            <td colspan="{{ $esDireccion ? 9 : 8 }}" class="px-6 py-10 text-center text-slate-400">Este alumno todavía no tiene historial cargado.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        @foreach ($historial as $item)
-            <form id="form-historial-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.update', $item) }}" class="hidden">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="busqueda_actual" value="{{ $busqueda }}">
-                <input type="hidden" name="fecha_ultima_modificacion" value="{{ $item->fecha_ultima_modificacion->format('Y-m-d') }}">
-            </form>
-            <form id="form-eliminar-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.destroy', $item) }}?busqueda={{ urlencode($busqueda) }}" class="hidden" onsubmit="return confirm('¿Eliminar esta materia del historial?');">
-                @csrf
-                @method('DELETE')
-            </form>
-        @endforeach
+        @if ($esDireccion)
+            @foreach ($historial as $item)
+                <form id="form-historial-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.update', $item) }}" class="hidden">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="busqueda_actual" value="{{ $busqueda }}">
+                    <input type="hidden" name="fecha_ultima_modificacion" value="{{ $item->fecha_ultima_modificacion->format('Y-m-d') }}">
+                </form>
+                <form id="form-eliminar-{{ $item->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial-previo.destroy', $item) }}?busqueda={{ urlencode($busqueda) }}" class="hidden">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="motivo" data-campo-motivo-eliminar>
+                </form>
+            @endforeach
+        @endif
     @endif
 
     <script>
@@ -419,10 +410,31 @@
         document.querySelectorAll('[data-input-nota]').forEach((input) => limitarEntero(input, 1, 10));
         document.querySelectorAll('[data-input-veces]').forEach((input) => limitarEntero(input, 1, 10));
 
+        // Eliminar una materia ya cargada también es una rectificación: pide
+        // el motivo antes de mandar el formulario (ver HistorialPrevioController::destroy).
+        document.querySelectorAll('[data-eliminar-historial]').forEach((boton) => {
+            boton.addEventListener('click', () => {
+                const motivo = prompt('¿Por qué se elimina esta materia del historial? (obligatorio)');
+                if (motivo === null) return;
+                if (motivo.trim().length < 5) {
+                    alert('Contá brevemente el motivo (al menos 5 caracteres) para poder eliminarla.');
+                    return;
+                }
+                if (! confirm('¿Eliminar esta materia del historial?')) return;
+
+                const form = document.getElementById('form-eliminar-' + boton.dataset.eliminarHistorial);
+                form.querySelector('[data-campo-motivo-eliminar]').value = motivo.trim();
+                form.submit();
+            });
+        });
+
         // Según la condición elegida: la nota se oculta en curso, se pide
         // obligatoria en una aprobación definitiva y queda opcional en Libre.
         // Una Equivalencia no lleva veces rendida, pero sí institución y resolución.
         const SIN_NOTA = ['Cursando', 'Regular'];
+        // Rango de nota por condición (igual que en el controlador): Promocionada 7 a 10,
+        // Final Aprobado y Equivalencia 4 a 10, Final Desaprobado y Libre 1 a 3.
+        const RANGO_NOTA = { 'Promocionada': [7, 10], 'Examen Final': [4, 10], 'Equivalencia': [4, 10], 'Final Desaprobado': [1, 3], 'Libre': [1, 3] };
 
         function actualizarCamposPorCondicion(selectCondicion) {
             const contenedor = selectCondicion.closest('tr') || selectCondicion.closest('form');
@@ -430,6 +442,7 @@
 
             const nombreCondicion = selectCondicion.selectedOptions[0]?.dataset.nombre;
             const esEquivalencia = nombreCondicion === 'Equivalencia';
+            const sinNota = !nombreCondicion || SIN_NOTA.includes(nombreCondicion);
 
             // visibility (no display:none) a propósito: así el campo deja de
             // verse pero sigue ocupando su lugar en la grilla, y el resto de
@@ -439,7 +452,7 @@
             const campoNota = contenedor.querySelector('[data-campo-nota]');
             const inputNota = contenedor.querySelector('[data-input-nota]');
             if (campoNota && inputNota) {
-                if (SIN_NOTA.includes(nombreCondicion)) {
+                if (sinNota) {
                     campoNota.style.visibility = 'hidden';
                     inputNota.value = '';
                     inputNota.required = false;
@@ -448,13 +461,17 @@
                     campoNota.style.visibility = '';
                     inputNota.disabled = false;
                     inputNota.required = nombreCondicion !== 'Libre';
+                    const [minima, maxima] = RANGO_NOTA[nombreCondicion] ?? [1, 10];
+                    inputNota.min = minima;
+                    inputNota.max = maxima;
+                    inputNota.placeholder = `${minima} a ${maxima}`;
                 }
             }
 
             const campoVeces = contenedor.querySelector('[data-campo-veces]');
             const inputVeces = contenedor.querySelector('[data-input-veces]');
             if (campoVeces && inputVeces) {
-                if (esEquivalencia || SIN_NOTA.includes(nombreCondicion)) {
+                if (esEquivalencia || sinNota) {
                     campoVeces.style.visibility = 'hidden';
                     inputVeces.value = '';
                     inputVeces.disabled = true;
@@ -500,11 +517,13 @@
             const aviso = document.getElementById('lote-aviso');
             const tildarTodas = document.getElementById('lote-tildar-todas');
             const todasAnio = document.getElementById('lote-todas-anio');
-            const todasCondicion = document.getElementById('lote-todas-condicion');
             const todasFecha = document.getElementById('lote-todas-fecha');
 
             // Si al guardar hubo un error, se vuelve a armar la tabla con lo que se había cargado.
             const carreraAlumno = @json($carreraAlumnoId);
+            const anioLectivoActual = @json($anioLectivoActual);
+            const nombreAnioActual = @json($nombreAnioActual);
+            const idAnioPorNumero = @json($idAnioPorNumero);
             const filasPrevias = @json(old('filas', []));
             const anioPrevio = @json(old('anio_lote'));
             const hayPrevias = Object.keys(filasPrevias).length > 0;
@@ -541,6 +560,14 @@
                 const materias = (materiasPorCarrera[loteCarrera.value] || []).filter((m) => m.anio === anio);
                 const orden = ORDEN_ANIO[anio];
 
+                // Año lectivo propuesto para este año de la carrera: si cursa Segundo
+                // Año en 2026, Primer Año fue 2025 (se puede cambiar).
+                const ordenActual = ORDEN_ANIO[nombreAnioActual];
+                if (anioLectivoActual && ordenActual && orden) {
+                    const idPropuesto = idAnioPorNumero[anioLectivoActual - (ordenActual - orden)];
+                    if (idPropuesto) todasAnio.value = String(idPropuesto);
+                }
+
                 // Misma regla que la carga suelta: no se puede cargar un año si el anterior no está completo.
                 const anterior = Object.keys(ORDEN_ANIO).find((nombre) => ORDEN_ANIO[nombre] === orden - 1);
                 const materiasAnterior = (materiasPorCarrera[loteCarrera.value] || []).filter((m) => m.anio === anterior);
@@ -561,7 +588,7 @@
                         if (el && valor !== undefined && valor !== null) el.value = valor;
                     };
                     set('id_anio_lectivo', previa?.id_anio_lectivo ?? todasAnio.value);
-                    set('id_condicion', previa?.id_condicion ?? todasCondicion.value);
+                    set('id_condicion', previa?.id_condicion ?? '');
                     set('fecha_ultima_modificacion', previa?.fecha_ultima_modificacion ?? todasFecha.value);
                     set('nota_cursada', previa?.nota_cursada);
                     set('veces_rendida', previa?.veces_rendida);
@@ -603,9 +630,6 @@
                     if (!fila.querySelector('[data-campo="incluir"]').checked) return;
                     fila.querySelector('[data-campo="id_anio_lectivo"]').value = todasAnio.value;
                     fila.querySelector('[data-campo="fecha_ultima_modificacion"]').value = todasFecha.value;
-                    const condicion = fila.querySelector('[data-campo="id_condicion"]');
-                    condicion.value = todasCondicion.value;
-                    actualizarCamposPorCondicion(condicion);
                 });
             });
 

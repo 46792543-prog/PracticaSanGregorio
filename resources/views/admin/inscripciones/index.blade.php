@@ -46,19 +46,27 @@
                         </td>
                         <td class="whitespace-nowrap">{{ \App\Support\FechaEsp::corta($inscripcion->fecha_inscripcion) }}</td>
                         <td>
-                            <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}" class="flex items-center gap-1.5">
-                                @csrf @method('PUT')
-                                <input type="hidden" name="estado" value="{{ $estadoNombre === 'En proceso' ? 'Aceptado' : $estadoNombre }}">
-                                <input type="text" inputmode="numeric" data-nota name="nota_examen" value="{{ $inscripcion->nota_examen }}" placeholder="Nota"
-                                       class="sg-input sg-input--chico w-16">
-                                <select name="resultado" class="sg-input sg-input--chico">
-                                    <option value="">—</option>
-                                    <option value="aprobado" @selected($inscripcion->resultado === 'aprobado')>Aprobado</option>
-                                    <option value="desaprobado" @selected($inscripcion->resultado === 'desaprobado')>Desaprobado</option>
-                                    <option value="ausente" @selected($inscripcion->resultado === 'ausente')>Ausente</option>
-                                </select>
-                                <button type="submit" class="sg-btn sg-btn--suave sg-btn--chico">Guardar</button>
-                            </form>
+                            @if ($estadoNombre === 'Aceptado')
+                                {{-- Recién tiene sentido cargar nota/resultado una vez aceptada la
+                                     inscripción (rindió la mesa); antes de eso no hay nada que cargar. --}}
+                                <form method="POST" action="{{ route('admin.inscripciones.actualizar', $inscripcion) }}" class="flex items-center gap-1.5">
+                                    @csrf @method('PUT')
+                                    <input type="hidden" name="estado" value="Aceptado">
+                                    <input type="text" inputmode="numeric" data-nota name="nota_examen" value="{{ $inscripcion->nota_examen }}" placeholder="Nota"
+                                           class="sg-input sg-input--chico w-16">
+                                    <select name="resultado" class="sg-input sg-input--chico">
+                                        <option value="">—</option>
+                                        <option value="aprobado" @selected($inscripcion->resultado === 'aprobado')>Aprobado</option>
+                                        <option value="desaprobado" @selected($inscripcion->resultado === 'desaprobado')>Desaprobado</option>
+                                        <option value="ausente" @selected($inscripcion->resultado === 'ausente')>Ausente</option>
+                                    </select>
+                                    <button type="submit" class="sg-btn sg-btn--suave sg-btn--chico">Guardar</button>
+                                </form>
+                            @elseif ($inscripcion->nota_examen !== null || $inscripcion->resultado !== null)
+                                <span class="text-slate-500 text-sm">{{ $inscripcion->nota_examen ?? '—' }} · {{ ucfirst($inscripcion->resultado ?? '—') }}</span>
+                            @else
+                                <span class="text-slate-300 text-sm">—</span>
+                            @endif
                         </td>
                         <td>
                             <span @class([

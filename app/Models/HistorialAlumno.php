@@ -73,7 +73,7 @@ class HistorialAlumno extends Model
 
     public function getRegularidadVencidaAttribute(): bool
     {
-        return $this->condicion?->nombre_condicion === 'Regular'
+        return CondicionAlumno::esRegular($this->condicion?->nombre_condicion)
             && $this->fecha_limite_calculada !== null
             && $this->fecha_limite_calculada->isPast();
     }

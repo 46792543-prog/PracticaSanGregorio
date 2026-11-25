@@ -9,6 +9,7 @@ use App\Models\CondicionAlumno;
 use App\Models\HistorialAlumno;
 use App\Models\Materia;
 use App\Models\Persona;
+use App\Support\Auditor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +20,15 @@ use Illuminate\View\View;
 class HistorialPrevioController extends Controller
 {
     private const TOPE_VECES_RENDIDA = 3;
-    private const CONDICIONES_DISPONIBLES = ['Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre'];
+    private const CONDICIONES_DISPONIBLES = ['Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre', 'Final Desaprobado'];
 
     // Condiciones "en curso": todavía no hay una nota final que cargar.
     private const SIN_NOTA = ['Cursando', 'Regular'];
+
+    // A qué puede pasar una materia "Cursando" al terminar la cursada (ver
+    // cerrarCursada()): recién ahí el alumno puede anotarse a la mesa de esa
+    // materia (si quedó Regular) o ya la tiene resuelta (Promocionada/Libre).
+    private const CONDICIONES_FIN_CURSADA = ['Regular', 'Promocionada', 'Libre'];
 
     public function index(Request $request): View
     {
@@ -45,7 +51,12 @@ class HistorialPrevioController extends Controller
                 ->get()
             : collect();
 
-        $anioIngreso = $alumno?->inscripcionesCarrera->sortBy('id_inscripcion_carrera')->first()?->anioLectivo?->anio;
+        $anioIngreso = $alumno?->anioIngresoCarrera();
+
+        // Para proponer el año lectivo de cada año de la carrera en la carga
+        // por año: si cursa Segundo Año en 2026, Primer Año fue 2025.
+        $anioLectivoActual = $alumno?->anioLectivoActualDeCursada();
+        $nombreAnioActual = $alumno?->inscripcionCarreraActiva()?->anioCursada?->nombre_anio;
 
         // Carrera que está cursando (inscripción activa más reciente, o la
         // última que tuvo): se deja preseleccionada en "Cargar una materia".
@@ -55,7 +66,10 @@ class HistorialPrevioController extends Controller
         return view('admin.alumnos.historial-cargar', [
             'busqueda' => $busqueda,
             'alumno' => $alumno,
+            'esDireccion' => $request->user()->accedeADireccion(),
             'anioIngreso' => $anioIngreso,
+            'anioLectivoActual' => $anioLectivoActual,
+            'nombreAnioActual' => $nombreAnioActual,
             'carreraAlumnoId' => $carreraAlumnoId,
             'carreras' => Carrera::with(['materias' => fn ($q) => $q->where('activa', true)->with(['nombreMateria', 'anioCursada'])])
                 ->orderBy('nombre_carrera')
@@ -257,8 +271,15 @@ class HistorialPrevioController extends Controller
             ->with('status', $status);
     }
 
+    /**
+     * Una materia ya cargada queda bloqueada: solo Dirección (o Secretario
+     * Administrativo) la puede rectificar, y tiene que dejar un motivo que
+     * queda asentado en la auditoría junto con el valor anterior y el nuevo.
+     */
     public function update(Request $request, HistorialAlumno $historial): RedirectResponse
     {
+        abort_unless($request->user()->accedeADireccion(), 403, 'Esta materia ya está cargada: solo Dirección puede rectificarla.');
+
         $condicionesPermitidas = CondicionAlumno::whereIn('nombre_condicion', self::CONDICIONES_DISPONIBLES)->pluck('id_condicion');
 
         $data = $request->validate([
@@ -277,12 +298,15 @@ class HistorialPrevioController extends Controller
             'institucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'resolucion_equivalencia' => ['nullable', 'string', 'max:255'],
             'fecha_ultima_modificacion' => ['required', 'date'],
+            'motivo' => ['required', 'string', 'min:5', 'max:500'],
             'busqueda_actual' => ['nullable', 'string'],
         ], [
             'id_anio_lectivo.unique' => 'Esta materia ya está cargada para este alumno en ese año lectivo.',
             'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
             'veces_rendida.integer' => 'Las veces rendida tienen que ser un número entero del 1 al 10, sin decimales.',
             'veces_rendida.between' => 'Las veces rendida tienen que ser un número entero del 1 al 10.',
+            'motivo.required' => 'Para rectificar una materia ya cargada hace falta indicar el motivo.',
+            'motivo.min' => 'El motivo es muy corto: contá brevemente por qué se rectifica.',
         ]);
 
         [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
@@ -296,6 +320,8 @@ class HistorialPrevioController extends Controller
             return back()->withErrors(['institucion_equivalencia' => $error])->withInput();
         }
 
+        Auditor::conMotivo($data['motivo']);
+
         $historial->update([
             'id_anio_lectivo' => $data['id_anio_lectivo'],
             'id_condicion' => $idCondicion,
@@ -307,15 +333,87 @@ class HistorialPrevioController extends Controller
         ]);
 
         $status = $sePasoALibre
-            ? 'Se actualizó la materia, pero como superó las 3 veces rendidas se marcó automáticamente como Libre.'
-            : 'Se actualizó la materia correctamente.';
+            ? 'Se rectificó la materia, pero como superó las 3 veces rendidas se marcó automáticamente como Libre.'
+            : 'Se rectificó la materia correctamente.';
 
         return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $data['busqueda_actual'] ?? null])
             ->with('status', $status);
     }
 
+    /**
+     * Fin de cursada: a diferencia de update() (rectificar una materia ya
+     * cerrada, solo Dirección y con motivo), esto es el paso de rutina de
+     * cualquier secretaría cuando termina el cuatrimestre/año — por eso no
+     * pide motivo ni rol especial, y solo se puede usar mientras la materia
+     * sigue "Cursando".
+     */
+    public function cerrarCursada(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
+    {
+        abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
+        abort_unless($historial->condicion?->nombre_condicion === 'Cursando', 422, 'Esta materia no está en curso: no se puede cerrar la cursada.');
+
+        // Para que al volver a la ficha (éxito o error de validación) el
+        // panel "Cerrar cursada" quede abierto en vez de volver a esconderse.
+        session()->flash('panel_abierto', 'cerrar-cursada');
+
+        $idsPermitidos = CondicionAlumno::whereIn('nombre_condicion', self::CONDICIONES_FIN_CURSADA)->pluck('id_condicion');
+
+        $data = $request->validate([
+            'id_condicion' => ['required', Rule::in($idsPermitidos)],
+            'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
+            'fecha_ultima_modificacion' => ['required', 'date'],
+        ], [
+            'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
+        ]);
+
+        $condicionNombre = CondicionAlumno::find($data['id_condicion'])?->nombre_condicion;
+
+        // Promocionada aprueba la materia de una sin pasar por mesa — ahí es
+        // donde normalmente se frenaría por correlativas (ver
+        // MesaExamenController), así que acá hay que validarlas a mano.
+        // Regular y Libre no hace falta: todavía van a tener que inscribirse
+        // a una mesa, y ese paso ya las valida.
+        if ($condicionNombre === 'Promocionada') {
+            $correlativasFaltantes = $historial->materia->correlativasFaltantes($persona);
+
+            if ($correlativasFaltantes->isNotEmpty()) {
+                return back()->withErrors([
+                    'id_condicion' => 'No se puede promocionar: todavía falta regularizar o aprobar ' . $correlativasFaltantes->pluck('nombre')->join(', ') . '.',
+                ])->withInput();
+            }
+        }
+
+        // Regla de esta pantalla: Regular y Libre cierran sin nota (se ignora
+        // cualquier valor que llegue, el input ya viene deshabilitado); solo
+        // Promocionada lleva nota, y obligatoria.
+        $nota = $condicionNombre === 'Promocionada' ? ($data['nota_cursada'] ?? null) : null;
+
+        if ($error = $this->validarReglasNota($condicionNombre, $nota)) {
+            return back()->withErrors(['nota_cursada' => $error])->withInput();
+        }
+
+        $historial->update([
+            'id_condicion' => $data['id_condicion'],
+            'nota_cursada' => $nota,
+            'fecha_ultima_modificacion' => $data['fecha_ultima_modificacion'],
+        ]);
+
+        return back()->with('status', "Se cerró la cursada de {$historial->materia->nombre}: quedó {$condicionNombre}.");
+    }
+
     public function destroy(Request $request, HistorialAlumno $historial): RedirectResponse
     {
+        abort_unless($request->user()->accedeADireccion(), 403, 'Esta materia ya está cargada: solo Dirección puede eliminarla.');
+
+        $data = $request->validate([
+            'motivo' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'motivo.required' => 'Para eliminar una materia ya cargada hace falta indicar el motivo.',
+            'motivo.min' => 'El motivo es muy corto: contá brevemente por qué se elimina.',
+        ]);
+
+        Auditor::conMotivo($data['motivo']);
+
         $historial->delete();
 
         return redirect()->route('admin.alumnos.historial-previo.index', ['busqueda' => $request->query('busqueda')])
@@ -351,13 +449,21 @@ class HistorialPrevioController extends Controller
             return "Una materia en condición \"{$condicionNombre}\" no puede llevar nota final. Si el alumno ya aprobó el examen, cambiá la condición a \"Examen Final\".";
         }
 
-        if (CondicionAlumno::esAprobada($condicionNombre)) {
+        // Aprobadas (Final Aprobado y Equivalencia de 4 a 10, Promocionada de
+        // 7 a 10) y Final Desaprobado (de 1 a 3): la nota es obligatoria y
+        // tiene que estar dentro de su rango.
+        if ($rango = CondicionAlumno::RANGO_NOTA[$condicionNombre] ?? null) {
+            [$minima, $maxima] = $rango;
+            $etiqueta = CondicionAlumno::etiqueta($condicionNombre);
+
             if ($nota === null) {
-                return "Para guardar la materia como \"{$condicionNombre}\" hace falta completar la nota.";
+                return "Para guardar la materia como \"{$etiqueta}\" hace falta completar la nota.";
             }
 
-            if ($nota < 4) {
-                return 'No se puede cargar la materia como aprobada (Promocionada, Examen Final o Equivalencia) con una nota inferior a 4.';
+            if ($nota < $minima || $nota > $maxima) {
+                $tipo = CondicionAlumno::esAprobada($condicionNombre) ? 'aprobada' : 'desaprobada';
+
+                return "No podés marcar la materia como {$tipo} (\"{$etiqueta}\") con nota {$nota}: tiene que ser de {$minima} a {$maxima}.";
             }
         }
 

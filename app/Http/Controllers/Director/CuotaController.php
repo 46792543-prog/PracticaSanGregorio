@@ -89,10 +89,19 @@ class CuotaController extends Controller
                 ->first()
             : null;
 
+        // Con un alumno abierto se muestra todo SU historial de cobros, sin
+        // mezclarlo con el de otros alumnos ni filtrarlo por año lectivo
+        // activo (igual que en Estado de Pagos) — así no quedan pagos
+        // "tapados" por los de otros alumnos en una lista global paginada.
         $historial = CuotaAlumno::where('pagado', true)
             ->with('personaAlumno', 'mes', 'movimientoCaja.medioPago')
-            ->when($corteActivo, fn ($q) => $q->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
-            ->when($request->query('h_alumno'), fn ($q, $v) => $q->whereHas('personaAlumno', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
+            ->when(
+                $alumnoSeleccionado,
+                fn ($q) => $q->where('id_persona_alumno', $alumnoSeleccionado->persona->id_persona),
+                fn ($q) => $q
+                    ->when($corteActivo, fn ($q2) => $q2->where('id_anio_lectivo', $corteActivo->id_anio_lectivo))
+                    ->when($request->query('h_alumno'), fn ($q2, $v) => $q2->whereHas('personaAlumno', fn ($w) => $w->where('nombre', 'like', "%{$v}%")->orWhere('apellido', 'like', "%{$v}%")))
+            )
             ->orderByDesc('id_cuota')
             ->paginate(8, ['*'], 'historial')
             ->withQueryString();
@@ -119,12 +128,28 @@ class CuotaController extends Controller
 
     public function generar(Request $request): RedirectResponse
     {
+        // El período de cobro (por defecto marzo a diciembre) lo define
+        // Dirección en Configuración de Cuotas. "Cursada completa" es la
+        // única excepción: sus cuotas van atadas al mes de cada mesa que
+        // rinde, no al período general, así que para esa condición no se
+        // restringe el mes (ver Persona::estadoMensualCuotas()).
+        $persona = Persona::find($request->input('persona_id'));
+        $respetaPeriodo = ! $persona?->tieneCursadaCompleta();
+
+        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $request->input('id_anio_lectivo'))->first();
+        $mesDesde = $configuracion?->mes_desde ?? 3;
+        $mesHasta = $configuracion?->mes_hasta ?? 12;
+
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
             'persona_id' => ['required', 'exists:persona,id_persona'],
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'meses' => ['required', 'array', 'min:1'],
-            'meses.*' => ['integer', 'exists:mes,id_mes'],
+            'meses.*' => array_filter([
+                'integer',
+                'exists:mes,id_mes',
+                $respetaPeriodo ? "between:{$mesDesde},{$mesHasta}" : null,
+            ]),
             'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
             'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
@@ -134,9 +159,17 @@ class CuotaController extends Controller
             'monto.min' => 'El importe tiene que ser mayor a $0.',
             'monto.max' => 'El importe no puede tener más de 7 dígitos.',
             'concepto.regex' => 'El concepto solo puede tener letras.',
+            'meses.*.between' => 'Ese mes está fuera del período de cobro configurado para este año lectivo (de '
+                . (Mes::find($mesDesde)?->nombre_mes ?? $mesDesde) . ' a ' . (Mes::find($mesHasta)?->nombre_mes ?? $mesHasta) . ').',
         ]);
 
         $anio = AnioLectivo::findOrFail($data['id_anio_lectivo']);
+        $persona = $persona ?? Persona::findOrFail($data['persona_id']);
+
+        if (! $this->matriculaPagadaEstricta($persona, $anio->id_anio_lectivo)) {
+            return back()->withErrors(['meses' => "No se puede generar una cuota de {$anio->anio}: primero hay que generar y cobrar la matrícula de ese año."])->withInput();
+        }
+
         $creadas = 0;
         $omitidas = 0;
 
@@ -396,19 +429,28 @@ class CuotaController extends Controller
     }
 
     /**
-     * No se puede cobrar cuotas de un año lectivo si la matrícula de ese
-     * mismo año todavía está impaga (y fue generada — si nunca se configuró
-     * matrícula para ese año, no se bloquea nada).
+     * No se puede cobrar (ni generar) ninguna cuota de un año lectivo sin la
+     * matrícula de ese mismo año ya generada y pagada — a diferencia de
+     * Persona::matriculaAlDia() (que usan mesas e inscripciones), acá no hay
+     * excepción para "nunca se configuró matrícula para ese año": sin
+     * matrícula paga, no hay cuota.
      */
+    private function matriculaPagadaEstricta(Persona $alumno, int $idAnio): bool
+    {
+        $matricula = $alumno->matriculas()->where('id_anio_lectivo', $idAnio)->first();
+
+        return $matricula && $matricula->pagado;
+    }
+
     private function validarMatriculaPagada(Persona $alumno, Collection $idsSeleccionados): ?string
     {
         $aniosInvolucrados = CuotaAlumno::whereIn('id_cuota', $idsSeleccionados)->pluck('id_anio_lectivo')->unique();
 
         foreach ($aniosInvolucrados as $idAnio) {
-            if (! $alumno->matriculaPagada($idAnio)) {
+            if (! $this->matriculaPagadaEstricta($alumno, $idAnio)) {
                 $anio = AnioLectivo::find($idAnio);
 
-                return "No se pueden cobrar cuotas de {$anio->anio}: primero hay que cobrar la matrícula de ese año.";
+                return "No se pueden cobrar cuotas de {$anio->anio}: primero hay que generar y cobrar la matrícula de ese año.";
             }
         }
 

@@ -19,6 +19,7 @@ use App\Models\Persona;
 use App\Models\Rol;
 use App\Models\TurnoCursada;
 use App\Models\Usuario;
+use App\Support\Auditor;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -109,6 +110,8 @@ class AlumnoController extends Controller
             'inscripcionesCarrera.condicion',
             'inscripcionesCarrera.estadoInscripcion',
             'historialAlumno.materia.nombreMateria',
+            'historialAlumno.materia.anioCursada',
+            'historialAlumno.materia.regimen',
             'historialAlumno.condicion',
             'cuotas.mes',
             'cuotas.anioLectivo',
@@ -127,7 +130,7 @@ class AlumnoController extends Controller
         // solo consulta, la carga/corrección se hace desde "Cargar historial
         // previo" o mientras el alumno cursa/rinde.
         $inscripcionOriginal = $persona->inscripcionesCarrera->sortBy('id_inscripcion_carrera')->first();
-        $anioIngreso = $inscripcionOriginal?->anioLectivo?->anio;
+        $anioIngreso = $persona->anioIngresoCarrera();
 
         $actasPorMateria = DetalleActa::where('id_persona_alumno', $persona->id_persona)
             ->whereHas('acta', fn ($q) => $q->where('estado', 'generada'))
@@ -441,7 +444,7 @@ class AlumnoController extends Controller
             'materias.*' => ['integer', Rule::exists('materia', 'id_materia')->where('id_carrera', $inscripcion->id_carrera)],
         ]);
 
-        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        $anioLectivoActivo = AnioLectivo::activo();
         abort_unless($anioLectivoActivo, 500, 'No hay un año lectivo activo configurado.');
 
         $idCondicionCursando = CondicionAlumno::where('nombre_condicion', 'Cursando')->value('id_condicion');
@@ -466,20 +469,37 @@ class AlumnoController extends Controller
     {
         abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
 
+        // Una materia ya cargada en el historial queda bloqueada: solo
+        // Dirección la puede rectificar, y con motivo (ver HistorialPrevioController::update).
+        abort_unless($request->user()->accedeADireccion(), 403, 'Esta materia ya está cargada: solo Dirección puede rectificarla.');
+
         $data = $request->validate([
             'id_condicion' => ['required', 'exists:condicion_alumno,id_condicion'],
-            'nota_cursada' => ['nullable', 'numeric', 'between:1,10'],
+            'nota_cursada' => ['nullable', 'integer', 'between:1,10'],
+            'motivo' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'nota_cursada.integer' => 'La nota tiene que ser un número entero del 1 al 10, sin decimales.',
+            'motivo.required' => 'Para rectificar una materia ya cargada hace falta indicar el motivo.',
+            'motivo.min' => 'El motivo es muy corto: contá brevemente por qué se rectifica.',
         ]);
 
         $condicionNombre = CondicionAlumno::find($data['id_condicion'])?->nombre_condicion;
 
-        if (CondicionAlumno::esAprobada($condicionNombre) && (float) ($data['nota_cursada'] ?? 0) < 4) {
-            return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como aprobada con una nota inferior a 4.']);
+        // Mismos rangos que al cargar el historial: Promocionada de 7 a 10,
+        // Final Aprobado y Equivalencia de 4 a 10, Final Desaprobado de 1 a 3.
+        if ($rango = CondicionAlumno::RANGO_NOTA[$condicionNombre] ?? null) {
+            $nota = (float) ($data['nota_cursada'] ?? 0);
+
+            if ($nota < $rango[0] || $nota > $rango[1]) {
+                return back()->withErrors(['nota_cursada' => 'Para "' . CondicionAlumno::etiqueta($condicionNombre) . "\" la nota tiene que ser de {$rango[0]} a {$rango[1]}."]);
+            }
         }
 
         if ($condicionNombre === 'Libre' && $data['nota_cursada'] !== null && (float) $data['nota_cursada'] >= 4) {
             return back()->withErrors(['nota_cursada' => 'No se puede guardar la materia como Libre con una nota de aprobación (4 o más).']);
         }
+
+        Auditor::conMotivo($data['motivo']);
 
         $historial->update([
             'id_condicion' => $data['id_condicion'],

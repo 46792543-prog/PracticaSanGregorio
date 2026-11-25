@@ -134,6 +134,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
     Route::put('/alumnos/{persona}/historial/{historial}/condicion', [AlumnoController::class, 'actualizarCondicionHistorial'])->name('alumnos.historial.condicion');
+    Route::put('/alumnos/{persona}/historial/{historial}/cerrar-cursada', [HistorialPrevioController::class, 'cerrarCursada'])->name('alumnos.historial.cerrar-cursada');
 
     Route::get('/documentacion', [AdminDocumentacionController::class, 'index'])->name('documentacion.index');
     Route::get('/documentacion/requisitos', [AdminDocumentacionController::class, 'requisitos'])->name('documentacion.requisitos');
@@ -211,8 +212,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/actas', [ActaController::class, 'index'])->name('actas.index');
     Route::get('/mesas/{mesa}/acta', [ActaController::class, 'show'])->name('mesas.acta');
     Route::get('/mesas/{mesa}/acta/pdf', [ActaController::class, 'pdf'])->name('mesas.acta.pdf');
-    Route::post('/actas/{mesa}/guardar', [ActaController::class, 'guardar'])->name('actas.guardar');
-    Route::post('/actas/{mesa}/generar', [ActaController::class, 'generar'])->name('actas.generar');
+    Route::post('/actas/{mesa}/cerrar', [ActaController::class, 'cerrar'])->name('actas.cerrar');
 
     Route::get('/inscripciones', [InscripcionAdminController::class, 'index'])->name('inscripciones.index');
     Route::put('/inscripciones/{inscripcionMesa}', [InscripcionAdminController::class, 'actualizar'])->name('inscripciones.actualizar');

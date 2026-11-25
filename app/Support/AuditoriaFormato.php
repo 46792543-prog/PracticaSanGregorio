@@ -188,6 +188,7 @@ class AuditoriaFormato
         'nota_examen' => 'Nota de examen',
         'cupo_maximo' => 'Cupo máximo',
         'descripcion_detalle' => 'Descripción',
+        'motivo' => 'Motivo de la rectificación',
         'logo_path' => 'Logo',
         'path' => 'Archivo',
         'archivo_path' => 'Archivo',

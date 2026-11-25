@@ -43,7 +43,7 @@
     </div>
 
     @if ($mesaSeleccionada)
-        <form method="POST" action="{{ route('admin.actas.generar', $mesaSeleccionada) }}">
+        <form method="POST" action="{{ route('admin.actas.cerrar', $mesaSeleccionada) }}">
             @csrf
             <div class="sg-revelar rounded-3xl bg-gradient-to-br from-slate-100 to-blue-50 p-3 sm:p-6 mb-6">
             <div class="relative bg-white rounded-xl shadow-lg ring-1 ring-slate-200 p-6 sm:p-10 max-w-4xl mx-auto overflow-hidden">
@@ -153,11 +153,8 @@
 
             <div class="sticky bottom-4 flex flex-wrap justify-end gap-3 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 p-3 shadow-lg">
                 <a href="{{ route('admin.mesas.index') }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="clock" /> Historial de actas</a>
-                @if ($acta)
-                    <a href="{{ route('admin.mesas.acta', $mesaSeleccionada) }}" target="_blank" class="sg-btn sg-btn--borde"><x-sg.icono nombre="download" /> Ver / descargar PDF</a>
-                @endif
-                <button type="submit" formaction="{{ route('admin.actas.guardar', $mesaSeleccionada) }}" class="sg-btn sg-btn--suave"><x-sg.icono nombre="pencil" /> Guardar borrador</button>
-                <button type="submit" formtarget="_blank" class="sg-btn sg-btn--primario"><x-sg.icono nombre="printer" /> Generar e imprimir acta</button>
+                <a href="{{ route('admin.mesas.acta.pdf', $mesaSeleccionada) }}" target="_blank" class="sg-btn sg-btn--borde"><x-sg.icono nombre="printer" /> Imprimir acta</a>
+                <button type="submit" class="sg-btn sg-btn--primario"><x-sg.icono nombre="check-circle" /> Cerrar acta</button>
             </div>
         </form>
     @else

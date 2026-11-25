@@ -51,7 +51,7 @@
     </div>
 
     <div class="fila-superior">
-        <div class="libro-folio">L: <strong>{{ $acta->libro ?? '—' }}</strong> &nbsp;&nbsp; F: <strong>{{ $acta->folio ?? '—' }}</strong></div>
+        <div class="libro-folio">L: <strong>{{ $acta?->libro ?? '—' }}</strong> &nbsp;&nbsp; F: <strong>{{ $acta?->folio ?? '—' }}</strong></div>
         <div class="fecha"><span>{{ \App\Support\FechaEsp::corta($mesa->fecha_examen) }}</span></div>
     </div>
 
@@ -98,7 +98,7 @@
 
     <div class="observaciones">
         <p class="label">Observaciones:</p>
-        <p class="texto">{{ $acta->observaciones ?? '—' }}</p>
+        <p class="texto">{{ $acta?->observaciones ?? '—' }}</p>
     </div>
 
     <div class="totales">

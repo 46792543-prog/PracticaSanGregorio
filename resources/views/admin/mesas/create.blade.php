@@ -54,7 +54,7 @@
                     @foreach ($carreras as $carrera)
                         <optgroup label="{{ $carrera->nombre_carrera }}">
                             @foreach ($carrera->materias as $materia)
-                                <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}</option>
+                                <option value="{{ $materia->id_materia }}">{{ $materia->nombre }}{{ $materia->anioCursada ? ' (' . $materia->anioCursada->nombre_anio . ')' : '' }}</option>
                             @endforeach
                         </optgroup>
                     @endforeach

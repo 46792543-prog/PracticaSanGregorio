@@ -27,7 +27,7 @@ class ConfiguracionCuotaController extends Controller
 {
     public function index(): View
     {
-        $anioActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        $anioActivo = AnioLectivo::activo();
 
         return view('director.configuracion-cuotas.index', [
             'anios' => AnioLectivo::orderByDesc('anio')->get(),

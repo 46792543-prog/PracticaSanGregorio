@@ -24,7 +24,7 @@
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         @forelse ($mesas as $mesa)
-            @php $bloqueada = (bool) $mesa->bloqueo || (bool) $mesa->bloqueo_pago || $cuotasEstado !== 'al_dia'; @endphp
+            @php $bloqueada = $mesa->ya_aprobada || (bool) $mesa->bloqueo || $mesa->correlativas_faltantes->isNotEmpty() || (bool) $mesa->bloqueo_pago || $cuotasEstado !== 'al_dia'; @endphp
             <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col {{ $bloqueada ? 'opacity-70' : '' }}">
                 <div class="flex items-start justify-between mb-4">
                     <div class="h-14 w-14 rounded-lg bg-[#0B3D91] text-white flex flex-col items-center justify-center leading-none">
@@ -53,8 +53,12 @@
                         <button type="button" disabled class="w-full rounded-lg bg-slate-100 text-slate-400 text-sm font-semibold py-2">
                             No disponible
                         </button>
-                        @if ($mesa->bloqueo)
+                        @if ($mesa->ya_aprobada)
+                            <p class="text-xs text-red-500 mt-2">✕ Ya tenés esta materia aprobada</p>
+                        @elseif ($mesa->bloqueo)
                             <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar {{ $mesa->bloqueo->nombre }}</p>
+                        @elseif ($mesa->correlativas_faltantes->isNotEmpty())
+                            <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar o aprobar: {{ $mesa->correlativas_faltantes->pluck('nombre')->join(', ') }}</p>
                         @elseif ($mesa->bloqueo_pago)
                             <p class="text-xs text-red-500 mt-2">✕ {{ $mesa->bloqueo_pago }}</p>
                         @else

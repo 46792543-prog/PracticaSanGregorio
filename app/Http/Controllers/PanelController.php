@@ -29,7 +29,7 @@ class PanelController extends Controller
         $cuotaVencida = $cuotasPendientes->contains(fn ($c) => $c->vencida);
 
         $proximasMesas = $alumno->historialAlumno()
-            ->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', 'Regular'))
+            ->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', \App\Models\CondicionAlumno::REGULARIZADA))
             ->with('materia.mesasExamen.estadoMesa', 'materia.mesasExamen.turnoExamen')
             ->get()
             ->pluck('materia')
@@ -38,7 +38,7 @@ class PanelController extends Controller
                 ->map(fn ($mesa) => [
                     'mesa' => $mesa,
                     'materia' => $materia,
-                    'bloqueo' => $materia->correlativaFaltante($alumno),
+                    'bloqueo' => $materia->correlativasFaltantes($alumno)->isNotEmpty(),
                 ]))
             ->sortBy(fn ($item) => $item['mesa']->fecha_examen)
             ->take(3);

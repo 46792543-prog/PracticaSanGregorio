@@ -38,4 +38,61 @@ class CondicionAlumno extends Model
     {
         return in_array($nombreCondicion, self::APROBADA, true);
     }
+
+    /**
+     * Rindió el final y sacó menos de 4. La cursada sigue aprobada, así que
+     * para el sistema cuenta como Regular: puede volver a rendir.
+     */
+    public const FINAL_DESAPROBADO = 'Final Desaprobado';
+
+    /** Cursada aprobada que todavía debe el final. */
+    public const REGULARIZADA = ['Regular', self::FINAL_DESAPROBADO];
+
+    public static function esRegular(?string $nombreCondicion): bool
+    {
+        return in_array($nombreCondicion, self::REGULARIZADA, true);
+    }
+
+    /**
+     * Nota mínima y máxima que admite cada condición de materia (null =
+     * no lleva nota o es opcional sin rango propio). Promocionada pide 7 o
+     * más; Final Aprobado y Equivalencia, 4 o más; Final Desaprobado, menos
+     * de 4.
+     */
+    public const RANGO_NOTA = [
+        'Promocionada' => [7, 10],
+        'Examen Final' => [4, 10],
+        'Equivalencia' => [4, 10],
+        self::FINAL_DESAPROBADO => [1, 3],
+    ];
+
+    /** Cómo se muestra cada condición en pantalla (en la base "Examen Final" = "Final Aprobado"). */
+    public const ETIQUETAS = [
+        'Examen Final' => 'Final Aprobado',
+    ];
+
+    public static function etiqueta(?string $nombreCondicion): ?string
+    {
+        return self::ETIQUETAS[$nombreCondicion] ?? $nombreCondicion;
+    }
+
+    /**
+     * Opciones del desplegable "Condición" al cargar el historial, agrupadas
+     * y con una aclaración, para que no haya confusión. [grupo => [nombre en la base => texto]]
+     */
+    public const GRUPOS_HISTORIAL = [
+        'Cursada (todavía debe el final)' => [
+            'Regular' => 'Regular (aprobó la cursada, le falta rendir el final)',
+            'Libre' => 'Libre (desaprobó la cursada o quedó libre por faltas)',
+            'Cursando' => 'Cursando (la está cursando ahora)',
+        ],
+        'Materia aprobada (cerrada)' => [
+            'Examen Final' => 'Final Aprobado',
+            'Promocionada' => 'Promocionada (nota de 7 a 10)',
+            'Equivalencia' => 'Equivalencia',
+        ],
+        'Materia desaprobada' => [
+            self::FINAL_DESAPROBADO => 'Final Desaprobado (rindió el final y sacó menos de 4)',
+        ],
+    ];
 }

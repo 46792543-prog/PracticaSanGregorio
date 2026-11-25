@@ -32,7 +32,7 @@ class EstadoAcademicoController extends Controller
 
             if ($condicion === 'regular' && $historial?->regularidad_vencida) {
                 $estadoVisual = 'vencida';
-            } elseif ($condicion === 'pendiente' && $materia->correlativaFaltante($alumno)) {
+            } elseif ($condicion === 'pendiente' && $materia->correlativasFaltantes($alumno)->isNotEmpty()) {
                 $estadoVisual = 'no_disponible';
             }
 

@@ -84,23 +84,22 @@ class ActaController extends Controller
         ];
     }
 
-    public function guardar(Request $request, MesaExamen $mesa): RedirectResponse
+    /**
+     * Única forma de guardar un acta: la cierra de una — ya no existe un
+     * paso intermedio de "borrador" (generaba confusión con dos botones).
+     * Para imprimirla está el botón aparte "Imprimir acta", que no depende
+     * de esto.
+     */
+    public function cerrar(Request $request, MesaExamen $mesa): RedirectResponse
     {
-        $this->guardarActa($request, $mesa, 'borrador');
-
-        return redirect()->route('admin.actas.index', ['mesa' => $mesa->id_mesa])->with('status', 'Borrador guardado.');
-    }
-
-    public function generar(Request $request, MesaExamen $mesa): RedirectResponse
-    {
-        $this->guardarActa($request, $mesa, 'generada');
+        $this->guardarActa($request, $mesa);
 
         $mesa->update(['id_estado_mesa' => \App\Models\EstadoMesa::where('nombre_estado', 'Finalizada')->value('id_estado_mesa')]);
 
-        return redirect()->route('admin.mesas.acta.pdf', $mesa);
+        return redirect()->route('admin.actas.index', ['mesa' => $mesa->id_mesa])->with('status', 'Acta cerrada correctamente.');
     }
 
-    private function guardarActa(Request $request, MesaExamen $mesa, string $estado): void
+    private function guardarActa(Request $request, MesaExamen $mesa): void
     {
         $data = $request->validate([
             'libro' => ['nullable', 'string', 'max:20'],
@@ -121,8 +120,8 @@ class ActaController extends Controller
                 'id_tipo_acta' => TipoActa::where('nombre_tipo', 'Acta de Examen Final')->value('id_tipo_acta'),
                 'observaciones' => $data['observaciones'] ?? null,
                 'id_secretario_creador' => Auth::user()->id_persona,
-                'estado' => $estado,
-                'fecha_generacion' => $estado === 'generada' ? now() : null,
+                'estado' => 'generada',
+                'fecha_generacion' => now(),
             ]
         );
 

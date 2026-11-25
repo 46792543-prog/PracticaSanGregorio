@@ -102,35 +102,32 @@ class Materia extends Model
     }
 
     /**
-     * Devuelve la primera correlativa que el alumno todavía no cumple para
-     * cursar/rendir esta materia, o null si tiene todas cumplidas.
+     * Devuelve TODAS las correlativas que el alumno todavía no cumple para
+     * RENDIR esta materia (vacío si tiene todas cumplidas) — así se le puede
+     * avisar de una sola vez qué le falta, en vez de ir descubriéndolas de a
+     * una por vez. Para rendir solo importa la columna "requiere_aprobada"
+     * del plan de estudios: una correlativa marcada solo como
+     * "requiere_regularizada" es un requisito para CURSAR (ver
+     * correlativaFaltanteParaCursar()), no bloquea el examen final.
      */
-    public function correlativaFaltante(Persona $alumno): ?Materia
+    public function correlativasFaltantes(Persona $alumno): \Illuminate\Support\Collection
     {
+        $requisitosParaRendir = $this->requisitos->filter(fn ($requisito) => $requisito->pivot->requiere_aprobada);
+
         $historialPorMateria = $alumno->historialAlumno()
-            ->whereIn('id_materia', $this->requisitos->pluck('id_materia'))
+            ->whereIn('id_materia', $requisitosParaRendir->pluck('id_materia'))
             ->get()
             ->keyBy('id_materia');
 
-        foreach ($this->requisitos as $requisito) {
-            $historial = $historialPorMateria->get($requisito->id_materia);
-            $condicionNombre = $historial?->condicion?->nombre_condicion;
-            $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
+        return $requisitosParaRendir->reject(function ($requisito) use ($historialPorMateria) {
+            $condicionNombre = $historialPorMateria->get($requisito->id_materia)?->condicion?->nombre_condicion;
 
-            $cumplida = $requisito->pivot->requiere_aprobada
-                ? CondicionAlumno::esAprobada($condicionNombre)
-                : (! $requisito->pivot->requiere_regularizada || CondicionAlumno::esAprobada($condicionNombre) || $regularVigente);
-
-            if (! $cumplida) {
-                return $requisito;
-            }
-        }
-
-        return null;
+            return CondicionAlumno::esAprobada($condicionNombre);
+        })->values();
     }
 
     /**
-     * Igual que correlativaFaltante() pero solo evalúa el requisito "para cursar"
+     * Igual que correlativasFaltantes() pero solo evalúa el requisito "para cursar"
      * (columna requiere_regularizada), ignorando requiere_aprobada que es para rendir.
      */
     public function correlativaFaltanteParaCursar(Persona $alumno): ?Materia
@@ -147,7 +144,7 @@ class Materia extends Model
 
             $historial = $historialPorMateria->get($requisito->id_materia);
             $condicionNombre = $historial?->condicion?->nombre_condicion;
-            $regularVigente = $condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false);
+            $regularVigente = CondicionAlumno::esRegular($condicionNombre) && ! ($historial?->regularidad_vencida ?? false);
 
             if (! (CondicionAlumno::esAprobada($condicionNombre) || $regularVigente)) {
                 return $requisito;
@@ -183,7 +180,7 @@ class Materia extends Model
 
         // La matrícula se exige a todos, también en Primer Año: sin
         // matrícula paga no hay inscripción a materias.
-        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+        $anioLectivoActivo = AnioLectivo::activo();
 
         if ($anioLectivoActivo && ! $alumno->matriculaAlDia($anioLectivoActivo->id_anio_lectivo)) {
             return "Tiene la matrícula {$anioLectivoActivo->anio} sin pagar.";

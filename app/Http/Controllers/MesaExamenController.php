@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CondicionAlumno;
+use App\Models\ConfiguracionCuota;
 use App\Models\EstadoInscripcion;
 use App\Models\InscripcionMesa;
 use App\Models\Materia;
@@ -38,7 +39,9 @@ class MesaExamenController extends Controller
             ->orderBy('fecha_examen')
             ->get()
             ->map(function (MesaExamen $mesa) use ($alumno) {
-                $mesa->bloqueo = $this->materiaSinCursar($mesa->materia, $alumno) ?? $mesa->materia->correlativaFaltante($alumno);
+                $mesa->ya_aprobada = $this->yaAprobada($mesa->materia, $alumno);
+                $mesa->bloqueo = $this->materiaSinCursar($mesa->materia, $alumno);
+                $mesa->correlativas_faltantes = $mesa->bloqueo ? collect() : $mesa->materia->correlativasFaltantes($alumno);
                 $mesa->bloqueo_pago = $this->bloqueoDePago($mesa, $alumno);
                 $mesa->ya_inscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)
                     ->where('id_persona_alumno', $alumno->id_persona)
@@ -64,12 +67,18 @@ class MesaExamenController extends Controller
             return back()->withErrors(['mesa' => 'Esta mesa es extraordinaria: solo pueden anotarse los alumnos que ya terminaron de cursar la carrera.']);
         }
 
+        if ($this->yaAprobada($mesa->materia, $alumno)) {
+            return back()->withErrors(['mesa' => 'Ya tenés esta materia aprobada: no te podés anotar de nuevo.']);
+        }
+
         if ($this->materiaSinCursar($mesa->materia, $alumno)) {
             return back()->withErrors(['mesa' => 'No estás en condiciones de rendir esta materia: todavía no la cursaste o no estás regularizado.']);
         }
 
-        if ($mesa->materia->correlativaFaltante($alumno)) {
-            return back()->withErrors(['mesa' => 'No cumplís las correlativas necesarias para esta mesa.']);
+        $correlativasFaltantes = $mesa->materia->correlativasFaltantes($alumno);
+
+        if ($correlativasFaltantes->isNotEmpty()) {
+            return back()->withErrors(['mesa' => 'Te falta regularizar o aprobar: ' . $correlativasFaltantes->pluck('nombre')->join(', ') . '.']);
         }
 
         if ($alumno->superaLimiteDeuda()) {
@@ -107,8 +116,10 @@ class MesaExamenController extends Controller
 
     /**
      * Para rendir hay que tener paga la matrícula del año de la mesa y la
-     * cuota del mes del examen (vale para todos: regular, recursante y
-     * cursada completa). Devuelve el motivo del bloqueo, o null si está ok.
+     * cuota del mes ANTERIOR al del examen (no hace falta esperar a que se
+     * genere/venza la del propio mes de la mesa) — vale para todos: regular,
+     * recursante y cursada completa. Devuelve el motivo del bloqueo, o null
+     * si está ok.
      */
     private function bloqueoDePago(MesaExamen $mesa, Persona $alumno): ?string
     {
@@ -118,15 +129,29 @@ class MesaExamenController extends Controller
             return 'Tenés que pagar la matrícula ' . ($mesa->anioLectivo?->anio ?? '') . ' para poder rendir.';
         }
 
-        $mesExamen = $mesa->fecha_examen->month;
+        $mesRequerido = $mesa->fecha_examen->month - 1;
 
-        if (! $alumno->cuotaDelMesPagada($idAnio, $mesExamen)) {
-            $nombreMes = Mes::find($mesExamen)?->nombre_mes ?? 'ese mes';
+        // Si el mes anterior queda antes de que arranque el período de cobro
+        // (por defecto marzo), todavía no hay ninguna cuota que exigir.
+        $mesDesde = ConfiguracionCuota::where('id_anio_lectivo', $idAnio)->value('mes_desde') ?? 3;
 
-            return "Tenés que pagar la cuota de {$nombreMes} (el mes de la mesa) para poder rendir.";
+        if ($mesRequerido >= $mesDesde && ! $alumno->cuotaDelMesPagada($idAnio, $mesRequerido)) {
+            $nombreMes = Mes::find($mesRequerido)?->nombre_mes ?? 'ese mes';
+
+            return "Tenés que pagar la cuota de {$nombreMes} (el mes anterior a la mesa) para poder rendir.";
         }
 
         return null;
+    }
+
+    /**
+     * True si el alumno ya tiene esta materia aprobada (Promocionada, Final
+     * Aprobado o Equivalencia): no tiene sentido que se anote de nuevo a su
+     * mesa.
+     */
+    private function yaAprobada(Materia $materia, Persona $alumno): bool
+    {
+        return CondicionAlumno::esAprobada($materia->historialDe($alumno)?->condicion?->nombre_condicion);
     }
 
     /**
@@ -138,7 +163,7 @@ class MesaExamenController extends Controller
         $historial = $materia->historialDe($alumno);
         $condicionNombre = $historial?->condicion?->nombre_condicion;
         $puedeRendir = CondicionAlumno::esAprobada($condicionNombre)
-            || ($condicionNombre === 'Regular' && ! ($historial?->regularidad_vencida ?? false));
+            || (CondicionAlumno::esRegular($condicionNombre) && ! ($historial?->regularidad_vencida ?? false));
 
         return $puedeRendir ? null : $materia;
     }

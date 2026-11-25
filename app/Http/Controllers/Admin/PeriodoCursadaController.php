@@ -20,9 +20,7 @@ class PeriodoCursadaController extends Controller
 
     public function index(Request $request): View
     {
-        $anioLectivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->orderByDesc('anio')
-            ->first();
+        $anioLectivo = AnioLectivo::activo();
 
         $carreras = Carrera::orderBy('nombre_carrera')->get();
         $carrera = $carreras->firstWhere('id_carrera', (int) $request->query('id_carrera')) ?? $carreras->first();

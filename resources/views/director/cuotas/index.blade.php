@@ -158,8 +158,14 @@
                     </div>
                     <p class="text-xs text-slate-400 mb-4">Estas cuotas ya están generadas (se crean solas, mes a mes, según lo cargado en Configuración de Cuotas) y están esperando que se registre el pago. No hace falta generar nada para verlas acá.</p>
 
-                    @if ($matricula && ! $matricula->pagado)
-                        <p class="sg-aviso sg-aviso--alerta">Cobrá la matrícula {{ $matricula->anioLectivo->anio }} de arriba antes de poder registrar el cobro de cuotas.</p>
+                    @if (! ($matricula && $matricula->pagado))
+                        <p class="sg-aviso sg-aviso--alerta">
+                            @if ($matricula)
+                                Cobrá la matrícula {{ $anioMatricula?->anio }} de arriba antes de poder registrar el cobro de cuotas.
+                            @else
+                                Generá y cobrá la matrícula {{ $anioMatricula?->anio }} de arriba antes de poder registrar el cobro de cuotas.
+                            @endif
+                        </p>
                     @elseif ($cuotasPendientes->isEmpty() && $mesesAdeudados->isNotEmpty())
                         <p class="sg-aviso sg-aviso--alerta">
                             Debe {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}, pero todavía no se le generó la cuota de {{ $mesesAdeudados->count() > 1 ? 'esos meses' : 'ese mes' }}. Generala más abajo para poder cobrarla.
@@ -475,14 +481,19 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--verde"><x-sg.icono nombre="clock" /></span>
-                <div><h3>Historial de cobros de cuotas</h3><p>Pagos registrados recientemente</p></div>
+                <div>
+                    <h3>{{ $alumnoSeleccionado ? 'Historial de cobros de ' . $alumnoSeleccionado->persona->apellido . ', ' . $alumnoSeleccionado->persona->nombre : 'Historial de cobros de cuotas' }}</h3>
+                    <p>{{ $alumnoSeleccionado ? 'Todos los pagos de cuotas de este alumno' : 'Pagos registrados recientemente' }}</p>
+                </div>
             </div>
-        <form method="GET" class="flex flex-wrap gap-2">
-            <input type="text" name="h_alumno" value="{{ $filtroHistorialAlumno }}" placeholder="Buscar alumno..." maxlength="25"
-                   oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
-                   class="sg-input w-auto py-2">
-            <button class="sg-btn sg-btn--suave sg-btn--chico"><x-sg.icono nombre="filter" /> Filtrar</button>
-        </form>
+        @unless ($alumnoSeleccionado)
+            <form method="GET" class="flex flex-wrap gap-2">
+                <input type="text" name="h_alumno" value="{{ $filtroHistorialAlumno }}" placeholder="Buscar alumno..." maxlength="25"
+                       oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]/g, '')"
+                       class="sg-input w-auto py-2">
+                <button class="sg-btn sg-btn--suave sg-btn--chico"><x-sg.icono nombre="filter" /> Filtrar</button>
+            </form>
+        @endunless
         </div>
         <div class="overflow-x-auto">
         <table class="sg-tabla">

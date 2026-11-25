@@ -9,6 +9,10 @@
         $cuotasPagadas = $alumno->cuotas->where('pagado', true)->count();
         $cuotasPendientes = $alumno->cuotas->where('pagado', false)->count();
         $cuotasVencidas = $alumno->cuotas->filter(fn ($c) => $c->vencida)->count();
+        $condicionesFinCursada = \App\Models\CondicionAlumno::whereIn('nombre_condicion', ['Regular', 'Promocionada', 'Libre'])->get()->keyBy('nombre_condicion');
+        $materiasCursando = $alumno->historialAlumno
+            ->filter(fn ($h) => $h->condicion?->nombre_condicion === 'Cursando')
+            ->sortBy([['materia.anioCursada.id_anio_cursada', 'asc'], ['materia.nombre', 'asc']]);
     @endphp
 
     <a href="{{ route('admin.alumnos.index') }}" class="sg-link mb-4 sg-revelar"><x-sg.icono nombre="arrow-left" class="!h-4 !w-4" /> Volver al listado</a>
@@ -40,6 +44,12 @@
                 <a href="{{ route('admin.documentacion.show', $alumno) }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="folder" /> Documentación</a>
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
+                    <button type="button" onclick="document.getElementById('panel-cerrar-cursada').classList.toggle('hidden')" class="sg-btn sg-btn--borde sg-btn--chico">
+                        <x-sg.icono nombre="document-check" /> Cerrar cursada
+                        @if ($materiasCursando->isNotEmpty())
+                            <span class="text-xs opacity-80">({{ $materiasCursando->count() }})</span>
+                        @endif
+                    </button>
                 @endif
                 @if ($progresoPromocion)
                     <form method="POST" action="{{ route('admin.alumnos.promover', $alumno) }}"
@@ -69,6 +79,116 @@
         </div>
     </section>
 
+    <div id="panel-cerrar-cursada" class="{{ session('panel_abierto') === 'cerrar-cursada' ? '' : 'hidden' }}">
+    <x-sg.tarjeta titulo="Cerrar cursada" subtitulo="Cuando termina el cuatrimestre o el año, marcá cómo quedó cada materia — recién ahí el alumno se puede anotar a la mesa de examen." icono="document-check" tono="amarillo" class="mb-6" :cuerpo="false">
+        @if ($materiasCursando->isEmpty())
+            <div class="p-5"><x-sg.vacio icono="document-check">Este alumno no tiene materias cursando en este momento.</x-sg.vacio></div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="sg-tabla">
+                    <thead>
+                        <tr>
+                            <th>Materia</th>
+                            <th>Año</th>
+                            <th>Quedó</th>
+                            <th class="sg-num">Nota</th>
+                            <th>Fecha</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($materiasCursando as $historial)
+                            @php
+                                $formId = 'form-cerrar-cursada-' . $historial->id_historial;
+                                $nombreRegimen = $historial->materia->regimen?->nombre_regimen;
+                                $promocionable = $nombreRegimen !== 'Solo Examen Final';
+                            @endphp
+                            <tr>
+                                <td class="font-semibold text-slate-700">
+                                    {{ $historial->materia->nombre }}
+                                    <div>
+                                        @if ($nombreRegimen)
+                                            <span @class(['sg-badge sg-badge--sin-punto text-[11px]', 'sg-badge--azul' => $promocionable, 'sg-badge--gris' => ! $promocionable])>
+                                                {{ $promocionable ? 'Promocionable' : 'Con Final Obligatorio' }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="text-slate-500">{{ $historial->materia->anioCursada->nombre_anio ?? '—' }}</td>
+                                <td>
+                                    <select form="{{ $formId }}" name="id_condicion" data-cerrar-cursada-condicion class="sg-input text-sm" required>
+                                        <option value="">Elegí...</option>
+                                        @foreach (['Regular', 'Promocionada', 'Libre'] as $opcion)
+                                            @if ($condicion = $condicionesFinCursada->get($opcion))
+                                                <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $opcion }}">{{ $opcion }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td>
+                                    <input form="{{ $formId }}" type="number" step="1" min="1" max="10" name="nota_cursada" data-cerrar-cursada-nota disabled
+                                           class="sg-input sg-input--chico w-20 text-center">
+                                </td>
+                                <td>
+                                    <input form="{{ $formId }}" type="date" name="fecha_ultima_modificacion" value="{{ now()->format('Y-m-d') }}" required class="sg-input text-sm">
+                                </td>
+                                <td class="text-right">
+                                    <button form="{{ $formId }}" type="submit" class="sg-btn sg-btn--primario sg-btn--chico">Cerrar</button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @foreach ($materiasCursando as $historial)
+                <form id="form-cerrar-cursada-{{ $historial->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial.cerrar-cursada', [$alumno, $historial]) }}" class="hidden">
+                    @csrf @method('PUT')
+                </form>
+            @endforeach
+
+            <script>
+                // Nota entera del 1 al 10: saca cualquier caracter que no sea dígito
+                // apenas se escribe, así nunca se puede llegar a guardar un decimal.
+                document.querySelectorAll('[data-cerrar-cursada-nota]').forEach((input) => {
+                    input.addEventListener('input', () => {
+                        let valor = input.value.replace(/[^0-9]/g, '');
+                        if (valor !== '') {
+                            valor = String(Math.min(10, Math.max(1, parseInt(valor, 10))));
+                        }
+                        input.value = valor;
+                    });
+                });
+
+                document.querySelectorAll('[data-cerrar-cursada-condicion]').forEach((select) => {
+                    const actualizar = () => {
+                        const nombre = select.selectedOptions[0]?.dataset.nombre;
+                        const fila = select.closest('tr');
+                        const inputNota = fila.querySelector('[data-cerrar-cursada-nota]');
+                        if (nombre === 'Promocionada') {
+                            inputNota.style.visibility = '';
+                            inputNota.disabled = false;
+                            inputNota.required = true;
+                            inputNota.min = 7;
+                            inputNota.placeholder = '7 a 10';
+                        } else {
+                            // Regular o Libre: sin nota — la cursada se cierra
+                            // sin calificación, va a examen final (Regular) o
+                            // a rendir libre (Libre).
+                            inputNota.value = '';
+                            inputNota.disabled = true;
+                            inputNota.required = false;
+                            inputNota.placeholder = '';
+                            inputNota.style.visibility = 'hidden';
+                        }
+                    };
+                    select.addEventListener('change', actualizar);
+                    actualizar();
+                });
+            </script>
+        @endif
+    </x-sg.tarjeta>
+    </div>
+
     <div class="grid lg:grid-cols-3 gap-6 mb-6" data-sg-escalonar>
         <div class="sg-card p-5">
             <div class="flex items-center gap-3 mb-4">
@@ -88,32 +208,36 @@
                 <h3 class="font-display font-bold text-slate-800 text-sm">Situación académica</h3>
             </div>
             <dl class="text-sm space-y-2.5">
-                <div class="flex justify-between"><dt class="text-slate-400">Fecha de ingreso</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->fecha_inscripcion ? \App\Support\FechaEsp::corta($inscripcion->fecha_inscripcion) : '—' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-400">Año de ingreso</dt><dd class="text-slate-700 font-medium">{{ $anioIngreso ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-400">Año lectivo</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->anioLectivo?->anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-400">Año que cursa</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->anioCursada?->nombre_anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-400">Turno</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->turnoCursada?->nombre_turno ?? '—' }}</dd></div>
-                <div class="flex justify-between items-center gap-2"><dt class="text-slate-400">Condición</dt><dd class="text-slate-700 font-medium">
-                    @if ($estadoInscNombre === 'Activo')
-                        {{-- Regular / Recursante / Cursada completa: define qué cuotas paga y a qué mesas se puede anotar --}}
-                        <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-1">
-                            @csrf @method('PUT')
-                            <select name="condicion" class="sg-input !py-1 text-xs" onchange="this.form.submit()"
-                                    title="Regular: cuota completa · Recursante: cuota reducida · Cursada completa: solo matrícula y el mes de la mesa">
-                                @foreach (\App\Models\CondicionAlumno::DE_INSCRIPCION as $opcion)
-                                    <option value="{{ $opcion }}" @selected(($inscripcion?->condicion?->nombre_condicion ?? 'Regular') === $opcion)>{{ $opcion }}</option>
-                                @endforeach
-                            </select>
-                        </form>
-                    @else
-                        {{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}
-                    @endif
-                </dd></div>
                 <div class="flex justify-between items-center"><dt class="text-slate-400">Estado</dt><dd>
                     <span @class(['sg-badge', 'sg-badge--verde' => $estadoInscNombre === 'Activo', 'sg-badge--rojo' => $estadoInscNombre === 'Baja'])>
                         {{ $estadoInscNombre ?? '—' }}
                     </span>
                 </dd></div>
             </dl>
+        </div>
+        <div class="sg-card p-5">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="sg-chip sg-chip--chico sg-chip--gris"><x-sg.icono nombre="refresh" /></span>
+                <h3 class="font-display font-bold text-slate-800 text-sm">Modalidad de cursada</h3>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">Define qué cuota paga el alumno — no tiene que ver con si la materia quedó Regular, Libre o Promocional (eso se cierra más arriba, en "Cerrar cursada").</p>
+            @if ($estadoInscNombre === 'Activo')
+                <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-2">
+                    @csrf @method('PUT')
+                    <select name="condicion" class="sg-input text-sm" onchange="this.form.submit()"
+                            title="Regular: cuota completa · Recursante: cuota reducida · Cursada completa: solo matrícula y el mes de la mesa">
+                        @foreach (\App\Models\CondicionAlumno::DE_INSCRIPCION as $opcion)
+                            <option value="{{ $opcion }}" @selected(($inscripcion?->condicion?->nombre_condicion ?? 'Regular') === $opcion)>{{ $opcion }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @else
+                <p class="text-slate-700 font-medium text-sm">{{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}</p>
+            @endif
         </div>
         <div class="sg-card p-5">
             <div class="flex items-center gap-3 mb-4">
@@ -216,6 +340,7 @@
                     <thead>
                         <tr>
                             <th>Materia</th>
+                            <th>Año</th>
                             <th>Condición</th>
                             <th class="sg-num">Nota</th>
                             <th>Fecha</th>
@@ -223,7 +348,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($alumno->historialAlumno->sortBy('materia.nombre') as $historial)
+                        @foreach ($alumno->historialAlumno->sortBy([['materia.anioCursada.id_anio_cursada', 'asc'], ['materia.nombre', 'asc']]) as $historial)
                             @php
                                 $condicionNombre = $historial->condicion->nombre_condicion ?? '—';
                                 $aprobada = \App\Models\CondicionAlumno::esAprobada($condicionNombre);
@@ -235,7 +360,7 @@
                                         <span @class([
                                                 'h-2 w-2 rounded-full shrink-0',
                                                 'bg-emerald-500' => $aprobada,
-                                                'bg-amber-400' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
+                                                'bg-amber-400' => \App\Models\CondicionAlumno::esRegular($condicionNombre) && ! $historial->regularidad_vencida,
                                                 'bg-rose-500' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
                                                 'bg-slate-300' => $condicionNombre === 'Pendiente',
                                                 'bg-sky-500' => $condicionNombre === 'Cursando',
@@ -243,18 +368,19 @@
                                         <span class="font-semibold text-slate-700">{{ $historial->materia->nombre }}</span>
                                     </span>
                                 </td>
+                                <td class="text-slate-500">{{ $historial->materia->anioCursada->nombre_anio ?? '—' }}</td>
                                 <td>
                                     <span @class([
                                             'sg-badge',
                                             'sg-badge--verde' => $aprobada,
-                                            'sg-badge--amarillo' => $condicionNombre === 'Regular' && ! $historial->regularidad_vencida,
+                                            'sg-badge--amarillo' => \App\Models\CondicionAlumno::esRegular($condicionNombre) && ! $historial->regularidad_vencida,
                                             'sg-badge--rojo' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
                                             'sg-badge--gris' => $condicionNombre === 'Pendiente',
                                             'sg-badge--azul' => $condicionNombre === 'Cursando',
                                         ])>
-                                        {{ $historial->regularidad_vencida ? 'Venció' : $condicionNombre }}
+                                        {{ $historial->regularidad_vencida ? 'Venció' : \App\Models\CondicionAlumno::etiqueta($condicionNombre) }}
                                     </span>
-                                    @if ($condicionNombre === 'Regular' && $historial->fecha_limite_calculada)
+                                    @if (\App\Models\CondicionAlumno::esRegular($condicionNombre) && $historial->fecha_limite_calculada)
                                         <p class="text-[11px] text-slate-400 mt-1">{{ $historial->regularidad_vencida ? 'venció el' : 'vence' }} {{ \App\Support\FechaEsp::corta($historial->fecha_limite_calculada) }}</p>
                                     @endif
                                     @if ($condicionNombre === 'Equivalencia' && ($historial->institucion_equivalencia || $historial->resolucion_equivalencia))

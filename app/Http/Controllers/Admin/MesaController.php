@@ -47,7 +47,7 @@ class MesaController extends Controller
     public function create(): View
     {
         return view('admin.mesas.create', [
-            'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
+            'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria', 'anioCursada')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
             'profesores' => Profesor::with('persona')->where('activo', true)->get()->sortBy('apellido'),
             'turnos' => TurnoExamen::orderBy('id_turno')->get(),
             'llamados' => LlamadoExamen::orderBy('id_llamado')->get(),
@@ -92,7 +92,7 @@ class MesaController extends Controller
 
         return view('admin.mesas.edit', [
             'mesa' => $mesa,
-            'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
+            'carreras' => Carrera::with(['materias' => fn ($q) => $q->with('nombreMateria', 'anioCursada')->orderBy('numero_orden')])->orderBy('nombre_carrera')->get(),
             'profesores' => $profesores,
             'turnos' => TurnoExamen::orderBy('id_turno')->get(),
             'llamados' => LlamadoExamen::orderBy('id_llamado')->get(),
