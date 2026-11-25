@@ -122,7 +122,7 @@ class CatalogoSeeder extends Seeder
         // Final/Equivalencia/Libre) — las últimas tres reemplazan a la vieja
         // "Aprobada" genérica, distinguiendo cómo se aprobó cada materia
         // (ver CondicionAlumno::APROBADA).
-        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Promocionada', 'Examen Final', 'Equivalencia', 'Recursante', 'Cursada completa', 'Final Desaprobado'] as $nombre) {
+        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Promocionada', 'Examen Final', 'Equivalencia'] as $nombre) {
             CondicionAlumno::firstOrCreate(['nombre_condicion' => $nombre]);
         }
 
@@ -196,7 +196,7 @@ class CatalogoSeeder extends Seeder
         // semilla): sin al menos uno, no se puede inscribir a ningún alumno,
         // y la app no tiene pantalla para crearlo (tampoco la tenía antes).
         AnioLectivo::firstOrCreate(
-            ['anio' => now()->year],
+            ['anio' => now()->year], //crea año actual como año lectivo
             ['id_estado_anio' => EstadoAnioLectivo::where('nombre_estado', 'Activo')->value('id_estado_anio')]
         );
     }
