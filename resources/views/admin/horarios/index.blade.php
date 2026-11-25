@@ -175,6 +175,16 @@
                 @method('PUT')
                 <input type="hidden" name="dia_semana" id="input-celda-dia">
 
+                @if ($asignaciones->isNotEmpty())
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">ELEGIR MATERIA / DOCENTE YA ASIGNADO</label>
+                    <select id="select-celda-asignacion" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm mb-3">
+                        <option value="">— o escribilo manualmente abajo —</option>
+                        @foreach ($asignaciones as $texto)
+                            <option value="{{ $texto }}">{{ $texto }}</option>
+                        @endforeach
+                    </select>
+                @endif
+
                 <label class="block text-xs font-semibold text-slate-500 mb-1">MATERIA / DOCENTE</label>
                 <textarea name="contenido" id="input-celda-contenido" rows="3" maxlength="150" placeholder="Ej: ANATOMÍA Y FISIOLOGÍA HUMANA — MEDICO VERA OMAR GREGORIO"
                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm mb-1"></textarea>
@@ -239,10 +249,18 @@
             document.getElementById('input-celda-dia').value = dia;
             document.getElementById('input-celda-contenido').value = contenidoActual;
             document.getElementById('modal-celda-contexto').textContent = contexto;
+            const selectAsignacion = document.getElementById('select-celda-asignacion');
+            if (selectAsignacion) selectAsignacion.value = '';
             const modal = document.getElementById('modal-celda');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
+
+        document.getElementById('select-celda-asignacion')?.addEventListener('change', function () {
+            if (this.value) {
+                document.getElementById('input-celda-contenido').value = this.value;
+            }
+        });
         function cerrarModalCelda() {
             const modal = document.getElementById('modal-celda');
             modal.classList.add('hidden');

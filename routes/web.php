@@ -283,6 +283,11 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/usuarios', [DirectorUsuarioController::class, 'index'])->name('usuarios.index');
     Route::get('/usuarios/nuevo', [DirectorUsuarioController::class, 'create'])->name('usuarios.create');
     Route::post('/usuarios/nuevo', [DirectorUsuarioController::class, 'store'])->name('usuarios.store');
+    Route::get('/usuarios/{usuario}/editar', [DirectorUsuarioController::class, 'edit'])->name('usuarios.edit');
+    Route::put('/usuarios/{usuario}', [DirectorUsuarioController::class, 'update'])->name('usuarios.update');
+    Route::put('/usuarios/{usuario}/baja', [DirectorUsuarioController::class, 'baja'])->name('usuarios.baja');
+    Route::put('/usuarios/{usuario}/reactivar', [DirectorUsuarioController::class, 'reactivar'])->name('usuarios.reactivar');
+    Route::put('/usuarios/{usuario}/reenviar-clave', [DirectorUsuarioController::class, 'reenviarClave'])->name('usuarios.reenviar-clave');
     Route::post('/usuarios/roles', [DirectorUsuarioController::class, 'storeRol'])->name('usuarios.roles.store');
     Route::put('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'updateRol'])->name('usuarios.roles.update');
     Route::delete('/usuarios/roles/{rol}', [DirectorUsuarioController::class, 'destroyRol'])->name('usuarios.roles.destroy');
