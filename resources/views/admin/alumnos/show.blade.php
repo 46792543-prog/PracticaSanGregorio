@@ -224,7 +224,6 @@
                 <span class="sg-chip sg-chip--chico sg-chip--gris"><x-sg.icono nombre="refresh" /></span>
                 <h3 class="font-display font-bold text-slate-800 text-sm">Modalidad de cursada</h3>
             </div>
-            <p class="text-xs text-slate-400 mb-3">Define qué cuota paga el alumno — no tiene que ver con si la materia quedó Regular, Libre o Promocional (eso se cierra más arriba, en "Cerrar cursada").</p>
             @if ($estadoInscNombre === 'Activo')
                 <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-2">
                     @csrf @method('PUT')

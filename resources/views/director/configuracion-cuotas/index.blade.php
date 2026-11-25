@@ -68,10 +68,6 @@
                     </div>
                 </div>
 
-                <p class="sg-aviso sg-aviso--info text-xs mb-4">
-                    Este monto es para los alumnos <strong>Regulares</strong>. A los <strong>Recursantes</strong> (el monto depende de cuántas materias cursan) y a los de <strong>Cursada completa</strong> (solo pagan el mes en que rinden) no se les generan cuotas solas: se les cargan desde <strong>Registrar Cuotas</strong>.
-                </p>
-
                 <div class="mb-4">
                     <label class="sg-label">CONCEPTO</label>
                     <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
