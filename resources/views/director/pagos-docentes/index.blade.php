@@ -14,7 +14,7 @@
     @endphp
 
     <x-sg.encabezado titulo="Pago de Docentes" subtitulo="Registrá y consultá los pagos realizados a los docentes de la institución" eyebrow="Finanzas" icono="briefcase">
-        <button type="button" onclick="abrirModal('modal-pago-docente')" class="sg-btn sg-btn--primario">
+        <button type="button" onclick="abrirPago()" class="sg-btn sg-btn--primario">
             <x-sg.icono nombre="plus" /> Registrar pago
         </button>
     </x-sg.encabezado>
@@ -23,7 +23,7 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="cash" /></span>
-                <div><h3>Pagos registrados</h3><p>Una vez registrado, el pago no se puede modificar</p></div>
+                <div><h3>Pagos registrados</h3><p>Podés editar o eliminar un pago si hubo un error</p></div>
             </div>
         </div>
 
@@ -61,6 +61,7 @@
                         <th class="!text-right">Monto</th>
                         <th>Método de pago</th>
                         <th>Estado</th>
+                        <th style="text-align:center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
@@ -87,9 +88,21 @@
                                     <p class="text-xs text-slate-400 mt-1" title="{{ $pago->observaciones }}">{{ \Illuminate\Support\Str::limit($pago->observaciones, 30) }}</p>
                                 @endif
                             </td>
+                            <td><div class="flex justify-center gap-1">
+                                {{-- Lápiz: abre el mismo modal de "Registrar pago" con los datos de este pago --}}
+                                <button type="button" title="Editar pago" onclick="abrirPago(JSON.parse(this.dataset.pago))"
+                                        data-pago="{{ json_encode(['id' => $pago->id_pago_docente, 'id_profesor' => $pago->id_profesor, 'periodo' => $pago->periodo->format('Y-m'), 'fecha_pago' => $pago->fecha_pago->toDateString(), 'monto' => (float) $pago->monto, 'id_metodo_pago_docente' => $pago->id_metodo_pago_docente, 'id_estado_pago_docente' => $pago->id_estado_pago_docente, 'observaciones' => $pago->observaciones]) }}"
+                                        class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
+                                <form method="POST" action="{{ route('director.pagos-docentes.destroy', $pago) }}"
+                                      onsubmit="return confirm('¿Eliminar el pago a {{ $pago->profesor->apellido }}, {{ $pago->profesor->nombre }}? Si estaba pagado, también se borra su egreso en caja.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" title="Eliminar pago" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
+                                </form>
+                            </div></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><x-sg.vacio icono="briefcase" titulo="Sin pagos">No hay pagos a docentes registrados con estos filtros.</x-sg.vacio></td></tr>
+                        <tr><td colspan="7"><x-sg.vacio icono="briefcase" titulo="Sin pagos">No hay pagos a docentes registrados con estos filtros.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -103,11 +116,14 @@
     <div id="modal-pago-docente" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[70] items-center justify-center p-4">
         <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <div class="flex items-start justify-between mb-5">
-                <h3 class="font-display font-bold text-slate-800 flex items-center gap-3"><span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="briefcase" /></span> Registrar pago de docente</h3>
+                <h3 class="font-display font-bold text-slate-800 flex items-center gap-3"><span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="briefcase" /></span> <span id="titulo-modal-pago">Registrar pago de docente</span></h3>
                 <button type="button" onclick="cerrarModal('modal-pago-docente')" class="grid h-9 w-9 place-items-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors" aria-label="Cerrar"><x-sg.icono nombre="x" /></button>
             </div>
-            <form method="POST" action="{{ route('director.pagos-docentes.store') }}">
+            <form method="POST" action="{{ route('director.pagos-docentes.store') }}" id="form-pago-docente">
                 @csrf
+                {{-- Solo al editar: _method=PUT y el id del pago que se edita --}}
+                <input type="hidden" name="_method" value="PUT" disabled>
+                <input type="hidden" name="id_pago_editando" value="{{ old('id_pago_editando') }}">
                 <div class="grid sm:grid-cols-2 gap-4 mb-5">
                     <div class="sm:col-span-2">
                         <label class="sg-label">Docente *</label>
@@ -129,13 +145,13 @@
                     </div>
                     <div>
                         <label class="sg-label">Fecha de pago *</label>
-                        <input type="date" name="fecha_pago" required value="{{ old('fecha_pago', now()->toDateString()) }}" class="sg-input w-full">
+                        <input type="date" name="fecha_pago" id="input-pago-fecha" required value="{{ old('fecha_pago', now()->toDateString()) }}" class="sg-input w-full">
                     </div>
                     <div>
                         <label class="sg-label">Monto pagado *</label>
                         <div class="sg-campo-icono">
                             <x-sg.icono nombre="cash" />
-                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" required placeholder="0,00" value="{{ old('monto') }}"
+                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" id="input-pago-monto" required placeholder="0,00" value="{{ old('monto') }}"
                                    onkeydown="if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();"
                                    class="sg-input w-full">
                         </div>
@@ -143,7 +159,7 @@
                     <div>
                         <label class="sg-label">Método de pago *</label>
                         <div class="flex gap-2 min-w-0">
-                            <select name="id_metodo_pago_docente" required class="sg-input min-w-0 flex-1">
+                            <select name="id_metodo_pago_docente" id="input-pago-metodo" required class="sg-input min-w-0 flex-1">
                                 @foreach ($metodosPago as $metodo)
                                     <option value="{{ $metodo->id_metodo_pago_docente }}" @selected(old('id_metodo_pago_docente') == $metodo->id_metodo_pago_docente)>{{ $metodo->nombre_metodo }}</option>
                                 @endforeach
@@ -154,7 +170,7 @@
                     <div>
                         <label class="sg-label">Estado *</label>
                         <div class="flex gap-2 min-w-0">
-                            <select name="id_estado_pago_docente" required class="sg-input min-w-0 flex-1">
+                            <select name="id_estado_pago_docente" id="input-pago-estado" required class="sg-input min-w-0 flex-1">
                                 @foreach ($estadosPago as $estado)
                                     <option value="{{ $estado->id_estado_pago_docente }}" @selected(old('id_estado_pago_docente') ? old('id_estado_pago_docente') == $estado->id_estado_pago_docente : $estado->nombre_estado === 'Pagado')>{{ $estado->nombre_estado }}</option>
                                 @endforeach
@@ -164,14 +180,27 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label class="sg-label">Observaciones</label>
-                        <textarea name="observaciones" rows="2" maxlength="255" placeholder="Observaciones opcionales..." class="sg-input w-full">{{ old('observaciones') }}</textarea>
+                        <textarea name="observaciones" id="input-pago-observaciones" rows="2" maxlength="255" placeholder="Observaciones opcionales..." class="sg-input w-full">{{ old('observaciones') }}</textarea>
                     </div>
                 </div>
                 <div class="flex gap-3">
                     <button type="button" onclick="cerrarModal('modal-pago-docente')" class="sg-btn sg-btn--borde flex-1 justify-center">Cancelar</button>
-                    <button type="submit" class="sg-btn sg-btn--primario flex-1 justify-center"><x-sg.icono nombre="check" /> Guardar pago</button>
+                    <button type="submit" class="sg-btn sg-btn--primario flex-1 justify-center"><x-sg.icono nombre="check" /> <span id="boton-guardar-pago">Guardar pago</span></button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- Modal: confirmar antes de guardar el pago --}}
+    <div id="modal-confirmar-pago" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[90] items-center justify-center p-4">
+        <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-sm p-6 text-center">
+            <span class="sg-chip sg-chip--amarillo mx-auto mb-3"><x-sg.icono nombre="alert" /></span>
+            <h3 class="font-display font-bold text-slate-800 mb-2">Confirmar pago</h3>
+            <p id="texto-confirmar-pago" class="text-sm text-slate-600 mb-5"></p>
+            <div class="flex gap-3">
+                <button type="button" onclick="cerrarModal('modal-confirmar-pago')" class="sg-btn sg-btn--borde flex-1 justify-center">Cancelar</button>
+                <button type="button" onclick="document.getElementById('form-pago-docente').submit()" class="sg-btn sg-btn--primario flex-1 justify-center"><x-sg.icono nombre="check" /> Sí, confirmar</button>
+            </div>
         </div>
     </div>
 
@@ -245,7 +274,9 @@
                 if (!opcion.value) return;
 
                 const periodosPagados = periodosPagadosPorProfesor[opcion.value] || [];
-                const yaPagado = periodosPagados.includes(periodo);
+                // El pago que se está editando no cuenta como "ya pagado".
+                const esElQueSeEdita = pagoEditando && pagoEditando.id_profesor == opcion.value && pagoEditando.periodo === periodo;
+                const yaPagado = periodosPagados.includes(periodo) && !esElQueSeEdita;
 
                 opcion.disabled = yaPagado;
                 opcion.textContent = yaPagado
@@ -262,9 +293,55 @@
         document.getElementById('input-pago-periodo').addEventListener('change', actualizarProfesoresDisponibles);
         actualizarProfesoresDisponibles();
 
-        @if ($errors->any())
-            actualizarDniDocente();
+        // Abre el modal para registrar (sin datos) o para editar (con los datos
+        // del pago). "rellenar" en false deja los valores que volvieron con error.
+        const formPago = document.getElementById('form-pago-docente');
+        var pagoEditando = null; // var: la usa actualizarProfesoresDisponibles(), que corre antes
+
+        function abrirPago(pago = null, rellenar = true) {
+            pagoEditando = pago;
+            formPago.action = pago ? '{{ route('director.pagos-docentes.update', '__ID__') }}'.replace('__ID__', pago.id) : '{{ route('director.pagos-docentes.store') }}';
+            formPago.elements._method.disabled = !pago;
+            formPago.elements.id_pago_editando.value = pago ? pago.id : '';
+            document.getElementById('titulo-modal-pago').textContent = pago ? 'Editar pago de docente' : 'Registrar pago de docente';
+            document.getElementById('boton-guardar-pago').textContent = pago ? 'Actualizar pago' : 'Guardar pago';
+
+            if (!pago && rellenar) {
+                formPago.reset(); // pago nuevo: el formulario vuelve a quedar limpio
+                const fecha = document.getElementById('input-pago-fecha');
+                fecha._flatpickr?.setDate(fecha.value);
+            }
+
+            if (pago && rellenar) {
+                document.getElementById('input-pago-profesor').value = pago.id_profesor;
+                document.getElementById('input-pago-periodo').value = pago.periodo;
+                document.getElementById('input-pago-fecha')._flatpickr?.setDate(pago.fecha_pago);
+                document.getElementById('input-pago-monto').value = pago.monto;
+                document.getElementById('input-pago-metodo').value = pago.id_metodo_pago_docente;
+                document.getElementById('input-pago-estado').value = pago.id_estado_pago_docente;
+                document.getElementById('input-pago-observaciones').value = pago.observaciones ?? '';
+            }
+
             abrirModal('modal-pago-docente');
+            actualizarDniDocente();
+        }
+
+        // Al tocar "Guardar pago": en vez de enviar directo, pregunta
+        // "¿Está seguro de abonar $X a tal docente?". El botón "Sí, confirmar"
+        // envía el formulario (form.submit() no vuelve a pasar por acá).
+        formPago.addEventListener('submit', function (evento) {
+            evento.preventDefault();
+            const docente = document.getElementById('input-pago-profesor').selectedOptions[0].dataset.nombreBase;
+            const monto = parseFloat(document.getElementById('input-pago-monto').value).toLocaleString('es-AR');
+            document.getElementById('texto-confirmar-pago').textContent = pagoEditando
+                ? `¿Está seguro de actualizar el pago a ${docente} por $ ${monto}?`
+                : `¿Está seguro de abonar $ ${monto} a ${docente}?`;
+            abrirModal('modal-confirmar-pago');
+        });
+
+        @if ($errors->any())
+            // Si volvió con error, reabre el modal (en modo edición si se estaba editando).
+            abrirPago(@json(old('id_pago_editando') ? ['id' => old('id_pago_editando'), 'id_profesor' => old('id_profesor'), 'periodo' => old('periodo')] : null), false);
         @endif
     </script>
 @endsection

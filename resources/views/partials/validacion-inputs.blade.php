@@ -50,6 +50,12 @@
             }
         }
 
+        // Tope de valor (data-max-valor="31" en el día, "1000000" en montos):
+        // si se pasa, queda en el máximo.
+        if (el.dataset.maxValor && parseFloat(el.value) > parseFloat(el.dataset.maxValor)) {
+            el.value = el.dataset.maxValor;
+        }
+
         if ('nota' in el.dataset) {
             el.value = el.value.replace(/[^0-9]/g, '').slice(0, 2);
         }
@@ -60,6 +66,14 @@
         if ('busqueda' in el.dataset) {
             var tope = /^[0-9]*$/.test(el.value) ? 8 : 50;
             el.value = el.value.slice(0, tope);
+        }
+    });
+
+    // En los campos de número no se puede tipear signos: "-" (negativos),
+    // "+" ni "e" (notación científica, ej. 1e5).
+    document.addEventListener('keydown', function (evento) {
+        if (evento.target.type === 'number' && ['-', '+', 'e', 'E'].includes(evento.key)) {
+            evento.preventDefault();
         }
     });
 

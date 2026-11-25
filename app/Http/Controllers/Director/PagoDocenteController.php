@@ -15,6 +15,7 @@ use App\Support\FechaEsp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PagoDocenteController extends Controller
@@ -59,6 +60,37 @@ class PagoDocenteController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $pago = PagoDocente::create($this->validar($request) + ['id_director_registra' => Auth::user()->id_persona]);
+        $this->asentarEnCajaSiPagado($pago);
+
+        return back()->with('status', 'Se registró el pago al docente correctamente.');
+    }
+
+    // Editar un pago (para corregir errores de tipeo). El egreso de caja se
+    // borra y se vuelve a generar con los datos corregidos.
+    public function update(Request $request, PagoDocente $pago): RedirectResponse
+    {
+        $pago->update($this->validar($request, $pago));
+        $pago->movimientoCaja?->delete();
+        $this->asentarEnCajaSiPagado($pago->fresh());
+
+        return back()->with('status', 'Se actualizó el pago al docente.');
+    }
+
+    // Eliminar un pago, junto con su egreso en el Libro de Caja (si tenía).
+    public function destroy(PagoDocente $pago): RedirectResponse
+    {
+        $pago->movimientoCaja?->delete();
+        $pago->delete();
+
+        return back()->with('status', 'Se eliminó el pago al docente.');
+    }
+
+    // Valida los datos del formulario (alta y edición) y los devuelve listos
+    // para guardar. Un docente cobra un solo sueldo por mes: si ya tiene otro
+    // pago en ese período (sin contar el que se está editando), no se deja.
+    private function validar(Request $request, ?PagoDocente $pago = null): array
+    {
         $data = $request->validate([
             'id_profesor' => ['required', 'exists:profesor,id_profesor'],
             'periodo' => ['required', 'date_format:Y-m'],
@@ -71,44 +103,27 @@ class PagoDocenteController extends Controller
             'monto.max' => 'El monto no puede tener más de 7 dígitos.',
         ]);
 
-        $periodoFecha = $data['periodo'] . '-01';
+        $data['periodo'] .= '-01';
+        $data['monto'] = round((float) $data['monto'], 2);
+        $data['observaciones'] = ($data['observaciones'] ?? null) ?: null;
 
-        // Un docente recibe un solo sueldo por mes: si ya tiene un pago
-        // cargado para ese período (del estado que sea), no se puede cargar
-        // otro. El desplegable de docentes ya lo deshabilita antes de
-        // llegar acá, esto es el respaldo del lado del servidor.
         $yaTienePago = PagoDocente::where('id_profesor', $data['id_profesor'])
-            ->where('periodo', $periodoFecha)
+            ->where('periodo', $data['periodo'])
+            ->when($pago, fn ($q) => $q->whereKeyNot($pago->id_pago_docente))
             ->exists();
 
         if ($yaTienePago) {
-            return back()
-                ->withErrors(['periodo' => 'Este docente ya tiene un pago registrado para ese período. Un profesor solo puede recibir un sueldo por mes.'])
-                ->withInput();
+            throw ValidationException::withMessages(['periodo' => 'Este docente ya tiene un pago registrado para ese período. Un profesor solo puede recibir un sueldo por mes.']);
         }
 
-        $pago = PagoDocente::create([
-            'id_profesor' => $data['id_profesor'],
-            'periodo' => $periodoFecha,
-            'fecha_pago' => $data['fecha_pago'],
-            'monto' => round((float) $data['monto'], 2),
-            'id_metodo_pago_docente' => $data['id_metodo_pago_docente'],
-            'id_estado_pago_docente' => $data['id_estado_pago_docente'],
-            'observaciones' => $data['observaciones'] ?: null,
-            'id_director_registra' => Auth::user()->id_persona,
-        ]);
-
-        $this->asentarEnCajaSiPagado($pago);
-
-        return back()->with('status', 'Se registró el pago al docente correctamente.');
+        return $data;
     }
 
     /**
      * El sueldo de un docente sale de la caja igual que cualquier otro
      * gasto: si el estado elegido es "Pagado", se asienta solo como Egreso
      * en el Libro de Caja. Si quedó en otro estado (ej. "Pendiente"), no se
-     * toca la caja — como los pagos no se pueden editar, ese egreso recién
-     * se generaría si más adelante se carga un pago nuevo ya en "Pagado".
+     * toca la caja; si después se edita a "Pagado", el egreso se genera ahí.
      */
     private function asentarEnCajaSiPagado(PagoDocente $pago): void
     {

@@ -2,27 +2,24 @@
 
 namespace App\Console\Commands;
 
-use App\Support\CalculadoraMora;
+use App\Support\RecalculadorCuotas;
 use Illuminate\Console\Command;
 
 /**
- * Corre todos los días (ver schedule() en Kernel.php): les aplica el
- * interés por mora configurado a las cuotas vencidas sin pagar de todos
- * los alumnos, en todos los años lectivos que tengan una configuración de
- * cuotas cargada. Es lo mismo que hace el botón "Calcular moras del día"
- * del panel, pero sin que nadie tenga que entrar a apretarlo.
+ * Corre todos los días (ver schedule() en Kernel.php): pone todas las cuotas
+ * impagas al precio vigente y con la mora de hoy (ver RecalculadorCuotas).
  */
 class CalcularMoraCuotas extends Command
 {
     protected $signature = 'cuotas:calcular-mora';
 
-    protected $description = 'Aplica el interés por mora a las cuotas vencidas sin pagar de todos los alumnos';
+    protected $description = 'Actualiza precio y mora de las cuotas impagas';
 
     public function handle(): int
     {
-        $afectadas = CalculadoraMora::aplicarATodos();
+        $afectadas = RecalculadorCuotas::aplicarATodos();
 
-        $this->info("Se calculó el interés por mora en {$afectadas} cuota(s) vencida(s).");
+        $this->info("Se actualizaron {$afectadas} cuota(s) impaga(s) con el precio y la mora de hoy.");
 
         return self::SUCCESS;
     }

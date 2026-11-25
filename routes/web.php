@@ -232,7 +232,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
     Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
-    Route::put('/cuotas/{cuota}', [DirectorCuotaController::class, 'actualizar'])->name('cuotas.actualizar');
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
 
     Route::post('/matricula/cobrar', [DirectorCuotaController::class, 'cobrarMatricula'])->name('matricula.cobrar');
@@ -249,7 +248,9 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     // resto del panel de dirección. El Secretario (sin más) no entra.
     Route::get('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'index'])->name('configuracion-cuotas.index');
     Route::post('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'store'])->name('configuracion-cuotas.store');
-    Route::post('/configuracion-cuotas/calcular-mora', [ConfiguracionCuotaController::class, 'calcularMora'])->name('configuracion-cuotas.calcular-mora');
+    Route::post('/configuracion-cuotas/aumentos', [ConfiguracionCuotaController::class, 'storeAumento'])->name('configuracion-cuotas.aumentos.store');
+    Route::put('/configuracion-cuotas/aumentos/{aumento}', [ConfiguracionCuotaController::class, 'updateAumento'])->name('configuracion-cuotas.aumentos.update');
+    Route::delete('/configuracion-cuotas/aumentos/{aumento}', [ConfiguracionCuotaController::class, 'destroyAumento'])->name('configuracion-cuotas.aumentos.destroy');
 
     Route::get('/pagos', [EstadoPagosController::class, 'index'])->name('pagos.index');
 
@@ -275,6 +276,8 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
 
     Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
     Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
+    Route::put('/pagos-docentes/{pago}', [PagoDocenteController::class, 'update'])->name('pagos-docentes.update');
+    Route::delete('/pagos-docentes/{pago}', [PagoDocenteController::class, 'destroy'])->name('pagos-docentes.destroy');
     Route::post('/pagos-docentes/metodos-pago', [PagoDocenteController::class, 'storeMetodoPago'])->name('pagos-docentes.metodos-pago.store');
     Route::post('/pagos-docentes/estados', [PagoDocenteController::class, 'storeEstadoPago'])->name('pagos-docentes.estados.store');
 

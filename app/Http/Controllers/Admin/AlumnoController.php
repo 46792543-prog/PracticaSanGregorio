@@ -149,7 +149,7 @@ class AlumnoController extends Controller
             ->count();
         $porcentajeAvance = $totalMateriasPlan > 0 ? (int) round($materiasAprobadasTotal / $totalMateriasPlan * 100) : 0;
 
-        $montoActualCuota = CorteActivo::actual()?->configuracionCuota?->monto_mensual;
+        $montoActualCuota = CorteActivo::actual()?->configuracionCuota?->montoVigente();
 
         return view('admin.alumnos.show', [
             'alumno' => $persona,

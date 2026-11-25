@@ -16,7 +16,7 @@ use App\Models\MovimientoCaja;
 use App\Models\Persona;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
-use App\Support\CalculadoraMora;
+use App\Support\RecalculadorCuotas;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,10 +29,9 @@ class CuotaController extends Controller
 {
     public function index(Request $request): View
     {
-        // Aplica el interés por mora a las cuotas que se vencieron sin pagar
-        // (una sola vez por cuota). Antes dependía solo de la tarea programada
-        // diaria, que en Laragon / el hosting no corre si no hay un cron.
-        CalculadoraMora::aplicarATodos();
+        // Pone las cuotas impagas al precio y la mora de hoy (no depende de
+        // la tarea diaria, que en Laragon / el hosting no corre sin cron).
+        RecalculadorCuotas::aplicarATodos();
 
         $busqueda = trim((string) $request->query('q'));
         $alumnoSeleccionado = null;
@@ -63,7 +62,7 @@ class CuotaController extends Controller
         }
 
         $corteActivo = CorteActivo::actual();
-        $montoActual = $corteActivo?->configuracionCuota?->monto_mensual;
+        $montoActual = $corteActivo?->configuracionCuota?->montoVigente();
 
         // Regular / Recursante / Cursada completa: al recursante y al de
         // cursada completa no se les generan cuotas solas — se les cargan
@@ -74,10 +73,10 @@ class CuotaController extends Controller
         // Para que "Generar cuota nueva" autocomplete monto/concepto/día de
         // vencimiento con lo cargado en Configuración de Cuotas, por cada
         // año lectivo (el formulario permite elegir cualquiera, no solo el activo).
-        $configuracionesCuotaPorAnio = ConfiguracionCuota::all()
+        $configuracionesCuotaPorAnio = ConfiguracionCuota::with('aumentos', 'anioLectivo')->get()
             ->keyBy('id_anio_lectivo')
             ->map(fn (ConfiguracionCuota $c) => [
-                'monto' => $condicionAlumno === CondicionAlumno::RECURSANTE ? null : $c->monto_mensual,
+                'monto' => $condicionAlumno === CondicionAlumno::RECURSANTE ? null : $c->montoVigente(),
                 'dia_vencimiento' => $c->dia_vencimiento,
                 'concepto' => $c->concepto,
             ]);
@@ -139,7 +138,12 @@ class CuotaController extends Controller
         $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $request->input('id_anio_lectivo'))->first();
         $mesDesde = $configuracion?->mes_desde ?? 3;
         $mesHasta = $configuracion?->mes_hasta ?? 12;
-        $montoMaximo = $configuracion?->monto_mensual;
+        // Tope del importe: lo que vale hoy la cuota del mes más avanzado de
+        // los elegidos (con los aumentos que ya rigen).
+        $mesesElegidos = array_map('intval', (array) $request->input('meses', []));
+        $montoMaximo = $configuracion && $mesesElegidos
+            ? $configuracion->montoACobrar(max($mesesElegidos))
+            : $configuracion?->montoVigente();
 
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
@@ -153,19 +157,19 @@ class CuotaController extends Controller
             ]),
             'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
             'monto' => [
-                'required', 'numeric', 'min:0.01', 'max:9999999.99',
+                'required', 'numeric', 'min:0.01', 'max:1000000',
                 function ($attribute, $value, $fail) use ($montoMaximo) {
                     if ($montoMaximo !== null && (float) $value > (float) $montoMaximo) {
                         $fail('El importe no puede ser mayor al monto configurado para este año lectivo ($' . number_format($montoMaximo, 0, ',', '.') . ').');
                     }
                 },
             ],
-            'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:28'],
+            'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:31'],
         ], [
             'monto.required' => 'Ingresá el importe de la cuota.',
             'monto.numeric' => 'El importe tiene que ser un número.',
             'monto.min' => 'El importe tiene que ser mayor a $0.',
-            'monto.max' => 'El importe no puede tener más de 7 dígitos.',
+            'monto.max' => 'El importe no puede superar $1.000.000.',
             'concepto.regex' => 'El concepto solo puede tener letras.',
             'meses.*.between' => 'Ese mes está fuera del período de cobro configurado para este año lectivo (de '
                 . (Mes::find($mesDesde)?->nombre_mes ?? $mesDesde) . ' a ' . (Mes::find($mesHasta)?->nombre_mes ?? $mesHasta) . ').',
@@ -199,7 +203,7 @@ class CuotaController extends Controller
                     'id_anio_lectivo' => $anio->id_anio_lectivo,
                     'id_mes' => $idMes,
                     'concepto' => $data['concepto'] ?: null,
-                    'fecha_vencimiento' => sprintf('%04d-%02d-%02d', $anio->anio, $idMes, $data['dia_vencimiento']),
+                    'fecha_vencimiento' => ConfiguracionCuota::fechaVencimiento($anio->anio, $idMes, $data['dia_vencimiento']),
                     'monto' => round((float) $data['monto'], 2),
                     'recargo' => 0,
                     'pagado' => false,
@@ -221,33 +225,6 @@ class CuotaController extends Controller
             ->with('status', $mensaje);
     }
 
-    public function actualizar(Request $request, CuotaAlumno $cuota): RedirectResponse
-    {
-        abort_if($cuota->pagado, 403, 'No se puede modificar una cuota que ya fue cobrada.');
-
-        $data = $request->validate([
-            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
-            'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
-            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
-            'fecha_vencimiento' => ['nullable', 'date'],
-        ], [
-            'monto.required' => 'Ingresá el importe de la cuota.',
-            'monto.numeric' => 'El importe tiene que ser un número.',
-            'monto.min' => 'El importe tiene que ser mayor a $0.',
-            'monto.max' => 'El importe no puede tener más de 7 dígitos.',
-            'concepto.regex' => 'El concepto solo puede tener letras.',
-        ]);
-
-        $cuota->update([
-            'concepto' => $data['concepto'] ?: null,
-            'monto' => round((float) $data['monto'], 2),
-            'fecha_vencimiento' => $data['fecha_vencimiento'] ?: null,
-        ]);
-
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
-            ->with('status', 'Se actualizó la cuota correctamente.');
-    }
-
     public function eliminar(Request $request, CuotaAlumno $cuota): RedirectResponse
     {
         abort_if($cuota->pagado, 403, 'No se puede eliminar una cuota que ya fue cobrada.');
@@ -264,9 +241,9 @@ class CuotaController extends Controller
 
     public function cobrar(Request $request): RedirectResponse
     {
-        // Por si una cuota se venció desde que se abrió la pantalla: que el
-        // cobro ya incluya el recargo.
-        CalculadoraMora::aplicarATodos();
+        // Por si algo cambió desde que se abrió la pantalla: que el cobro
+        // use el precio y la mora de hoy.
+        RecalculadorCuotas::aplicarATodos();
 
         $data = $request->validate([
             'persona_id' => ['required', 'exists:persona,id_persona'],
@@ -274,11 +251,6 @@ class CuotaController extends Controller
             'medio_pago' => ['required', 'in:Efectivo,Transferencia'],
             'cuotas' => ['required', 'array', 'min:1'],
             'cuotas.*.pagar' => ['nullable'],
-            'cuotas.*.monto' => ['nullable', 'numeric', 'min:0.01', 'max:9999999.99'],
-        ], [
-            'cuotas.*.monto.numeric' => 'El importe tiene que ser un número.',
-            'cuotas.*.monto.min' => 'El importe a cobrar tiene que ser mayor a $0.',
-            'cuotas.*.monto.max' => 'El importe no puede tener más de 7 dígitos.',
         ]);
 
         $seleccionadas = collect($data['cuotas'])->filter(fn ($item) => ! empty($item['pagar']));
@@ -295,10 +267,6 @@ class CuotaController extends Controller
         }
 
         if ($error = $this->validarOrdenDeCobro($alumno, $idsSeleccionados)) {
-            return back()->withErrors(['cuotas' => $error]);
-        }
-
-        if ($error = $this->validarMontoMinimo($seleccionadas)) {
             return back()->withErrors(['cuotas' => $error]);
         }
 
@@ -322,7 +290,7 @@ class CuotaController extends Controller
                     continue;
                 }
 
-                $monto = round((float) ($item['monto'] ?? $cuota->monto), 2);
+                $monto = round((float) $cuota->monto, 2); // monto bloqueado: el que calculó el sistema
                 // El recargo nunca sale del formulario: siempre es el que ya
                 // tiene calculado la cuota (desde Configuración de Cuotas /
                 // "Calcular moras"), para que no se pueda alterar al cobrar.
@@ -508,75 +476,6 @@ class CuotaController extends Controller
 
             if ($posterior) {
                 return "El alumno debe {$sinGenerar->nombre_mes}, pero esa cuota todavía no está generada. Generala y cobrala antes de cobrar {$posterior->mes->nombre_mes}.";
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * El director puede ajustar el monto de cada cuota al confirmar el
-     * cobro, pero nunca por debajo de lo configurado en Configuración de
-     * Cuotas para ese año lectivo — evita que un monto tipeado de más se
-     * guarde como si fuera el cobro completo (ej. cobrar $26.000 cuando la
-     * cuota configurada es de $255.000).
-     */
-    private function validarMontoMinimo(Collection $seleccionadas): ?string
-    {
-        // Trae de la base todas las cuotas tildadas en un solo query (no uno
-        // por cuota) y las deja indexadas por id_cuota, para poder buscarlas
-        // rápido dentro del foreach con ->get($id).
-        $cuotas = CuotaAlumno::whereIn('id_cuota', $seleccionadas->keys())
-            ->with('mes')
-            ->get()
-            ->keyBy('id_cuota');
-
-        // Mismo truco para las configuraciones: trae de una sola vez la
-        // config de TODOS los años lectivos involucrados (puede haber más de
-        // uno si se cobran cuotas de distintos años juntas) y las indexa por
-        // id_anio_lectivo.
-        $configuraciones = ConfiguracionCuota::whereIn('id_anio_lectivo', $cuotas->pluck('id_anio_lectivo')->unique())
-            ->get()
-            ->keyBy('id_anio_lectivo');
-
-        // Recorre cada cuota que el director tildó para cobrar.
-        // $cuotaId es el id_cuota (viene de la clave del array del form:
-        // cuotas[123][monto]) y $item es su contenido (ej. ['monto' => '26000']).
-        foreach ($seleccionadas as $cuotaId => $item) {
-            // Busca esa cuota en la colección ya cargada arriba.
-            $cuota = $cuotas->get((int) $cuotaId);
-
-            // Por si vino un id que no existe (no debería pasar, pero evita
-            // un error si ocurre): se saltea esta vuelta del bucle.
-            if (! $cuota) {
-                continue;
-            }
-
-            // Busca la configuración de precios del año lectivo de ESTA cuota.
-            $configuracion = $configuraciones->get($cuota->id_anio_lectivo);
-
-            // Si para ese año lectivo nunca se cargó Configuración de Cuotas,
-            // no hay con qué comparar: se deja pasar sin validar.
-            if (! $configuracion) {
-                continue;
-            }
-
-            // Monto final a cobrar: el que el director tipeó en el input, o
-            // si lo dejó vacío, el que ya tenía guardado la cuota. Se
-            // convierte a número (float) y se redondea a 2 decimales.
-            $monto = round((float) ($item['monto'] ?? $cuota->monto), 2);
-
-            // La validación en sí: si lo que se va a cobrar es menor al
-            // monto mensual configurado, se corta todo el proceso de cobro.
-            if ($monto < (float) $configuracion->monto_mensual) {
-                // Arma el mensaje de error con el nombre de la cuota
-                // (ej. "Cuota Diciembre") y los dos montos en pesos, y lo
-                // devuelve. Como la función hace "return" acá adentro del
-                // foreach, corta el bucle y vuelve directo a cobrar(), que
-                // al recibir un string no-null entiende que hay un error.
-                return "El importe de {$cuota->etiqueta} (\$" . number_format($monto, 0, ',', '.')
-                    . ') es menor al monto configurado en Configuración de Cuotas ($'
-                    . number_format((float) $configuracion->monto_mensual, 0, ',', '.') . '). Corregilo antes de confirmar el cobro.';
             }
         }
 

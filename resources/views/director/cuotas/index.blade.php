@@ -214,8 +214,6 @@
                                             @endif
                                         </label>
                                         <div class="flex items-center gap-1 shrink-0">
-                                            <button type="button" onclick="document.getElementById('editar-cuota-{{ $cuota->id_cuota }}').classList.toggle('hidden')"
-                                                    class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar cuota"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                             <form method="POST" action="{{ route('director.cuotas.eliminar', $cuota) }}" onsubmit="return confirm('¿Eliminar esta cuota? Esta acción no se puede deshacer.');">
                                                 @csrf
                                                 @method('DELETE')
@@ -229,8 +227,9 @@
                                             <label class="sg-label">Monto</label>
                                             <div class="flex items-center gap-1">
                                                 <span class="text-slate-400 text-sm">$</span>
-                                                <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" form="form-cobrar-cuotas" name="cuotas[{{ $cuota->id_cuota }}][monto]" value="{{ $cuota->monto }}"
-                                                       class="sg-input sg-input--chico cuota-monto w-full" data-id="{{ $cuota->id_cuota }}">
+                                                {{-- Solo lectura: el monto sale de Configuración de Cuotas (con los aumentos) --}}
+                                                <input type="number" value="{{ $cuota->monto }}" readonly title="Se calcula solo desde Configuración de Cuotas — no se edita acá."
+                                                       class="sg-input sg-input--chico cuota-monto w-full bg-slate-50 text-slate-500 cursor-not-allowed" data-id="{{ $cuota->id_cuota }}">
                                             </div>
                                         </div>
                                         <div>
@@ -250,31 +249,6 @@
                                         </div>
                                     </div>
 
-                                    <div id="editar-cuota-{{ $cuota->id_cuota }}" class="hidden mt-3 pt-3 border-t border-dashed border-slate-200">
-                                        <form method="POST" action="{{ route('director.cuotas.actualizar', $cuota) }}" class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
-                                            @csrf
-                                            @method('PUT')
-                                            <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
-                                            <div class="col-span-2">
-                                                <label class="sg-label">Concepto</label>
-                                                <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" value="{{ $cuota->concepto }}"
-                                                       class="sg-input sg-input--chico w-full">
-                                            </div>
-                                            <div>
-                                                <label class="sg-label">Monto</label>
-                                                <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" value="{{ $cuota->monto }}" required
-                                                       class="sg-input sg-input--chico w-full">
-                                            </div>
-                                            <div>
-                                                <label class="sg-label">Vencimiento</label>
-                                                <input type="date" name="fecha_vencimiento" value="{{ $cuota->fecha_vencimiento?->toDateString() }}"
-                                                       class="sg-input sg-input--chico w-full">
-                                            </div>
-                                            <div class="col-span-2 sm:col-span-4 flex justify-end">
-                                                <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico">Guardar cambios de la cuota</button>
-                                            </div>
-                                        </form>
-                                    </div>
                                 </div>
                             @endforeach
                         </div>
@@ -379,7 +353,7 @@
                                     </div>
                                     <div>
                                         <label class="sg-label">DÍA DE VENCIMIENTO (1-28) *</label>
-                                        <input type="number" name="dia_vencimiento" id="input-dia-vencimiento-generar" min="1" max="28" required
+                                        <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="31" name="dia_vencimiento" id="input-dia-vencimiento-generar" required
                                                class="sg-input w-full">
                                     </div>
                                 </div>
@@ -394,7 +368,7 @@
                                         <label class="sg-label">MONTO *</label>
                                         <div class="flex items-center gap-1">
                                             <span class="text-slate-400 text-sm">$</span>
-                                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" id="input-monto-generar" required
+                                            <input type="number" step="0.01" min="0.01" max="1000000" data-max-digitos="7" data-max-valor="1000000" name="monto" id="input-monto-generar" required
                                                    class="sg-input w-full">
                                         </div>
                                     </div>
