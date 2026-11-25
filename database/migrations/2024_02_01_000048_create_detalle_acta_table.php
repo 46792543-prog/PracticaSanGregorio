@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('detalle_acta', function (Blueprint $table) {
             $table->id('id_detalle');
-            $table->foreignId('id_acta')->constrained('acta', 'id_acta')->cascadeOnDelete();
-            $table->foreignId('id_persona_alumno')->constrained('persona', 'id_persona');
+            $table->foreignId('id_acta')->constrained('acta', 'id_acta')->cascadeOnDelete(); //si se borra acta se borra sus renglones
+            $table->foreignId('id_persona_alumno')->constrained('persona', 'id_persona'); //no deja borrar a un alumno persona q tenga notas en accta
             $table->decimal('nota_escrito', 4, 2)->nullable();
             $table->decimal('nota_oral', 4, 2)->nullable();
             $table->decimal('nota_final', 4, 2);

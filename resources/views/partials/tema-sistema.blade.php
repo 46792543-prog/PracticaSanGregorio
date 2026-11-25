@@ -11,16 +11,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
     :root {
-        --sg-azul: #0B3D91;
-        --sg-azul-oscuro: #082A66;
-        --sg-celeste: #4FC3F7;
-        --sg-celeste-claro: #E3F4FD;
-        --sg-amarillo: #FFC107;
-        --sg-texto: #122038;
-        --sg-suave: #5A6B85;
-        --sg-borde: #D7E6F5;
-        --sg-fondo: #F3F7FC;
+        --sg-azul: #0B3D91; /* azul principal botones titulo*/
+        --sg-azul-oscuro: #082A66; /* azul mas oscuro*/
+        --sg-celeste: #4FC3F7; /* detalles celestes*/
+        --sg-celeste-claro: #E3F4FD; /* fondo celeste suave*/
+        --sg-amarillo: #FFC107; /* detalle amarillo*/
+        --sg-texto: #122038; /* color d elas letras*/
+        --sg-suave: #5A6B85; /* letras grises */
+        --sg-borde: #D7E6F5; /* bordes*/
+        --sg-fondo: #F3F7FC; /*fondo de toda la pag  */
     }
+    
 
     html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     body { font-family: 'Inter', 'Segoe UI', sans-serif; color: var(--sg-texto); background: var(--sg-fondo); }

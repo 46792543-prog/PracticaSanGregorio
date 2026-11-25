@@ -297,8 +297,8 @@ class AlumnoController extends Controller
         return redirect()->route('admin.alumnos.show', $persona)
             ->with('status', "Alumno registrado correctamente. Clave inicial: {$clave}. {$aviso}");
     }
-
-    public function baja(Request $request, Persona $persona): RedirectResponse
+//baja del alumno y reactivacion de la inscripcion a la carrera, con la baja del usuario si lo tuviera
+    public function baja(Request $request, Persona $persona): RedirectResponse  
     {
         $inscripcion = $persona->inscripcionesCarrera()
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
