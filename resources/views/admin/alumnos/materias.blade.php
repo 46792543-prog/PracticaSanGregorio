@@ -5,7 +5,7 @@
 
 @section('contenido')
     <x-sg.encabezado titulo="Inscribir a materias" :subtitulo="$alumno->apellido . ', ' . $alumno->nombre . ' · ' . $inscripcion->carrera->nombre_carrera" eyebrow="Alumnos · Cursada" icono="cap">
-        <a href="{{ route('admin.alumnos.show', $alumno) }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver a la ficha</a>
+        <a href="{{ route('admin.alumnos.show', [$alumno, 'carrera' => $inscripcion->id_carrera]) }}" class="sg-btn sg-btn--borde"><x-sg.icono nombre="arrow-left" /> Volver a la ficha</a>
     </x-sg.encabezado>
 
     <div class="sg-aviso sg-aviso--alerta mb-6 sg-revelar">
@@ -14,6 +14,7 @@
     </div>
 
     <form method="POST" action="{{ route('admin.alumnos.materias.store', $alumno) }}">
+        <input type="hidden" name="id_carrera" value="{{ $inscripcion->id_carrera }}">
         @csrf
         <div class="grid gap-6 lg:grid-cols-2" data-sg-escalonar>
             @foreach ($materias->groupBy('materia.anioCursada.nombre_anio') as $anio => $items)
@@ -51,7 +52,7 @@
         </div>
 
         <div class="sticky bottom-4 mt-6 flex justify-end gap-3 rounded-2xl bg-white/90 backdrop-blur border border-slate-200 p-3 shadow-lg sg-revelar">
-            <a href="{{ route('admin.alumnos.show', $alumno) }}" class="sg-btn sg-btn--borde">Cancelar</a>
+            <a href="{{ route('admin.alumnos.show', [$alumno, 'carrera' => $inscripcion->id_carrera]) }}" class="sg-btn sg-btn--borde">Cancelar</a>
             <button type="submit" class="sg-btn sg-btn--primario">
                 <x-sg.icono nombre="check-circle" /> Inscribir a las materias seleccionadas
             </button>

@@ -14,6 +14,23 @@
                     {{ $inscripcionCarrera->anioCursada?->nombre_anio }} · Plan {{ $inscripcionCarrera->carrera->materias->first()?->version_plan ?? '2024' }}
                     · Condición: {{ $inscripcionCarrera->condicion->nombre_condicion }}
                 </p>
+
+                {{-- Si cursa dos carreras: se elige acá una sola vez y todo el portal
+                     (cursada, mesas, cuotas, estado académico) queda en esa carrera. --}}
+                @if ($carrerasActivas->count() > 1)
+                    <form method="POST" action="{{ route('mi-carrera') }}" class="flex flex-wrap gap-2 mt-4">
+                        @csrf
+                        @foreach ($carrerasActivas as $insc)
+                            @php $elegida = $insc->id_carrera === $inscripcionCarrera->id_carrera; @endphp
+                            <button type="submit" name="carrera" value="{{ $insc->id_carrera }}" @disabled($elegida)
+                                    class="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold ring-1 transition-colors {{ $elegida ? 'bg-[#0B3D91] text-white ring-[#0B3D91] cursor-default' : 'bg-white text-slate-600 ring-slate-200 hover:ring-[#4FC3F7] hover:text-[#0B3D91]' }}">
+                                @if ($elegida)<x-sg.icono nombre="check" class="h-3.5 w-3.5" />@endif
+                                {{ $insc->carrera->nombre_carrera }}
+                            </button>
+                        @endforeach
+                    </form>
+                    <p class="text-xs text-slate-400 mt-2">Tocá una carrera para cambiar: cursada, mesas, cuotas y estado académico se muestran de la carrera elegida.</p>
+                @endif
             </div>
             <div class="flex items-center gap-4 shrink-0">
                 <div class="relative h-20 w-20 rounded-full grid place-items-center"

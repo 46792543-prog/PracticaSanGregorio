@@ -71,9 +71,9 @@ class ConfiguracionMatriculaController extends Controller
     }
 
     /**
-     * Una sola matrícula por alumno con inscripción activa en ese año (no
-     * se repite por mes, a diferencia de la cuota). No duplica las que ya
-     * existan.
+     * Una matrícula por carrera para cada alumno con inscripción activa en
+     * ese año (si cursa dos carreras, paga dos matrículas). No duplica las
+     * que ya existan.
      */
     private function generarMatriculasAutomaticas(ConfiguracionMatricula $configuracion): int
     {
@@ -84,16 +84,16 @@ class ConfiguracionMatriculaController extends Controller
         $alumnos = InscripcionCarrera::where('id_anio_lectivo', $idAnio)
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
             ->whereDoesntHave('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::CURSADA_COMPLETA))
-            ->pluck('id_persona_alumno')
-            ->unique();
+            ->get(['id_persona_alumno', 'id_carrera']);
 
         $creadas = 0;
 
         DB::transaction(function () use ($alumnos, $idAnio, $configuracion, &$creadas) {
-            foreach ($alumnos as $idPersona) {
+            foreach ($alumnos as $inscripcion) {
                 $matricula = MatriculaAlumno::firstOrNew([
-                    'id_persona_alumno' => $idPersona,
+                    'id_persona_alumno' => $inscripcion->id_persona_alumno,
                     'id_anio_lectivo' => $idAnio,
+                    'id_carrera' => $inscripcion->id_carrera,
                 ]);
 
                 if ($matricula->exists) {

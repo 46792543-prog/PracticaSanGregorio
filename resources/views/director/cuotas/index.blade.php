@@ -65,7 +65,7 @@
                             <span class="sg-avatar sg-avatar--marca !h-12 !w-12 !rounded-2xl">{{ mb_substr($alumnoSeleccionado->nombre, 0, 1) }}{{ mb_substr($alumnoSeleccionado->apellido, 0, 1) }}</span>
                             <div>
                             <p class="font-display font-bold text-slate-900">{{ $alumnoSeleccionado->apellido }}, {{ $alumnoSeleccionado->nombre }}</p>
-                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $alumnoSeleccionado->persona->inscripcionesCarrera->first()?->carrera?->nombre_carrera }}
+                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $carrerasAlumno->firstWhere('id_carrera', $idCarrera)?->nombre_carrera }}
                                 @if ($condicionAlumno && $condicionAlumno !== 'Regular')
                                     <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto ml-1">{{ $condicionAlumno }}</span>
                                 @endif
@@ -78,12 +78,22 @@
                         <a href="{{ route('director.cuotas.index') }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="refresh" /> Cambiar alumno</a>
                     </div>
 
+                    {{-- Si cursa dos carreras: una pestaña por carrera (cuotas y matrícula van por separado) --}}
+                    @if ($carrerasAlumno->count() > 1)
+                        <div class="flex flex-wrap gap-2 mb-5">
+                            @foreach ($carrerasAlumno as $carrera)
+                                <a href="{{ route('director.cuotas.index', ['alumno' => $alumnoSeleccionado->id_usuario, 'carrera' => $carrera->id_carrera]) }}"
+                                   class="sg-btn sg-btn--chico {{ $carrera->id_carrera === $idCarrera ? 'sg-btn--azul' : 'sg-btn--borde' }}">{{ $carrera->nombre_carrera }}</a>
+                            @endforeach
+                        </div>
+                    @endif
+
                     @if (! $matricula && $hayConfiguracionMatricula && $anioMatricula)
                         <div class="mb-5 rounded-2xl border-[1.5px] border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                             <p class="text-sm font-semibold text-amber-700">No tiene generada la matrícula {{ $anioMatricula->anio }}. Sin matrícula paga no puede inscribirse a materias ni a mesas.</p>
                             <form method="POST" action="{{ route('director.matricula.generar') }}">
                                 @csrf
-                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                                 <input type="hidden" name="id_anio_lectivo" value="{{ $anioMatricula->id_anio_lectivo }}">
                                 <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
                                 <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="plus" /> Generar matrícula {{ $anioMatricula->anio }}</button>
@@ -113,7 +123,7 @@
                                 @else
                                 <form method="POST" action="{{ route('director.matricula.cobrar') }}" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
                                     @csrf
-                                    <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                                    <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                                     <input type="hidden" name="id_matricula" value="{{ $matricula->id_matricula }}">
                                     <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
                                     <div>
@@ -175,7 +185,7 @@
                     @else
                         <form id="form-cobrar-cuotas" method="POST" action="{{ route('director.cuotas.cobrar') }}">
                             @csrf
-                            <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                            <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         </form>
 
                         @if ($primerMesSinGenerar)
@@ -217,7 +227,7 @@
                                             <form method="POST" action="{{ route('director.cuotas.eliminar', $cuota) }}" onsubmit="return confirm('¿Eliminar esta cuota? Esta acción no se puede deshacer.');">
                                                 @csrf
                                                 @method('DELETE')
-                                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                                                 <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar cuota"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
                                             </form>
                                         </div>
@@ -340,7 +350,7 @@
                             <form method="POST" action="{{ route('director.cuotas.generar') }}" id="form-generar-cuota">
                                 @csrf
                                 <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
-                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
 
                                 <div class="grid sm:grid-cols-2 gap-4 mb-4">
                                     <div>

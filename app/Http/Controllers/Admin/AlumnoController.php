@@ -99,7 +99,7 @@ class AlumnoController extends Controller
         ]);
     }
 
-    public function show(Persona $persona): View
+    public function show(Request $request, Persona $persona): View
     {
         $persona->load([
             'usuario',
@@ -118,13 +118,23 @@ class AlumnoController extends Controller
             'documentacion.documentoRequisito',
         ]);
 
+        // Carrera que se está viendo. La elegida va primera en la lista (la vista
+        // usa la primera inscripción) y el historial y las cuotas se filtran por ella.
+        $carreraPedida = $request->integer('carrera') ?: null;
+        $inscripcion = $this->inscripcionDe($persona, $carreraPedida) ?? $this->inscripcionDe($persona, $carreraPedida, null);
+        $idCarrera = $inscripcion?->id_carrera;
+        $carrerasAlumno = $persona->inscripcionesCarrera->pluck('carrera')->filter()->unique('id_carrera')->values();
+        $persona->setRelation('inscripcionesCarrera', $persona->inscripcionesCarrera->sortByDesc(fn ($i) => $i->id_carrera === $idCarrera)->values());
+        $persona->setRelation('historialAlumno', $persona->historialAlumno->filter(fn ($h) => $h->materia?->id_carrera === $idCarrera)->values());
+        $persona->setRelation('cuotas', $persona->cuotas->where('id_carrera', $idCarrera)->values());
+
         $fichaSecciones = FichaSeccion::where('activo', true)
             ->with(['campos' => fn ($q) => $q->where('activo', true)])
             ->orderBy('orden')
             ->get();
         $fichaRespuestas = $persona->fichaRespuestas()->get()->keyBy('id_campo');
 
-        $progresoPromocion = $this->progresoPromocion($persona);
+        $progresoPromocion = $this->progresoPromocion($persona, $idCarrera);
 
         // Historial académico: datos para mostrarlo como un analítico —
         // solo consulta, la carga/corrección se hace desde "Cargar historial
@@ -162,7 +172,55 @@ class AlumnoController extends Controller
             'materiasAprobadasTotal' => $materiasAprobadasTotal,
             'porcentajeAvance' => $porcentajeAvance,
             'montoActualCuota' => $montoActualCuota,
+            'carrerasAlumno' => $carrerasAlumno,
+            'idCarrera' => $idCarrera,
+            // Para "Inscribir en otra carrera": solo las carreras activas en las que todavía no está.
+            'carrerasDisponibles' => Carrera::whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))
+                ->whereNotIn('id_carrera', $carrerasAlumno->pluck('id_carrera'))->orderBy('nombre_carrera')->get(),
+            'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
+            'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
+            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
+            'corteActivoId' => CorteActivo::id(),
         ]);
+    }
+
+    // Inscribe a un alumno que ya existe en otra carrera. Desde ahí, cada
+    // carrera tiene sus cuotas, su matrícula y su bloqueo por deuda.
+    public function inscribirCarrera(Request $request, Persona $persona): RedirectResponse
+    {
+        $data = $request->validate([
+            'carrera_id' => ['required', 'exists:carrera,id_carrera',
+                Rule::unique('inscripcion_carrera', 'id_carrera')->where('id_persona_alumno', $persona->id_persona)],
+            'anio_cursada_id' => ['required', 'exists:anio_cursada,id_anio_cursada'],
+            'anio_lectivo_id' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
+        ], ['carrera_id.unique' => 'El alumno ya está inscripto en esa carrera.']);
+
+        InscripcionCarrera::create([
+            'id_persona_alumno' => $persona->id_persona,
+            'id_carrera' => $data['carrera_id'],
+            'id_anio_cursada' => $data['anio_cursada_id'],
+            'id_anio_lectivo' => $data['anio_lectivo_id'],
+            'id_turno_cursada' => $data['turno_cursada_id'],
+            'id_condicion' => CondicionAlumno::where('nombre_condicion', 'Regular')->value('id_condicion'),
+            'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
+            'id_secretario_registra' => Auth::user()->id_persona,
+        ]);
+
+        return redirect()->route('admin.alumnos.show', [$persona, 'carrera' => $data['carrera_id']])
+            ->with('status', 'Se inscribió al alumno en ' . Carrera::find($data['carrera_id'])->nombre_carrera
+                . '. Generale la matrícula y las cuotas de esta carrera desde Registrar Cuotas.');
+    }
+
+    // Inscripción del alumno en una carrera (o la más reciente si no se indica),
+    // filtrando por estado ('Activo', 'Baja' o null = cualquiera).
+    private function inscripcionDe(Persona $persona, ?int $idCarrera, ?string $estado = 'Activo'): ?InscripcionCarrera
+    {
+        return $persona->inscripcionesCarrera()
+            ->when($idCarrera, fn ($q) => $q->where('id_carrera', $idCarrera))
+            ->when($estado, fn ($q) => $q->whereHas('estadoInscripcion', fn ($e) => $e->where('nombre_estado', $estado)))
+            ->latest('id_inscripcion_carrera')
+            ->first();
     }
 
     public function create(): View
@@ -300,9 +358,7 @@ class AlumnoController extends Controller
 //baja del alumno y reactivacion de la inscripcion a la carrera, con la baja del usuario si lo tuviera
     public function baja(Request $request, Persona $persona): RedirectResponse  
     {
-        $inscripcion = $persona->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->first();
+        $inscripcion = $this->inscripcionDe($persona, $request->integer('id_carrera') ?: null);
 
         abort_unless($inscripcion, 404);
 
@@ -315,19 +371,19 @@ class AlumnoController extends Controller
         // Si el alumno tiene usuario para entrar al sistema, se lo desactiva
         // también: dar de baja la inscripción no debía impedir el login por sí
         // solo, y ahora sí lo hace (ver LoginController::login).
-        $persona->usuario?->update([
-            'id_estado' => EstadoUsuario::where('nombre_estado', 'Inactivo')->value('id_estado'),
-        ]);
+        // Si sigue activo en otra carrera, el usuario no se desactiva.
+        if (! $this->inscripcionDe($persona, null)) {
+            $persona->usuario?->update([
+                'id_estado' => EstadoUsuario::where('nombre_estado', 'Inactivo')->value('id_estado'),
+            ]);
+        }
 
-        return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido}.");
+        return back()->with('status', "Se dio de baja a {$persona->nombre} {$persona->apellido} en {$inscripcion->carrera->nombre_carrera}.");
     }
 
     public function alta(Request $request, Persona $persona): RedirectResponse
     {
-        $inscripcion = $persona->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Baja'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        $inscripcion = $this->inscripcionDe($persona, $request->integer('id_carrera') ?: null, 'Baja');
 
         abort_unless($inscripcion, 404);
 
@@ -348,7 +404,7 @@ class AlumnoController extends Controller
 
     public function promoverAnio(Request $request, Persona $persona): RedirectResponse
     {
-        $progreso = $this->progresoPromocion($persona);
+        $progreso = $this->progresoPromocion($persona, $request->integer('id_carrera') ?: null);
 
         abort_unless($progreso, 404, 'Este alumno no tiene una inscripción activa, o ya está en el último año del plan.');
 
@@ -370,7 +426,7 @@ class AlumnoController extends Controller
      */
     public function actualizarCondicionInscripcion(Request $request, Persona $persona): RedirectResponse
     {
-        $inscripcion = $persona->inscripcionCarreraActiva();
+        $inscripcion = $persona->inscripcionCarreraActiva($request->integer('id_carrera') ?: null);
 
         abort_unless($inscripcion, 404, 'El alumno no tiene una inscripción activa.');
 
@@ -398,12 +454,9 @@ class AlumnoController extends Controller
         return back()->with('status', 'Plazo de regularidad actualizado correctamente.');
     }
 
-    public function materias(Persona $persona): View
+    public function materias(Request $request, Persona $persona): View
     {
-        $inscripcion = $persona->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        $inscripcion = $this->inscripcionDe($persona, $request->integer('carrera') ?: null);
 
         abort_unless($inscripcion, 404, 'El alumno no tiene una inscripción a carrera activa.');
 
@@ -432,10 +485,7 @@ class AlumnoController extends Controller
 
     public function materiasStore(Request $request, Persona $persona): RedirectResponse
     {
-        $inscripcion = $persona->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        $inscripcion = $this->inscripcionDe($persona, $request->integer('id_carrera') ?: null);
 
         abort_unless($inscripcion, 404);
 
@@ -516,12 +566,9 @@ class AlumnoController extends Controller
      * Null = no tiene inscripción activa, o ya está en el último año (no hay
      * a dónde promoverlo).
      */
-    private function progresoPromocion(Persona $persona): ?array
+    private function progresoPromocion(Persona $persona, ?int $idCarrera = null): ?array
     {
-        $inscripcion = $persona->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        $inscripcion = $this->inscripcionDe($persona, $idCarrera);
 
         // Sin año de cursada cargado no hay desde dónde promover (inscripciones viejas lo tienen vacío).
         if (! $inscripcion || ! $inscripcion->id_anio_cursada) {

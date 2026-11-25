@@ -55,11 +55,23 @@ class CuotaController extends Controller
                 ->take(8)
                 ->values()
                 ->map(function (Usuario $u) {
-                    $u->cuotas_pendientes_count = $u->persona->mesesAdeudados()->count();
+                    // Meses adeudados sumando todas sus carreras.
+                    $u->cuotas_pendientes_count = $u->persona->inscripcionesCarrera
+                        ->sum(fn ($i) => $u->persona->mesesAdeudados(null, $i->id_carrera)->count());
 
                     return $u;
                 });
         }
+
+        // Carrera que se está viendo (pestañas, si cursa dos). Por defecto, la de su inscripción activa.
+        $persona = $alumnoSeleccionado?->persona;
+        $carrerasAlumno = $persona ? $persona->inscripcionesCarrera->pluck('carrera')->filter()->unique('id_carrera')->values() : collect();
+        $idCarrera = $carrerasAlumno->contains('id_carrera', (int) $request->query('carrera'))
+            ? (int) $request->query('carrera')
+            : ($persona?->inscripcionCarreraActiva()?->id_carrera ?? $carrerasAlumno->first()?->id_carrera);
+
+        // La pantalla trabaja solo con las cuotas de esa carrera.
+        $persona?->setRelation('cuotas', $persona->cuotas->where('id_carrera', $idCarrera)->values());
 
         $corteActivo = CorteActivo::actual();
         $montoActual = $corteActivo?->configuracionCuota?->montoVigente();
@@ -68,7 +80,7 @@ class CuotaController extends Controller
         // cursada completa no se les generan cuotas solas — se les cargan
         // desde "Generar cuotas" de esta pantalla. Al recursante el monto no
         // se le precarga: depende de cuántas materias cursa.
-        $condicionAlumno = $alumnoSeleccionado?->persona->condicionInscripcion();
+        $condicionAlumno = $persona?->condicionInscripcion($idCarrera);
 
         // Para que "Generar cuota nueva" autocomplete monto/concepto/día de
         // vencimiento con lo cargado en Configuración de Cuotas, por cada
@@ -82,11 +94,7 @@ class CuotaController extends Controller
             ]);
 
         $anioMatricula = $corteActivo?->id_anio_lectivo ?? AnioLectivo::orderByDesc('anio')->value('id_anio_lectivo');
-        $matricula = $alumnoSeleccionado
-            ? MatriculaAlumno::where('id_persona_alumno', $alumnoSeleccionado->persona->id_persona)
-                ->where('id_anio_lectivo', $anioMatricula)
-                ->first()
-            : null;
+        $matricula = $persona && $anioMatricula ? $persona->matriculaDe($anioMatricula, $idCarrera) : null;
 
         // Con un alumno abierto se muestra todo SU historial de cobros, sin
         // mezclarlo con el de otros alumnos ni filtrarlo por año lectivo
@@ -109,8 +117,10 @@ class CuotaController extends Controller
             'busqueda' => $busqueda,
             'resultados' => $resultados,
             'alumnoSeleccionado' => $alumnoSeleccionado,
-            'estadoMensual' => $alumnoSeleccionado ? $alumnoSeleccionado->persona->estadoMensualCuotas() : collect(),
-            'primerMesSinGenerar' => $alumnoSeleccionado ? $alumnoSeleccionado->persona->mesesSinCuotaGenerada()->first() : null,
+            'estadoMensual' => $persona ? $persona->estadoMensualCuotas(null, $idCarrera) : collect(),
+            'primerMesSinGenerar' => $persona ? $persona->mesesSinCuotaGenerada($idCarrera)->first() : null,
+            'carrerasAlumno' => $carrerasAlumno,
+            'idCarrera' => $idCarrera,
             'historial' => $historial,
             'filtroHistorialAlumno' => $request->query('h_alumno'),
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
@@ -133,7 +143,8 @@ class CuotaController extends Controller
         // rinde, no al período general, así que para esa condición no se
         // restringe el mes (ver Persona::estadoMensualCuotas()).
         $persona = Persona::find($request->input('persona_id'));
-        $respetaPeriodo = ! $persona?->tieneCursadaCompleta();
+        $idCarrera = (int) $request->input('id_carrera');
+        $respetaPeriodo = ! $persona?->tieneCursadaCompleta($idCarrera);
 
         $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $request->input('id_anio_lectivo'))->first();
         $mesDesde = $configuracion?->mes_desde ?? 3;
@@ -148,6 +159,7 @@ class CuotaController extends Controller
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
             'persona_id' => ['required', 'exists:persona,id_persona'],
+            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'meses' => ['required', 'array', 'min:1'],
             'meses.*' => array_filter([
@@ -178,7 +190,7 @@ class CuotaController extends Controller
         $anio = AnioLectivo::findOrFail($data['id_anio_lectivo']);
         $persona = $persona ?? Persona::findOrFail($data['persona_id']);
 
-        if (! $this->matriculaPagadaEstricta($persona, $anio->id_anio_lectivo)) {
+        if (! $this->matriculaPagadaEstricta($persona, $anio->id_anio_lectivo, $idCarrera)) {
             return back()->withErrors(['meses' => "No se puede generar una cuota de {$anio->anio}: primero hay que generar y cobrar la matrícula de ese año."])->withInput();
         }
 
@@ -189,6 +201,7 @@ class CuotaController extends Controller
             foreach ($data['meses'] as $idMes) {
                 $existe = CuotaAlumno::where('id_persona_alumno', $data['persona_id'])
                     ->where('id_anio_lectivo', $anio->id_anio_lectivo)
+                    ->where('id_carrera', $data['id_carrera'])
                     ->where('id_mes', $idMes)
                     ->exists();
 
@@ -201,6 +214,7 @@ class CuotaController extends Controller
                 CuotaAlumno::create([
                     'id_persona_alumno' => $data['persona_id'],
                     'id_anio_lectivo' => $anio->id_anio_lectivo,
+                    'id_carrera' => $data['id_carrera'],
                     'id_mes' => $idMes,
                     'concepto' => $data['concepto'] ?: null,
                     'fecha_vencimiento' => ConfiguracionCuota::fechaVencimiento($anio->anio, $idMes, $data['dia_vencimiento']),
@@ -221,7 +235,7 @@ class CuotaController extends Controller
             $mensaje .= " Se omitieron {$omitidas} porque ya existían para ese alumno y año.";
         }
 
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
             ->with('status', $mensaje);
     }
 
@@ -235,7 +249,7 @@ class CuotaController extends Controller
 
         $cuota->delete();
 
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
             ->with('status', 'Se eliminó la cuota correctamente.');
     }
 
@@ -328,7 +342,7 @@ class CuotaController extends Controller
             }
         });
 
-        return redirect()->route('director.cuotas.index')
+        return redirect()->route('director.cuotas.index', ['alumno' => $alumno->usuario?->id_usuario, 'carrera' => $request->input('id_carrera')])
             ->with('status', "Se registró el cobro de {$cantidad} cuota(s) por $" . number_format($totalCobrado, 0, ',', '.') . ' y se asentó en el Libro de Caja.');
     }
 
@@ -341,6 +355,7 @@ class CuotaController extends Controller
     {
         $data = $request->validate([
             'persona_id' => ['required', 'exists:persona,id_persona'],
+            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
         ]);
@@ -352,7 +367,7 @@ class CuotaController extends Controller
         }
 
         $matricula = MatriculaAlumno::firstOrCreate(
-            ['id_persona_alumno' => $data['persona_id'], 'id_anio_lectivo' => $data['id_anio_lectivo']],
+            ['id_persona_alumno' => $data['persona_id'], 'id_anio_lectivo' => $data['id_anio_lectivo'], 'id_carrera' => $data['id_carrera']],
             ['monto' => $configuracion->monto, 'pagado' => false]
         );
 
@@ -360,7 +375,7 @@ class CuotaController extends Controller
             ? 'Se generó la matrícula del alumno. Ya la podés cobrar.'
             : 'El alumno ya tenía la matrícula de ese año generada.';
 
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
             ->with('status', $mensaje);
     }
 
@@ -390,7 +405,7 @@ class CuotaController extends Controller
                 ['id_tipo_movimiento' => $tipoIngreso->id_tipo_movimiento]
             );
 
-            $descripcion = "Matrícula {$matricula->anioLectivo->anio} — {$matricula->personaAlumno->apellido}, {$matricula->personaAlumno->nombre}";
+            $descripcion = "Matrícula {$matricula->anioLectivo->anio} ({$matricula->carrera?->nombre_carrera}) — {$matricula->personaAlumno->apellido}, {$matricula->personaAlumno->nombre}";
 
             $movimiento = MovimientoCaja::create([
                 'id_concepto' => $conceptoMatricula->id_concepto,
@@ -408,7 +423,7 @@ class CuotaController extends Controller
             ]);
         });
 
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
             ->with('status', 'Se registró el pago de la matrícula y se asentó en el Libro de Caja.');
     }
 
@@ -419,19 +434,21 @@ class CuotaController extends Controller
      * excepción para "nunca se configuró matrícula para ese año": sin
      * matrícula paga, no hay cuota.
      */
-    private function matriculaPagadaEstricta(Persona $alumno, int $idAnio): bool
+    private function matriculaPagadaEstricta(Persona $alumno, int $idAnio, ?int $idCarrera = null): bool
     {
-        $matricula = $alumno->matriculas()->where('id_anio_lectivo', $idAnio)->first();
+        $matricula = $alumno->matriculaDe($idAnio, $idCarrera);
 
         return $matricula && $matricula->pagado;
     }
 
     private function validarMatriculaPagada(Persona $alumno, Collection $idsSeleccionados): ?string
     {
-        $aniosInvolucrados = CuotaAlumno::whereIn('id_cuota', $idsSeleccionados)->pluck('id_anio_lectivo')->unique();
+        // Cada par año + carrera de las cuotas elegidas necesita su matrícula paga.
+        $involucrados = CuotaAlumno::whereIn('id_cuota', $idsSeleccionados)->get(['id_anio_lectivo', 'id_carrera'])->unique(fn ($c) => "{$c->id_anio_lectivo}-{$c->id_carrera}");
 
-        foreach ($aniosInvolucrados as $idAnio) {
-            if (! $this->matriculaPagadaEstricta($alumno, $idAnio)) {
+        foreach ($involucrados as $c) {
+            $idAnio = $c->id_anio_lectivo;
+            if (! $this->matriculaPagadaEstricta($alumno, $idAnio, $c->id_carrera)) {
                 $anio = AnioLectivo::find($idAnio);
 
                 return "No se pueden cobrar cuotas de {$anio->anio}: primero hay que generar y cobrar la matrícula de ese año.";
@@ -448,7 +465,20 @@ class CuotaController extends Controller
      */
     private function validarOrdenDeCobro(Persona $alumno, Collection $idsSeleccionados): ?string
     {
+        // El orden se controla dentro de cada carrera (deber una no frena cobrar la otra).
+        foreach (CuotaAlumno::whereIn('id_cuota', $idsSeleccionados)->pluck('id_carrera')->unique() as $idCarrera) {
+            if ($error = $this->validarOrdenEnCarrera($alumno, $idsSeleccionados, $idCarrera)) {
+                return $error;
+            }
+        }
+
+        return null;
+    }
+
+    private function validarOrdenEnCarrera(Persona $alumno, Collection $idsSeleccionados, ?int $idCarrera): ?string
+    {
         $pendientes = CuotaAlumno::where('cuota_alumno.id_persona_alumno', $alumno->id_persona)
+            ->where('cuota_alumno.id_carrera', $idCarrera)
             ->where('cuota_alumno.pagado', false)
             ->join('anio_lectivo', 'anio_lectivo.id_anio_lectivo', '=', 'cuota_alumno.id_anio_lectivo')
             ->orderBy('anio_lectivo.anio')
@@ -469,7 +499,7 @@ class CuotaController extends Controller
             return "No se pueden saltear cuotas: primero hay que cobrar la de {$salteada->mes->nombre_mes} {$salteada->anio}. Seleccionala junto con las siguientes.";
         }
 
-        $sinGenerar = $alumno->mesesSinCuotaGenerada()->first();
+        $sinGenerar = $alumno->mesesSinCuotaGenerada($idCarrera)->first();
 
         if ($sinGenerar) {
             $posterior = $pendientes->take($ultimaSeleccionada + 1)->first(fn ($c) => $c->id_anio_lectivo == $sinGenerar->id_anio_lectivo && $c->id_mes > $sinGenerar->id_mes);

@@ -27,12 +27,15 @@ class MesaExamenController extends Controller
         // Mismo criterio que "Mis cuotas": tiene que estar al día hasta el
         // mes actual (no alcanza con no deber nada de antes) — sin importar
         // si esas cuotas llegaron a generarse.
-        $mesesAdeudados = $alumno->mesesAdeudados();
+        // Todo se mira en la carrera elegida (selector "Mi carrera").
+        $idCarrera = $alumno->carreraElegida()?->id_carrera;
+        $mesesAdeudados = $alumno->mesesAdeudados(null, $idCarrera);
         $cuotasEstado = $mesesAdeudados->isEmpty() ? 'al_dia' : 'debe';
-        $cursadaCompleta = $alumno->tieneCursadaCompleta();
+        $cursadaCompleta = $alumno->tieneCursadaCompleta($idCarrera);
 
         $mesas = MesaExamen::with('materia.nombreMateria', 'estadoMesa', 'turnoExamen', 'llamadoExamen', 'anioLectivo')
             ->where('id_turno', $turnoId)
+            ->whereHas('materia', fn ($q) => $q->where('id_carrera', $idCarrera))
             ->whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))
             // Las extraordinarias son solo para quienes terminaron de cursar.
             ->when(! $cursadaCompleta, fn ($q) => $q->where('extraordinaria', false))
@@ -63,7 +66,7 @@ class MesaExamenController extends Controller
     {
         $alumno = Auth::user()->persona;
 
-        if ($mesa->extraordinaria && ! $alumno->tieneCursadaCompleta()) {
+        if ($mesa->extraordinaria && ! $alumno->tieneCursadaCompleta($mesa->materia->id_carrera)) {
             return back()->withErrors(['mesa' => 'Esta mesa es extraordinaria: solo pueden anotarse los alumnos que ya terminaron de cursar la carrera.']);
         }
 
@@ -81,7 +84,7 @@ class MesaExamenController extends Controller
             return back()->withErrors(['mesa' => 'Te falta regularizar o aprobar: ' . $correlativasFaltantes->pluck('nombre')->join(', ') . '.']);
         }
 
-        if ($alumno->superaLimiteDeuda()) {
+        if ($alumno->superaLimiteDeuda($mesa->materia->id_carrera)) {
             return back()->withErrors(['mesa' => 'Tenés ' . Persona::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE . ' cuotas o más sin pagar. Consultá con secretaría.']);
         }
 
@@ -124,8 +127,9 @@ class MesaExamenController extends Controller
     private function bloqueoDePago(MesaExamen $mesa, Persona $alumno): ?string
     {
         $idAnio = $mesa->id_anio_lectivo;
+        $idCarrera = $mesa->materia->id_carrera; // se mira solo la carrera de la materia
 
-        if (! $alumno->matriculaAlDia($idAnio)) {
+        if (! $alumno->matriculaAlDia($idAnio, $idCarrera)) {
             return 'Tenés que pagar la matrícula ' . ($mesa->anioLectivo?->anio ?? '') . ' para poder rendir.';
         }
 
@@ -135,7 +139,7 @@ class MesaExamenController extends Controller
         // (por defecto marzo), todavía no hay ninguna cuota que exigir.
         $mesDesde = ConfiguracionCuota::where('id_anio_lectivo', $idAnio)->value('mes_desde') ?? 3;
 
-        if ($mesRequerido >= $mesDesde && ! $alumno->cuotaDelMesPagada($idAnio, $mesRequerido)) {
+        if ($mesRequerido >= $mesDesde && ! $alumno->cuotaDelMesPagada($idAnio, $mesRequerido, $idCarrera)) {
             $nombreMes = Mes::find($mesRequerido)?->nombre_mes ?? 'ese mes';
 
             return "Tenés que pagar la cuota de {$nombreMes} (el mes anterior a la mesa) para poder rendir.";

@@ -13,6 +13,7 @@ class CuotaAlumno extends Model
     protected $fillable = [
         'id_persona_alumno',
         'id_anio_lectivo',
+        'id_carrera', // cada carrera tiene sus propias cuotas
         'id_mes',
         'concepto',
         'fecha_vencimiento',
@@ -53,13 +54,20 @@ class CuotaAlumno extends Model
     public function getEtiquetaAttribute(): string
     {
         $mes = $this->mes->nombre_mes;
+        // Si cursa dos carreras, el nombre de la carrera distingue una cuota de otra.
+        $carrera = $this->carrera ? " ({$this->carrera->nombre_carrera})" : '';
 
-        return $this->concepto ? "{$this->concepto} — {$mes}" : "Cuota {$mes}";
+        return ($this->concepto ? "{$this->concepto} — {$mes}" : "Cuota {$mes}") . $carrera;
     }
 
     public function personaAlumno(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_persona_alumno', 'id_persona');
+    }
+
+    public function carrera(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
 
     public function anioLectivo(): BelongsTo

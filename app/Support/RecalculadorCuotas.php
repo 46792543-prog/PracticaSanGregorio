@@ -28,7 +28,7 @@ class RecalculadorCuotas
 
         foreach ($impagas as $cuota) {
             // Al recursante el monto se lo pone el director a mano: se respeta, solo se le calcula la mora.
-            $monto = $cuota->personaAlumno?->condicionInscripcion() === CondicionAlumno::RECURSANTE
+            $monto = $cuota->personaAlumno?->condicionInscripcion($cuota->id_carrera) === CondicionAlumno::RECURSANTE
                 ? (float) $cuota->monto
                 : $configuracion->montoACobrar((int) $cuota->id_mes);
 

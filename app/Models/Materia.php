@@ -174,7 +174,7 @@ class Materia extends Model
      */
     public function bloqueoParaCursar(Persona $alumno): ?string
     {
-        if ($alumno->tieneCursadaCompleta()) {
+        if ($alumno->tieneCursadaCompleta($this->id_carrera)) {
             return 'Ya terminó de cursar la carrera (Cursada completa): solo puede rendir finales.';
         }
 
@@ -182,7 +182,7 @@ class Materia extends Model
         // matrícula paga no hay inscripción a materias.
         $anioLectivoActivo = AnioLectivo::activo();
 
-        if ($anioLectivoActivo && ! $alumno->matriculaAlDia($anioLectivoActivo->id_anio_lectivo)) {
+        if ($anioLectivoActivo && ! $alumno->matriculaAlDia($anioLectivoActivo->id_anio_lectivo, $this->id_carrera)) {
             return "Tiene la matrícula {$anioLectivoActivo->anio} sin pagar.";
         }
 
@@ -198,7 +198,7 @@ class Materia extends Model
             return "Correlativa pendiente: {$requisito->nombre}";
         }
 
-        if ($alumno->superaLimiteDeuda()) {
+        if ($alumno->superaLimiteDeuda($this->id_carrera)) {
             return 'Tiene ' . Persona::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE . ' cuotas o más sin pagar.';
         }
 

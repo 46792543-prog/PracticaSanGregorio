@@ -42,8 +42,9 @@
             </div>
             <div class="flex gap-2 flex-wrap">
                 <a href="{{ route('admin.documentacion.show', $alumno) }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="folder" /> Documentación</a>
+                <button type="button" onclick="document.getElementById('panel-otra-carrera').classList.toggle('hidden')" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="plus" /> Inscribir en otra carrera</button>
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
-                    <a href="{{ route('admin.alumnos.materias', $alumno) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
+                    <a href="{{ route('admin.alumnos.materias', [$alumno, 'carrera' => $idCarrera]) }}" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="cap" /> Inscribir a materias</a>
                     <button type="button" onclick="document.getElementById('panel-cerrar-cursada').classList.toggle('hidden')" class="sg-btn sg-btn--borde sg-btn--chico">
                         <x-sg.icono nombre="document-check" /> Cerrar cursada
                         @if ($materiasCursando->isNotEmpty())
@@ -54,7 +55,7 @@
                 @if ($progresoPromocion)
                     <form method="POST" action="{{ route('admin.alumnos.promover', $alumno) }}"
                           onsubmit="return confirm('¿Promover a {{ $alumno->nombre }} {{ $alumno->apellido }} a {{ $progresoPromocion['proximoAnio']->nombre_anio }}?');">
-                        @csrf @method('PUT')
+                        @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" @disabled(! $progresoPromocion['puede'])
                                 title="{{ $progresoPromocion['aprobadas'] }} de {{ $progresoPromocion['total'] }} materias de su año aprobadas{{ $progresoPromocion['puede'] ? '' : ' — hace falta la mayoría para promover' }}"
                                 @class(['sg-btn sg-btn--chico', 'sg-btn--verde' => $progresoPromocion['puede'], 'sg-btn--borde opacity-50 cursor-not-allowed' => ! $progresoPromocion['puede']])>
@@ -66,18 +67,76 @@
                 @endif
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
                     <form method="POST" action="{{ route('admin.alumnos.baja', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de baja a este alumno?');">
-                        @csrf @method('PUT')
+                        @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" class="sg-btn sg-btn--peligro sg-btn--chico"><x-sg.icono nombre="user-minus" /> Dar de baja</button>
                     </form>
                 @elseif ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Baja')
                     <form method="POST" action="{{ route('admin.alumnos.alta', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de alta nuevamente a este alumno?');">
-                        @csrf @method('PUT')
+                        @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" class="sg-btn sg-btn--verde sg-btn--chico"><x-sg.icono nombre="user-plus" /> Dar de alta</button>
                     </form>
                 @endif
             </div>
         </div>
     </section>
+
+    {{-- Si cursa dos carreras: una pestaña por carrera (todo lo de abajo es de la carrera elegida) --}}
+    @if ($carrerasAlumno->count() > 1)
+        <div class="flex flex-wrap gap-2 mb-6">
+            @foreach ($carrerasAlumno as $carrera)
+                <a href="{{ route('admin.alumnos.show', [$alumno, 'carrera' => $carrera->id_carrera]) }}"
+                   class="sg-btn sg-btn--chico {{ $carrera->id_carrera === $idCarrera ? 'sg-btn--azul' : 'sg-btn--borde' }}">{{ $carrera->nombre_carrera }}</a>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- Inscribir en otra carrera (oculto hasta tocar el botón) --}}
+    <div id="panel-otra-carrera" class="{{ $errors->has('carrera_id') ? '' : 'hidden' }} sg-card p-5 mb-6">
+        <h3 class="font-display font-bold text-slate-800 text-sm mb-4">Inscribir en otra carrera</h3>
+        @if ($carrerasDisponibles->isEmpty())
+            {{-- No hay otra carrera activa a la que inscribirlo --}}
+            <p class="sg-aviso sg-aviso--info text-sm">No hay otra carrera activa para inscribirlo. Primero cargá la carrera en <a href="{{ route('admin.carreras.index') }}" class="sg-link">Carreras</a>.</p>
+        @else
+        <form method="POST" action="{{ route('admin.alumnos.carreras.store', $alumno) }}" class="grid sm:grid-cols-5 gap-3 items-end">
+            @csrf
+            <div class="sm:col-span-2">
+                <label class="sg-label">Carrera *</label>
+                <select name="carrera_id" required class="sg-input w-full">
+                    @foreach ($carrerasDisponibles as $carrera)
+                        <option value="{{ $carrera->id_carrera }}">{{ $carrera->nombre_carrera }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="sg-label">Año de cursada *</label>
+                <select name="anio_cursada_id" required class="sg-input w-full">
+                    @foreach ($aniosCursada as $anio)
+                        <option value="{{ $anio->id_anio_cursada }}">{{ $anio->nombre_anio }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="sg-label">Año lectivo *</label>
+                <select name="anio_lectivo_id" required class="sg-input w-full">
+                    @foreach ($aniosLectivos as $anio)
+                        <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === $corteActivoId)>{{ $anio->anio }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="sg-label">Turno *</label>
+                <select name="turno_cursada_id" required class="sg-input w-full">
+                    @foreach ($turnos as $turno)
+                        <option value="{{ $turno->id_turno_cursada }}">{{ $turno->nombre_turno }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="sm:col-span-5 flex justify-end">
+                <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="check" /> Inscribir</button>
+            </div>
+        </form>
+        @endif
+    </div>
 
     <div id="panel-cerrar-cursada" class="{{ session('panel_abierto') === 'cerrar-cursada' ? '' : 'hidden' }}">
     <x-sg.tarjeta titulo="Cerrar cursada" subtitulo="Cuando termina el cuatrimestre o el año, marcá cómo quedó cada materia — recién ahí el alumno se puede anotar a la mesa de examen." icono="document-check" tono="amarillo" class="mb-6" :cuerpo="false">
@@ -142,7 +201,7 @@
             </div>
             @foreach ($materiasCursando as $historial)
                 <form id="form-cerrar-cursada-{{ $historial->id_historial }}" method="POST" action="{{ route('admin.alumnos.historial.cerrar-cursada', [$alumno, $historial]) }}" class="hidden">
-                    @csrf @method('PUT')
+                    @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                 </form>
             @endforeach
 
@@ -226,7 +285,7 @@
             </div>
             @if ($estadoInscNombre === 'Activo')
                 <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-2">
-                    @csrf @method('PUT')
+                    @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                     <select name="condicion" class="sg-input text-sm" onchange="this.form.submit()"
                             title="Regular: cuota completa · Recursante: cuota reducida · Cursada completa: solo matrícula y el mes de la mesa">
                         @foreach (\App\Models\CondicionAlumno::DE_INSCRIPCION as $opcion)

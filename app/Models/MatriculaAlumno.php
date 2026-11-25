@@ -14,6 +14,7 @@ class MatriculaAlumno extends Model
     protected $fillable = [
         'id_persona_alumno',
         'id_anio_lectivo',
+        'id_carrera', // una matrícula por carrera y por año
         'monto',
         'pagado',
         'fecha_pago',
@@ -29,6 +30,11 @@ class MatriculaAlumno extends Model
     public function personaAlumno(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_persona_alumno', 'id_persona');
+    }
+
+    public function carrera(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
     }
 
     public function anioLectivo(): BelongsTo

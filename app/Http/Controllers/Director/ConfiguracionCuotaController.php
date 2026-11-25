@@ -187,29 +187,25 @@ class ConfiguracionCuotaController extends Controller
     private function generarCuotasAutomaticas(ConfiguracionCuota $configuracion): int
     {
         $anio = $configuracion->anioLectivo;
-
-        $alumnos = InscripcionCarrera::where('id_anio_lectivo', $anio->id_anio_lectivo)
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->select('id_persona_alumno')
-            ->distinct()
-            ->get();
-
-        $condiciones = $this->condicionesPorAlumno($anio->id_anio_lectivo);
-
         $creadas = 0;
 
-        DB::transaction(function () use ($alumnos, $anio, $configuracion, $condiciones, &$creadas) {
-            foreach ($alumnos as $alumno) {
-                $condicion = $condiciones[$alumno->id_persona_alumno] ?? null;
+        // Cada inscripción activa (alumno + carrera): si cursa dos carreras, se le generan las cuotas de las dos.
+        $inscripciones = InscripcionCarrera::with('condicion')
+            ->where('id_anio_lectivo', $anio->id_anio_lectivo)
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->get();
 
-                if (in_array($condicion, [CondicionAlumno::RECURSANTE, CondicionAlumno::CURSADA_COMPLETA], true)) {
+        DB::transaction(function () use ($inscripciones, $anio, $configuracion, &$creadas) {
+            foreach ($inscripciones as $inscripcion) {
+                if (in_array($inscripcion->condicion?->nombre_condicion, [CondicionAlumno::RECURSANTE, CondicionAlumno::CURSADA_COMPLETA], true)) {
                     continue;
                 }
 
                 for ($mes = $configuracion->mes_desde; $mes <= $configuracion->mes_hasta; $mes++) {
                     $cuota = CuotaAlumno::firstOrNew([
-                        'id_persona_alumno' => $alumno->id_persona_alumno,
+                        'id_persona_alumno' => $inscripcion->id_persona_alumno,
                         'id_anio_lectivo' => $anio->id_anio_lectivo,
+                        'id_carrera' => $inscripcion->id_carrera,
                         'id_mes' => $mes,
                     ]);
 
@@ -217,13 +213,14 @@ class ConfiguracionCuotaController extends Controller
                         continue;
                     }
 
-                    $cuota->concepto = $configuracion->concepto;
-                    $cuota->fecha_vencimiento = ConfiguracionCuota::fechaVencimiento($anio->anio, $mes, $configuracion->dia_vencimiento);
-                    $cuota->monto = $configuracion->montoACobrar($mes);
-                    $cuota->recargo = 0;
-                    $cuota->mora_aplicada = false;
-                    $cuota->pagado = false;
-                    $cuota->save();
+                    $cuota->fill([
+                        'concepto' => $configuracion->concepto,
+                        'fecha_vencimiento' => ConfiguracionCuota::fechaVencimiento($anio->anio, $mes, $configuracion->dia_vencimiento),
+                        'monto' => $configuracion->montoACobrar($mes),
+                        'recargo' => 0,
+                        'mora_aplicada' => false,
+                        'pagado' => false,
+                    ])->save();
 
                     $creadas++;
                 }
@@ -231,20 +228,5 @@ class ConfiguracionCuotaController extends Controller
         });
 
         return $creadas;
-    }
-
-    /**
-     * [id_persona_alumno => nombre de la condición] de la inscripción activa
-     * más reciente de cada alumno en ese año lectivo.
-     */
-    private function condicionesPorAlumno(int $idAnioLectivo): array
-    {
-        return InscripcionCarrera::with('condicion')
-            ->where('id_anio_lectivo', $idAnioLectivo)
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->orderBy('id_inscripcion_carrera')
-            ->get()
-            ->mapWithKeys(fn (InscripcionCarrera $i) => [$i->id_persona_alumno => $i->condicion?->nombre_condicion])
-            ->all();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CondicionAlumno;
 use App\Models\MesaExamen;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -13,22 +14,24 @@ class PanelController extends Controller
     public function index(Request $request): View
     {
         $alumno = Auth::user()->persona;
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()->with('carrera', 'anioCursada')->latest('id_inscripcion_carrera')->first();
+        $inscripcionCarrera = $alumno->carreraElegida()?->load('carrera', 'anioCursada');
+        $idCarrera = $inscripcionCarrera?->id_carrera;
+        $deLaCarrera = fn ($q) => $q->whereHas('materia', fn ($m) => $m->where('id_carrera', $idCarrera));
 
         $totalMaterias = $inscripcionCarrera
             ? $inscripcionCarrera->carrera->materias()->count()
             : 0;
-        $materiasAprobadas = $alumno->historialAlumno()->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->count();
+        $materiasAprobadas = $alumno->historialAlumno()->tap($deLaCarrera)->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->count();
         $porcentaje = $totalMaterias > 0 ? (int) round($materiasAprobadas / $totalMaterias * 100) : 0;
 
         $mesasDisponibles = MesaExamen::whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))->count();
         $inscripcionesActivas = $alumno->inscripcionesMesa()->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'En proceso'))->count();
 
-        $cuotasPendientes = $alumno->cuotas()->where('pagado', false)->get();
+        $cuotasPendientes = $alumno->cuotasDeCarrera($idCarrera)->where('pagado', false)->get();
         $proximaCuota = $cuotasPendientes->sortBy('fecha_vencimiento')->first();
         $cuotaVencida = $cuotasPendientes->contains(fn ($c) => $c->vencida);
 
-        $proximasMesas = $alumno->historialAlumno()
+        $proximasMesas = $alumno->historialAlumno()->tap($deLaCarrera)
             ->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', \App\Models\CondicionAlumno::REGULARIZADA))
             ->with('materia.mesasExamen.estadoMesa', 'materia.mesasExamen.turnoExamen')
             ->get()
@@ -44,7 +47,7 @@ class PanelController extends Controller
             ->take(3);
 
         $actividad = collect()
-            ->merge($alumno->cuotas()->where('pagado', true)->with('mes')->latest('fecha_pago')->take(1)->get()->map(fn ($c) => [
+            ->merge($alumno->cuotasDeCarrera($idCarrera)->where('pagado', true)->with('mes')->latest('fecha_pago')->take(1)->get()->map(fn ($c) => [
                 'titulo' => 'Pago de cuota registrado',
                 'detalle' => $c->etiqueta . ' · $' . number_format($c->monto, 0, ',', '.'),
                 'fecha' => $c->fecha_pago,
@@ -65,6 +68,9 @@ class PanelController extends Controller
         return view('panel.index', [
             'alumno' => $alumno,
             'inscripcionCarrera' => $inscripcionCarrera,
+            // Para elegir carrera desde el panel (solo si cursa más de una).
+            'carrerasActivas' => $alumno->inscripcionesCarrera()->with('carrera')
+                ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))->get(),
             'totalMaterias' => $totalMaterias,
             'materiasAprobadas' => $materiasAprobadas,
             'porcentaje' => $porcentaje,
@@ -75,5 +81,13 @@ class PanelController extends Controller
             'proximasMesas' => $proximasMesas,
             'actividad' => $actividad,
         ]);
+    }
+
+    // Selector "Mi carrera" (si cursa dos): guarda la elegida y vuelve a la misma pantalla.
+    public function elegirCarrera(Request $request): RedirectResponse
+    {
+        session(['carrera_alumno' => $request->integer('carrera')]);
+
+        return back();
     }
 }

@@ -81,6 +81,7 @@ Route::post('/corte/seleccionar', [CorteActivoController::class, 'seleccionar'])
 */
 Route::middleware(['auth', 'alumno', 'clave.cambiada'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
+    Route::post('/mi-carrera', [PanelController::class, 'elegirCarrera'])->name('mi-carrera');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
     Route::get('/cursada', [CursadaController::class, 'index'])->name('cursada.index'); /* */
@@ -126,6 +127,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::put('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'update'])->name('alumnos.historial-previo.update');
     Route::delete('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'destroy'])->name('alumnos.historial-previo.destroy');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
+    Route::post('/alumnos/{persona}/carreras', [AlumnoController::class, 'inscribirCarrera'])->name('alumnos.carreras.store');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/promover', [AlumnoController::class, 'promoverAnio'])->name('alumnos.promover');

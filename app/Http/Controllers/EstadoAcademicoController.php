@@ -11,7 +11,7 @@ class EstadoAcademicoController extends Controller
     public function index(Request $request): View
     {
         $alumno = Auth::user()->persona;
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()->with('carrera', 'anioCursada')->latest('id_inscripcion_carrera')->first();
+        $inscripcionCarrera = $alumno->carreraElegida()?->load('carrera', 'anioCursada');
 
         $busqueda = trim((string) $request->query('q'));
         $condicionFiltro = $request->query('condicion');

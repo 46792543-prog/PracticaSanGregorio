@@ -19,10 +19,7 @@ class CursadaController extends Controller
         $alumno = Auth::user()->persona;
         $anioLectivo = $this->anioLectivoActivo();
 
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        $inscripcionCarrera = $alumno->carreraElegida();
 
         $periodosAbiertos = $anioLectivo && $inscripcionCarrera
             ? PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
@@ -70,10 +67,8 @@ class CursadaController extends Controller
 
         abort_unless($anioLectivo, 422, 'No hay un año lectivo activo.');
 
-        $inscripcionCarrera = $alumno->inscripcionesCarrera()
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->latest('id_inscripcion_carrera')
-            ->first();
+        // La inscripción a la carrera de ESA materia (puede cursar dos carreras).
+        $inscripcionCarrera = $alumno->inscripcionCarreraActiva($materia->id_carrera);
 
         abort_unless($inscripcionCarrera && $materia->id_carrera === $inscripcionCarrera->id_carrera, 403);
         abort_unless($materia->id_anio_cursada === $inscripcionCarrera->id_anio_cursada, 403);

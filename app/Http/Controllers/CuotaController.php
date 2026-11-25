@@ -15,7 +15,8 @@ class CuotaController extends Controller
         // Que el alumno vea el monto y la mora al día.
         RecalculadorCuotas::aplicarATodos();
 
-        $cuotas = $alumno->cuotas()->with(['anioLectivo', 'mes'])
+        $idCarrera = $alumno->carreraElegida()?->id_carrera; // solo la carrera elegida
+        $cuotas = $alumno->cuotasDeCarrera($idCarrera)->with(['anioLectivo', 'mes'])
             ->orderBy('id_anio_lectivo')
             ->orderBy('id_mes')
             ->get();
@@ -31,7 +32,7 @@ class CuotaController extends Controller
         // inscribió hasta el mes actual), no solo mirando qué cuotas llegó
         // a generar secretaría — así no figura "Al día" solo porque todavía
         // no le cargaron nada.
-        $mesesAdeudados = $alumno->mesesAdeudados();
+        $mesesAdeudados = $alumno->mesesAdeudados(null, $idCarrera);
         $cuotasEstado = $mesesAdeudados->isEmpty() ? 'al_dia' : 'debe';
 
         return view('cuotas.index', [
