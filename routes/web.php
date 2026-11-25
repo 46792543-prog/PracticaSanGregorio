@@ -181,6 +181,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
+    Route::get('/profesores/plantilla', [ProfesorController::class, 'plantilla'])->name('profesores.plantilla');
+    Route::post('/profesores/importar', [ProfesorController::class, 'importar'])->name('profesores.importar');
     Route::put('/profesores/{profesor}', [ProfesorController::class, 'update'])->name('profesores.update');
     Route::put('/profesores/{profesor}/baja', [ProfesorController::class, 'baja'])->name('profesores.baja');
     Route::put('/profesores/{profesor}/reactivar', [ProfesorController::class, 'reactivar'])->name('profesores.reactivar');

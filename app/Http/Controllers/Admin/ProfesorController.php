@@ -16,6 +16,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\View\View;
 
 class ProfesorController extends Controller
@@ -107,6 +111,69 @@ class ProfesorController extends Controller
         $profesor->especialidades()->sync($data['id_especialidad']);
 
         return back()->with('status', 'Profesor agregado correctamente.');
+    }
+
+    private const COLUMNAS_IMPORTACION = ['DNI', 'Apellido', 'Nombre', 'Email', 'Condicion (Titular/Suplente)', 'Especialidades (separadas por coma)'];
+
+    public function plantilla()
+    {
+        return Excel::download(new class(self::COLUMNAS_IMPORTACION) implements FromArray {
+            public function __construct(private array $columnas) {}
+
+            public function array(): array
+            {
+                return [$this->columnas, ['12345678', 'Perez', 'Juan', 'juan@mail.com', 'Titular', 'Matematica, Fisica']];
+            }
+        }, 'plantilla_docentes.xlsx');
+    }
+
+    public function importar(Request $request): RedirectResponse
+    {
+        // Validamos por extensión: 'mimes' adivina por contenido y rechaza CSV (text/plain) o XLSX (zip).
+        $request->validate(['archivo' => ['required', 'file', function ($attr, $archivo, $fail) {
+            if (! in_array(strtolower($archivo->getClientOriginalExtension()), ['xlsx', 'xls', 'csv'])) {
+                $fail('El archivo tiene que ser Excel (.xlsx, .xls) o .csv.');
+            }
+        }]]);
+
+        $filas = array_slice(Excel::toArray(new \stdClass, $request->file('archivo'))[0] ?? [], 1); // salteamos el encabezado
+        $creados = 0;
+        $errores = [];
+
+        foreach ($filas as $i => $fila) {
+            [$dni, $apellido, $nombre, $email, $condicion, $especialidades] = array_pad(array_map(fn ($v) => trim((string) $v), $fila), 6, '');
+            $condicion = ucfirst(strtolower($condicion));
+
+            if ($dni === '' && $apellido === '' && $nombre === '') {
+                continue;
+            }
+
+            $validador = Validator::make(compact('dni', 'apellido', 'nombre', 'email', 'condicion'), [
+                'dni' => ['required', 'digits:8', 'unique:persona,dni'],
+                'nombre' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+                'apellido' => ['required', 'string', 'max:25', 'regex:/^[\pL\s\'-]+$/u'],
+                'email' => ['nullable', 'email', 'max:25', 'unique:profesor,email'],
+                'condicion' => ['required', 'in:Titular,Suplente'],
+            ]);
+
+            if ($validador->fails()) {
+                $errores[] = 'Fila ' . ($i + 2) . ': ' . $validador->errors()->first();
+                continue;
+            }
+
+            DB::transaction(function () use ($dni, $apellido, $nombre, $email, $condicion, $especialidades) {
+                $persona = Persona::create(compact('dni', 'nombre', 'apellido'));
+                $profesor = Profesor::create(['id_persona' => $persona->id_persona, 'email' => $email ?: null, 'condicion' => $condicion]);
+
+                $ids = collect(explode(',', $especialidades))->map(fn ($e) => trim($e))->filter()
+                    ->map(fn ($e) => EspecialidadProfesor::firstOrCreate(['nombre_especialidad' => $e])->id_especialidad);
+                $profesor->especialidades()->sync($ids);
+            });
+
+            $creados++;
+        }
+
+        return back()->with('status', "Se importaron {$creados} docente(s).")->withErrors($errores);
     }
 
     public function update(Request $request, Profesor $profesor): RedirectResponse

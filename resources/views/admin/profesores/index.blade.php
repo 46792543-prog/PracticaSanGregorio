@@ -107,6 +107,13 @@
                     <button type="submit" id="input-profesor-submit" class="sg-btn sg-btn--azul">Guardar docente</button>
                 </div>
             </form>
+            <form method="POST" action="{{ route('admin.profesores.importar') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-slate-200">
+                @csrf
+                <span class="font-semibold text-[#0B3D91]">Importar desde Excel:</span>
+                <input type="file" name="archivo" accept=".xlsx,.xls,.csv" required class="sg-input flex-1 min-w-0">
+                <a href="{{ route('admin.profesores.plantilla') }}" class="sg-btn sg-btn--borde">Descargar plantilla</a>
+                <button type="submit" class="sg-btn sg-btn--azul">Importar docentes</button>
+            </form>
             </div>
         </details>
     </div>
