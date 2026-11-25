@@ -43,8 +43,126 @@
     </div>
 
     @if ($alumno)
+        @php
+            $idAnioIngreso = $aniosLectivos->firstWhere('anio', $anioIngreso)?->id_anio_lectivo;
+            $claseInput = 'w-full rounded-lg border border-slate-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]';
+        @endphp
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-            <h2 class="font-bold text-slate-700 mb-4">2. Cargar una materia</h2>
+            <h2 class="font-bold text-slate-700 mb-1">2. Cargar un año completo</h2>
+            <p class="text-xs text-slate-400 mb-4">Elegí la carrera y el año: aparecen todas sus materias. Completá cada una (o usá "Aplicar a todas" para no repetir) y guardalas juntas. Destildá las que no quieras cargar.</p>
+
+            <form method="POST" action="{{ route('admin.alumnos.historial-previo.store-lote') }}" id="form-lote">
+                @csrf
+                <input type="hidden" name="id_persona_alumno" value="{{ $alumno->id_persona }}">
+                <input type="hidden" name="busqueda_actual" value="{{ $busqueda }}">
+
+                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Carrera:</label>
+                        <select id="lote-carrera" autocomplete="off" class="{{ $claseInput }}" style="padding-top:.625rem;padding-bottom:.625rem">
+                            <option value="">Seleccioná carrera...</option>
+                            @foreach ($carreras as $carrera)
+                                <option value="{{ $carrera->id_carrera }}" @selected($carreraAlumnoId && (int) $carrera->id_carrera === (int) $carreraAlumnoId)>{{ $carrera->nombre_carrera }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Año de la carrera:</label>
+                        <select name="anio_lote" id="lote-anio" autocomplete="off" class="{{ $claseInput }}" style="padding-top:.625rem;padding-bottom:.625rem">
+                            <option value="">Elegí la carrera primero...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="lote-contenido" class="hidden">
+                    {{-- Valores para copiar a todas las filas de una vez --}}
+                    <div class="flex flex-wrap items-end gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Año lectivo</label>
+                            <select id="lote-todas-anio" class="{{ $claseInput }}">
+                                @foreach ($aniosLectivos as $anio)
+                                    <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === $idAnioIngreso)>{{ $anio->anio }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Condición</label>
+                            <select id="lote-todas-condicion" class="{{ $claseInput }}">
+                                @foreach ($condiciones as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}">{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Fecha</label>
+                            <input type="date" id="lote-todas-fecha" value="{{ now()->format('Y-m-d') }}" class="{{ $claseInput }}">
+                        </div>
+                        <button type="button" id="lote-aplicar" class="rounded-xl border border-[#1E4D8C] text-[#1E4D8C] hover:bg-blue-50 font-semibold text-sm px-4 py-2">Aplicar a todas</button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm" style="min-width:1100px">
+                            <thead>
+                                <tr class="bg-slate-50 text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
+                                    <th class="px-3 py-2 w-10"><input type="checkbox" id="lote-tildar-todas" checked title="Tildar / destildar todas" class="h-4 w-4"></th>
+                                    <th class="px-3 py-2">Materia</th>
+                                    <th class="px-3 py-2 w-28">Año lectivo</th>
+                                    <th class="px-3 py-2 w-36">Condición</th>
+                                    <th class="px-3 py-2 w-36">Fecha</th>
+                                    <th class="px-3 py-2 w-20">Nota</th>
+                                    <th class="px-3 py-2 w-20">Veces</th>
+                                    <th class="px-3 py-2">Institución (equiv.)</th>
+                                    <th class="px-3 py-2">N° resolución (equiv.)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lote-filas"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-3" id="lote-aviso"></p>
+
+                    <div class="flex justify-end mt-4">
+                        <button type="submit" class="rounded-xl bg-[#D4A017] shadow-sm hover:shadow-md hover:brightness-105 transition text-[#1E4D8C] font-bold text-sm px-6 py-2.5">Guardar todas</button>
+                    </div>
+                </div>
+            </form>
+
+            {{-- Modelo de una fila: el script lo copia una vez por materia --}}
+            <template id="tpl-fila-lote">
+                <tr class="border-b border-slate-100 align-top" data-fila-lote>
+                    <td class="px-3 py-2"><input type="checkbox" data-campo="incluir" value="1" checked class="h-4 w-4 mt-2.5"></td>
+                    <td class="px-3 py-2 pt-3 font-medium text-slate-700" data-nombre-materia></td>
+                    <td class="px-3 py-2">
+                        <select data-campo="id_anio_lectivo" class="{{ $claseInput }}">
+                            @foreach ($aniosLectivos as $anio)
+                                <option value="{{ $anio->id_anio_lectivo }}">{{ $anio->anio }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td class="px-3 py-2">
+                        <select data-campo="id_condicion" data-selector-condicion class="{{ $claseInput }}">
+                            <optgroup label="En curso">
+                                @foreach ($condiciones->whereIn('nombre_condicion', ['Cursando', 'Regular', 'Libre']) as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </optgroup>
+                            <optgroup label="Aprobación definitiva">
+                                @foreach ($condiciones->whereIn('nombre_condicion', ['Promocionada', 'Examen Final', 'Equivalencia']) as $condicion)
+                                    <option value="{{ $condicion->id_condicion }}" data-nombre="{{ $condicion->nombre_condicion }}">{{ $condicion->nombre_condicion }}</option>
+                                @endforeach
+                            </optgroup>
+                        </select>
+                    </td>
+                    <td class="px-3 py-2"><input type="date" data-campo="fecha_ultima_modificacion" required class="{{ $claseInput }}"></td>
+                    <td class="px-3 py-2" data-campo-nota><input type="number" step="1" min="1" max="10" data-campo="nota_cursada" data-input-nota class="{{ $claseInput }}"></td>
+                    <td class="px-3 py-2" data-campo-veces><input type="number" step="1" min="1" max="10" data-campo="veces_rendida" data-input-veces class="{{ $claseInput }}"></td>
+                    <td class="px-3 py-2" data-campo-equivalencia><input type="text" maxlength="255" data-campo="institucion_equivalencia" data-input-equivalencia class="{{ $claseInput }}"></td>
+                    <td class="px-3 py-2" data-campo-equivalencia><input type="text" maxlength="255" data-campo="resolucion_equivalencia" data-input-equivalencia class="{{ $claseInput }}"></td>
+                </tr>
+            </template>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+            <h2 class="font-bold text-slate-700 mb-4">3. Cargar una materia suelta</h2>
 
             <form method="POST" action="{{ route('admin.alumnos.historial-previo.store') }}">
                 @csrf
@@ -57,7 +175,7 @@
                         <select id="select-carrera" required class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]">
                             <option value="">Seleccioná carrera...</option>
                             @foreach ($carreras as $carrera)
-                                <option value="{{ $carrera->id_carrera }}">{{ $carrera->nombre_carrera }}</option>
+                                <option value="{{ $carrera->id_carrera }}" @selected($carreraAlumnoId && (int) $carrera->id_carrera === (int) $carreraAlumnoId)>{{ $carrera->nombre_carrera }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -280,6 +398,11 @@
             });
         });
 
+        // Si la carrera del alumno ya viene seleccionada, cargar sus materias.
+        if (selectCarrera?.value) {
+            selectCarrera.dispatchEvent(new Event('change'));
+        }
+
         // Nota y veces rendida: solo enteros, dentro del rango permitido.
         // Se recorta en vivo para que no dependa de que el navegador muestre
         // el error de validación recién al tocar "Guardar".
@@ -364,5 +487,156 @@
             actualizarCamposPorCondicion(select);
             select.addEventListener('change', () => actualizarCamposPorCondicion(select));
         });
+
+        // ---------- Carga de un año completo ----------
+        (function () {
+            const loteCarrera = document.getElementById('lote-carrera');
+            if (!loteCarrera) return;
+
+            const loteAnio = document.getElementById('lote-anio');
+            const contenido = document.getElementById('lote-contenido');
+            const tbody = document.getElementById('lote-filas');
+            const plantilla = document.getElementById('tpl-fila-lote');
+            const aviso = document.getElementById('lote-aviso');
+            const tildarTodas = document.getElementById('lote-tildar-todas');
+            const todasAnio = document.getElementById('lote-todas-anio');
+            const todasCondicion = document.getElementById('lote-todas-condicion');
+            const todasFecha = document.getElementById('lote-todas-fecha');
+
+            // Si al guardar hubo un error, se vuelve a armar la tabla con lo que se había cargado.
+            const carreraAlumno = @json($carreraAlumnoId);
+            const filasPrevias = @json(old('filas', []));
+            const anioPrevio = @json(old('anio_lote'));
+            const hayPrevias = Object.keys(filasPrevias).length > 0;
+
+            // Activa o desactiva una fila: las destildadas no se envían ni se validan.
+            function aplicarInclusion(fila) {
+                const incluida = fila.querySelector('[data-campo="incluir"]').checked;
+                fila.style.opacity = incluida ? '' : '0.4';
+                fila.querySelectorAll('select, input:not([data-campo="incluir"])').forEach((el) => { el.disabled = !incluida; });
+                if (incluida) actualizarCamposPorCondicion(fila.querySelector('[data-selector-condicion]'));
+            }
+
+            function cargarAnios() {
+                const materias = materiasPorCarrera[loteCarrera.value] || [];
+                const anios = [...new Set(materias.map((m) => m.anio).filter(Boolean))]
+                    .sort((a, b) => (ORDEN_ANIO[a] ?? 99) - (ORDEN_ANIO[b] ?? 99));
+
+                loteAnio.innerHTML = '<option value="">Seleccioná el año...</option>';
+                anios.forEach((anio) => {
+                    const opcion = document.createElement('option');
+                    opcion.value = anio;
+                    opcion.textContent = anio;
+                    loteAnio.appendChild(opcion);
+                });
+                armarTabla();
+            }
+
+            function armarTabla() {
+                tbody.innerHTML = '';
+                const anio = loteAnio.value;
+                contenido.classList.toggle('hidden', !anio);
+                if (!anio) return;
+
+                const materias = (materiasPorCarrera[loteCarrera.value] || []).filter((m) => m.anio === anio);
+                const orden = ORDEN_ANIO[anio];
+
+                // Misma regla que la carga suelta: no se puede cargar un año si el anterior no está completo.
+                const anterior = Object.keys(ORDEN_ANIO).find((nombre) => ORDEN_ANIO[nombre] === orden - 1);
+                const materiasAnterior = (materiasPorCarrera[loteCarrera.value] || []).filter((m) => m.anio === anterior);
+                const anteriorIncompleto = orden > 1 && materiasAnterior.some((m) => !materiasYaCargadas.has(m.id));
+
+                let yaCargadas = 0;
+                materias.forEach((materia) => {
+                    const fila = plantilla.content.firstElementChild.cloneNode(true);
+                    fila.querySelector('[data-nombre-materia]').textContent = materia.nombre;
+
+                    fila.querySelectorAll('[data-campo]').forEach((el) => {
+                        el.name = `filas[${materia.id}][${el.dataset.campo}]`;
+                    });
+
+                    const previa = filasPrevias[materia.id];
+                    const set = (campo, valor) => {
+                        const el = fila.querySelector(`[data-campo="${campo}"]`);
+                        if (el && valor !== undefined && valor !== null) el.value = valor;
+                    };
+                    set('id_anio_lectivo', previa?.id_anio_lectivo ?? todasAnio.value);
+                    set('id_condicion', previa?.id_condicion ?? todasCondicion.value);
+                    set('fecha_ultima_modificacion', previa?.fecha_ultima_modificacion ?? todasFecha.value);
+                    set('nota_cursada', previa?.nota_cursada);
+                    set('veces_rendida', previa?.veces_rendida);
+                    set('institucion_equivalencia', previa?.institucion_equivalencia);
+                    set('resolucion_equivalencia', previa?.resolucion_equivalencia);
+
+                    const check = fila.querySelector('[data-campo="incluir"]');
+                    if (materiasYaCargadas.has(materia.id)) {
+                        check.checked = false;
+                        check.disabled = true;
+                        fila.querySelector('[data-nombre-materia]').textContent += ' — ya cargada';
+                        yaCargadas++;
+                    } else if (anteriorIncompleto) {
+                        check.checked = false;
+                        check.disabled = true;
+                    } else if (hayPrevias) {
+                        check.checked = previa !== undefined;
+                    }
+
+                    tbody.appendChild(fila);
+
+                    fila.querySelector('[data-selector-condicion]').addEventListener('change', (e) => actualizarCamposPorCondicion(e.target));
+                    check.addEventListener('change', () => aplicarInclusion(fila));
+                    fila.querySelectorAll('[data-input-nota], [data-input-veces]').forEach((input) => limitarEntero(input, 1, 10));
+                    aplicarInclusion(fila);
+                });
+
+                aviso.textContent = anteriorIncompleto
+                    ? `Primero hay que completar todas las materias de ${anterior}.`
+                    : (yaCargadas ? `${yaCargadas} materia(s) ya estaban cargadas y no se tocan.` : '');
+                tildarTodas.checked = true;
+            }
+
+            loteCarrera.addEventListener('change', cargarAnios);
+            loteAnio.addEventListener('change', armarTabla);
+
+            document.getElementById('lote-aplicar').addEventListener('click', () => {
+                tbody.querySelectorAll('[data-fila-lote]').forEach((fila) => {
+                    if (!fila.querySelector('[data-campo="incluir"]').checked) return;
+                    fila.querySelector('[data-campo="id_anio_lectivo"]').value = todasAnio.value;
+                    fila.querySelector('[data-campo="fecha_ultima_modificacion"]').value = todasFecha.value;
+                    const condicion = fila.querySelector('[data-campo="id_condicion"]');
+                    condicion.value = todasCondicion.value;
+                    actualizarCamposPorCondicion(condicion);
+                });
+            });
+
+            tildarTodas.addEventListener('change', () => {
+                tbody.querySelectorAll('[data-fila-lote]').forEach((fila) => {
+                    const check = fila.querySelector('[data-campo="incluir"]');
+                    if (check.disabled) return;
+                    check.checked = tildarTodas.checked;
+                    aplicarInclusion(fila);
+                });
+            });
+
+            // Al abrir la página: la carrera del alumno ya elegida y, como año,
+            // el primero que todavía tiene materias sin cargar (el que sigue).
+            if (carreraAlumno && !loteCarrera.value) {
+                loteCarrera.value = String(carreraAlumno);
+            }
+
+            if (loteCarrera.value) {
+                cargarAnios();
+
+                const materias = materiasPorCarrera[loteCarrera.value] || [];
+                const anioSiguiente = [...loteAnio.options].map((o) => o.value).filter(Boolean)
+                    .find((anio) => materias.some((m) => m.anio === anio && !materiasYaCargadas.has(m.id)));
+                const anioInicial = anioPrevio || anioSiguiente;
+
+                if (anioInicial) {
+                    loteAnio.value = anioInicial;
+                    armarTabla();
+                }
+            }
+        })();
     </script>
 @endsection

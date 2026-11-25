@@ -13,6 +13,8 @@ class ConfiguracionCuota extends Model
     protected $fillable = [
         'id_anio_lectivo',
         'monto_mensual',
+        'mes_desde',
+        'mes_hasta',
         'dia_vencimiento',
         'porcentaje_interes_mora',
         'concepto',

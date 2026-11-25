@@ -24,16 +24,21 @@
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         @forelse ($mesas as $mesa)
-            @php $bloqueada = (bool) $mesa->bloqueo || $cuotasEstado !== 'al_dia'; @endphp
+            @php $bloqueada = (bool) $mesa->bloqueo || (bool) $mesa->bloqueo_pago || $cuotasEstado !== 'al_dia'; @endphp
             <div class="bg-white rounded-xl shadow-sm p-5 flex flex-col {{ $bloqueada ? 'opacity-70' : '' }}">
                 <div class="flex items-start justify-between mb-4">
                     <div class="h-14 w-14 rounded-lg bg-[#0B3D91] text-white flex flex-col items-center justify-center leading-none">
                         <span class="text-lg font-bold">{{ $mesa->fecha_examen->format('d') }}</span>
                         <span class="text-[10px] uppercase">{{ \App\Support\FechaEsp::mesAbrev($mesa->fecha_examen) }}</span>
                     </div>
-                    <span class="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-3 py-1">
-                        {{ $mesa->llamadoExamen->nombre_llamado }}
-                    </span>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="text-xs font-semibold text-blue-600 bg-blue-50 rounded-full px-3 py-1">
+                            {{ $mesa->llamadoExamen->nombre_llamado }}
+                        </span>
+                        @if ($mesa->extraordinaria)
+                            <span class="text-xs font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1">Extraordinaria</span>
+                        @endif
+                    </div>
                 </div>
 
                 <h3 class="font-bold text-slate-800">{{ $mesa->materia->nombre }}</h3>
@@ -50,6 +55,8 @@
                         </button>
                         @if ($mesa->bloqueo)
                             <p class="text-xs text-red-500 mt-2">✕ Te falta regularizar {{ $mesa->bloqueo->nombre }}</p>
+                        @elseif ($mesa->bloqueo_pago)
+                            <p class="text-xs text-red-500 mt-2">✕ {{ $mesa->bloqueo_pago }}</p>
                         @else
                             <p class="text-xs text-red-500 mt-2">✕ Debés: {{ $mesesAdeudados->pluck('nombre_mes')->join(', ') }}</p>
                         @endif

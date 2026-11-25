@@ -7,6 +7,7 @@ use App\Models\EstadoInscripcion;
 use App\Models\InscripcionMesa;
 use App\Models\Materia;
 use App\Models\MesaExamen;
+use App\Models\Mes;
 use App\Models\Persona;
 use App\Models\TurnoExamen;
 use Illuminate\Http\RedirectResponse;
@@ -27,14 +28,18 @@ class MesaExamenController extends Controller
         // si esas cuotas llegaron a generarse.
         $mesesAdeudados = $alumno->mesesAdeudados();
         $cuotasEstado = $mesesAdeudados->isEmpty() ? 'al_dia' : 'debe';
+        $cursadaCompleta = $alumno->tieneCursadaCompleta();
 
-        $mesas = MesaExamen::with('materia.nombreMateria', 'estadoMesa', 'turnoExamen', 'llamadoExamen')
+        $mesas = MesaExamen::with('materia.nombreMateria', 'estadoMesa', 'turnoExamen', 'llamadoExamen', 'anioLectivo')
             ->where('id_turno', $turnoId)
             ->whereHas('estadoMesa', fn ($q) => $q->where('nombre_estado', 'Programada'))
+            // Las extraordinarias son solo para quienes terminaron de cursar.
+            ->when(! $cursadaCompleta, fn ($q) => $q->where('extraordinaria', false))
             ->orderBy('fecha_examen')
             ->get()
             ->map(function (MesaExamen $mesa) use ($alumno) {
                 $mesa->bloqueo = $this->materiaSinCursar($mesa->materia, $alumno) ?? $mesa->materia->correlativaFaltante($alumno);
+                $mesa->bloqueo_pago = $this->bloqueoDePago($mesa, $alumno);
                 $mesa->ya_inscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)
                     ->where('id_persona_alumno', $alumno->id_persona)
                     ->exists();
@@ -55,6 +60,10 @@ class MesaExamenController extends Controller
     {
         $alumno = Auth::user()->persona;
 
+        if ($mesa->extraordinaria && ! $alumno->tieneCursadaCompleta()) {
+            return back()->withErrors(['mesa' => 'Esta mesa es extraordinaria: solo pueden anotarse los alumnos que ya terminaron de cursar la carrera.']);
+        }
+
         if ($this->materiaSinCursar($mesa->materia, $alumno)) {
             return back()->withErrors(['mesa' => 'No estás en condiciones de rendir esta materia: todavía no la cursaste o no estás regularizado.']);
         }
@@ -65,6 +74,10 @@ class MesaExamenController extends Controller
 
         if ($alumno->superaLimiteDeuda()) {
             return back()->withErrors(['mesa' => 'Tenés ' . Persona::MESES_MAXIMOS_DEUDA_PARA_INSCRIBIRSE . ' cuotas o más sin pagar. Consultá con secretaría.']);
+        }
+
+        if ($motivo = $this->bloqueoDePago($mesa, $alumno)) {
+            return back()->withErrors(['mesa' => $motivo . ' Consultá con secretaría.']);
         }
 
         $yaInscripto = InscripcionMesa::where('id_mesa', $mesa->id_mesa)
@@ -90,6 +103,30 @@ class MesaExamenController extends Controller
 
         return redirect()->route('inscripciones.index')
             ->with('status', 'Tu inscripción a ' . $mesa->materia->nombre . ' quedó registrada y pendiente de aprobación.');
+    }
+
+    /**
+     * Para rendir hay que tener paga la matrícula del año de la mesa y la
+     * cuota del mes del examen (vale para todos: regular, recursante y
+     * cursada completa). Devuelve el motivo del bloqueo, o null si está ok.
+     */
+    private function bloqueoDePago(MesaExamen $mesa, Persona $alumno): ?string
+    {
+        $idAnio = $mesa->id_anio_lectivo;
+
+        if (! $alumno->matriculaAlDia($idAnio)) {
+            return 'Tenés que pagar la matrícula ' . ($mesa->anioLectivo?->anio ?? '') . ' para poder rendir.';
+        }
+
+        $mesExamen = $mesa->fecha_examen->month;
+
+        if (! $alumno->cuotaDelMesPagada($idAnio, $mesExamen)) {
+            $nombreMes = Mes::find($mesExamen)?->nombre_mes ?? 'ese mes';
+
+            return "Tenés que pagar la cuota de {$nombreMes} (el mes de la mesa) para poder rendir.";
+        }
+
+        return null;
     }
 
     /**

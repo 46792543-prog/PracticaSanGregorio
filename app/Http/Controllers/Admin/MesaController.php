@@ -71,6 +71,7 @@ class MesaController extends Controller
             'fecha_fin_inscripcion' => $data['fecha_fin_inscripcion'],
             'id_estado_mesa' => EstadoMesa::where('nombre_estado', 'Programada')->value('id_estado_mesa'),
             'cupo_maximo' => $data['cupo_maximo'] ?? null,
+            'extraordinaria' => $request->boolean('extraordinaria'),
         ]);
 
         $this->guardarTribunal($mesa, $data);
@@ -116,6 +117,7 @@ class MesaController extends Controller
             'fecha_inicio_inscripcion' => $data['fecha_inicio_inscripcion'],
             'fecha_fin_inscripcion' => $data['fecha_fin_inscripcion'],
             'cupo_maximo' => $data['cupo_maximo'] ?? null,
+            'extraordinaria' => $request->boolean('extraordinaria'),
         ]);
 
         TribunalMesa::where('id_mesa', $mesa->id_mesa)->delete();
@@ -141,6 +143,7 @@ class MesaController extends Controller
             'id_turno' => ['required', 'exists:turno_examen,id_turno'],
             'id_llamado' => ['required', 'exists:llamado_examen,id_llamado'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1'],
+            'extraordinaria' => ['nullable', 'boolean'],
             'presidente_id' => ['nullable', 'exists:profesor,id_profesor'],
             'vocal1_id' => ['nullable', 'exists:profesor,id_profesor'],
             'vocal2_id' => ['nullable', 'exists:profesor,id_profesor'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CalculadoraMora;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -10,6 +11,9 @@ class CuotaController extends Controller
     public function index(): View
     {
         $alumno = Auth::user()->persona;
+
+        // Que el alumno vea el recargo por mora apenas se le vence una cuota.
+        CalculadoraMora::aplicarATodos();
 
         $cuotas = $alumno->cuotas()->with(['anioLectivo', 'mes'])
             ->orderBy('id_anio_lectivo')

@@ -30,6 +30,26 @@
                     </div>
                 </div>
 
+                <div class="grid sm:grid-cols-2 gap-4 mb-1">
+                    <div>
+                        <label class="sg-label">COBRAR CUOTAS DESDE *</label>
+                        <select name="mes_desde" id="input-mes-desde" required class="sg-input w-full">
+                            @foreach ($meses as $mes)
+                                <option value="{{ $mes->id_mes }}" @selected((int) $mes->id_mes === 3)>{{ $mes->nombre_mes }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="sg-label">HASTA *</label>
+                        <select name="mes_hasta" id="input-mes-hasta" required class="sg-input w-full">
+                            @foreach ($meses as $mes)
+                                <option value="{{ $mes->id_mes }}" @selected((int) $mes->id_mes === 12)>{{ $mes->nombre_mes }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Todos los alumnos deben la cuota de cada mes de este período, sin importar el día en que se los cargó en el sistema.</p>
+
                 <div class="grid sm:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="sg-label">MONTO DE LA CUOTA MENSUAL *</label>
@@ -48,13 +68,17 @@
                     </div>
                 </div>
 
+                <p class="sg-aviso sg-aviso--info text-xs mb-4">
+                    Este monto es para los alumnos <strong>Regulares</strong>. A los <strong>Recursantes</strong> (el monto depende de cuántas materias cursan) y a los de <strong>Cursada completa</strong> (solo pagan el mes en que rinden) no se les generan cuotas solas: se les cargan desde <strong>Registrar Cuotas</strong>.
+                </p>
+
                 <div class="mb-4">
                     <label class="sg-label">CONCEPTO</label>
                     <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">
-                    Al guardar, se genera automáticamente la cuota de cada mes (desde que el alumno se inscribió hasta diciembre) para todos los alumnos con inscripción activa en el período elegido. No se duplican cuotas que ya existan.
+                    Al guardar, se genera automáticamente la cuota de cada mes (del período elegido arriba) para todos los alumnos con inscripción activa en el período elegido. No se duplican cuotas que ya existan, y las que todavía no se pagaron (también las de meses anteriores) pasan al monto nuevo; las ya pagadas no se tocan.
                 </p>
 
                 <div class="flex justify-end">
@@ -101,6 +125,7 @@
                     <tr>
                         <th>Año lectivo</th>
                         <th>Monto mensual</th>
+                        <th>Período</th>
                         <th>Día de vencimiento</th>
                         <th>Interés por mora</th>
                         <th>Concepto</th>
@@ -111,12 +136,13 @@
                         <tr>
                             <td class="font-semibold text-slate-700">{{ $configuracion->anioLectivo->anio }}</td>
                             <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($configuracion->monto_mensual, 0, ',', '.') }}</td>
+                            <td class="text-slate-500">{{ $meses->firstWhere('id_mes', $configuracion->mes_desde)?->nombre_mes }} a {{ $meses->firstWhere('id_mes', $configuracion->mes_hasta)?->nombre_mes }}</td>
                             <td class="text-slate-500">Día {{ $configuracion->dia_vencimiento }}</td>
                             <td><span class="sg-badge sg-badge--amarillo sg-badge--sin-punto">{{ rtrim(rtrim($configuracion->porcentaje_interes_mora, '0'), '.') }}%</span></td>
                             <td class="text-slate-500">{{ $configuracion->concepto ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
+                        <tr><td colspan="6"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -126,6 +152,8 @@
     @php
         $configuracionesJs = $configuraciones->mapWithKeys(fn ($c) => [$c->id_anio_lectivo => [
             'monto_mensual' => (float) $c->monto_mensual,
+            'mes_desde' => $c->mes_desde,
+            'mes_hasta' => $c->mes_hasta,
             'dia_vencimiento' => $c->dia_vencimiento,
             'porcentaje_interes_mora' => (float) $c->porcentaje_interes_mora,
         ]]);
@@ -143,6 +171,8 @@
                 const config = configuraciones[selectAnio.value];
                 if (! config) return;
                 montoInput.value = config.monto_mensual;
+                document.getElementById('input-mes-desde').value = config.mes_desde;
+                document.getElementById('input-mes-hasta').value = config.mes_hasta;
                 diaInput.value = config.dia_vencimiento;
                 interesInput.value = config.porcentaje_interes_mora;
             }

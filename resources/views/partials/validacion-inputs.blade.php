@@ -106,3 +106,16 @@
         }, 4000);
     });
 </script>
+<script>
+    // En los campos de número (montos, notas, días), la ruedita del mouse
+    // cambia el valor de a un "step": si después de escribir 250000 se
+    // scrollea la página con el cursor encima, queda 249999.99 sin que nadie
+    // lo note. Al girar la ruedita sobre un campo de número enfocado, se le
+    // saca el foco: el valor no cambia y la página scrollea normal.
+    document.addEventListener('wheel', function (evento) {
+        var el = evento.target;
+        if (el instanceof HTMLInputElement && el.type === 'number' && document.activeElement === el) {
+            el.blur();
+        }
+    }, { passive: true });
+</script>

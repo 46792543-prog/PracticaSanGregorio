@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Director;
 use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
 use App\Models\ConceptoCaja;
+use App\Models\CondicionAlumno;
 use App\Models\ConfiguracionCuota;
+use App\Models\ConfiguracionMatricula;
 use App\Models\CuotaAlumno;
 use App\Models\MatriculaAlumno;
 use App\Models\MedioPago;
@@ -14,6 +16,7 @@ use App\Models\MovimientoCaja;
 use App\Models\Persona;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
+use App\Support\CalculadoraMora;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +29,11 @@ class CuotaController extends Controller
 {
     public function index(Request $request): View
     {
+        // Aplica el interés por mora a las cuotas que se vencieron sin pagar
+        // (una sola vez por cuota). Antes dependía solo de la tarea programada
+        // diaria, que en Laragon / el hosting no corre si no hay un cron.
+        CalculadoraMora::aplicarATodos();
+
         $busqueda = trim((string) $request->query('q'));
         $alumnoSeleccionado = null;
         $resultados = collect();
@@ -57,13 +65,19 @@ class CuotaController extends Controller
         $corteActivo = CorteActivo::actual();
         $montoActual = $corteActivo?->configuracionCuota?->monto_mensual;
 
+        // Regular / Recursante / Cursada completa: al recursante y al de
+        // cursada completa no se les generan cuotas solas — se les cargan
+        // desde "Generar cuotas" de esta pantalla. Al recursante el monto no
+        // se le precarga: depende de cuántas materias cursa.
+        $condicionAlumno = $alumnoSeleccionado?->persona->condicionInscripcion();
+
         // Para que "Generar cuota nueva" autocomplete monto/concepto/día de
         // vencimiento con lo cargado en Configuración de Cuotas, por cada
         // año lectivo (el formulario permite elegir cualquiera, no solo el activo).
         $configuracionesCuotaPorAnio = ConfiguracionCuota::all()
             ->keyBy('id_anio_lectivo')
             ->map(fn (ConfiguracionCuota $c) => [
-                'monto' => $c->monto_mensual,
+                'monto' => $condicionAlumno === CondicionAlumno::RECURSANTE ? null : $c->monto_mensual,
                 'dia_vencimiento' => $c->dia_vencimiento,
                 'concepto' => $c->concepto,
             ]);
@@ -97,6 +111,9 @@ class CuotaController extends Controller
             'montoActual' => $montoActual,
             'configuracionesCuotaPorAnio' => $configuracionesCuotaPorAnio,
             'matricula' => $matricula,
+            'anioMatricula' => AnioLectivo::find($anioMatricula),
+            'hayConfiguracionMatricula' => $anioMatricula && ConfiguracionMatricula::where('id_anio_lectivo', $anioMatricula)->exists(),
+            'condicionAlumno' => $condicionAlumno,
         ]);
     }
 
@@ -206,6 +223,10 @@ class CuotaController extends Controller
 
     public function cobrar(Request $request): RedirectResponse
     {
+        // Por si una cuota se venció desde que se abrió la pantalla: que el
+        // cobro ya incluya el recargo.
+        CalculadoraMora::aplicarATodos();
+
         $data = $request->validate([
             'persona_id' => ['required', 'exists:persona,id_persona'],
             'fecha_pago' => ['required', 'date'],
@@ -294,6 +315,38 @@ class CuotaController extends Controller
             ->with('status', "Se registró el cobro de {$cantidad} cuota(s) por $" . number_format($totalCobrado, 0, ',', '.') . ' y se asentó en el Libro de Caja.');
     }
 
+    /**
+     * Genera a mano la matrícula de un año para un alumno que no la tiene
+     * (típicamente el de "Cursada completa", que solo paga la matrícula del
+     * año en que vuelve a rendir y no entra en la generación automática).
+     */
+    public function generarMatricula(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'persona_id' => ['required', 'exists:persona,id_persona'],
+            'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
+        ]);
+
+        $configuracion = ConfiguracionMatricula::where('id_anio_lectivo', $data['id_anio_lectivo'])->first();
+
+        if (! $configuracion) {
+            return back()->withErrors(['matricula' => 'Primero cargá el monto de la matrícula de ese año en Configuración de Matrícula.']);
+        }
+
+        $matricula = MatriculaAlumno::firstOrCreate(
+            ['id_persona_alumno' => $data['persona_id'], 'id_anio_lectivo' => $data['id_anio_lectivo']],
+            ['monto' => $configuracion->monto, 'pagado' => false]
+        );
+
+        $mensaje = $matricula->wasRecentlyCreated
+            ? 'Se generó la matrícula del alumno. Ya la podés cobrar.'
+            : 'El alumno ya tenía la matrícula de ese año generada.';
+
+        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id']])
+            ->with('status', $mensaje);
+    }
+
     public function cobrarMatricula(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -307,6 +360,10 @@ class CuotaController extends Controller
         $matricula = MatriculaAlumno::where('id_persona_alumno', $data['persona_id'])
             ->where('pagado', false)
             ->findOrFail($data['id_matricula']);
+
+        if (! $matricula->estaHabilitada()) {
+            return back()->withErrors(['matricula' => 'La matrícula todavía no se puede cobrar: se habilita a partir del ' . $matricula->fechaHabilitacion()->format('d/m/Y') . '.']);
+        }
 
         DB::transaction(function () use ($matricula, $data) {
             $medioPago = MedioPago::where('nombre_medio', $data['medio_pago'])->firstOrFail();

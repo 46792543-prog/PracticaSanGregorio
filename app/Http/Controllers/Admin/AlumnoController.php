@@ -173,7 +173,12 @@ class AlumnoController extends Controller
             'dni' => ['required', 'digits:8', Rule::unique('persona', 'dni')],
             'apellido' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
             'nombre' => ['required', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('usuario', 'email')],
+            // email:rfc,dns → además del formato, verifica que el dominio
+            // (lo que va después de la @) exista y reciba correo. Frena
+            // errores de tipeo como "gmial.com" o dominios inventados.
+            'email' => ['required', 'email:rfc,dns', 'max:100', Rule::unique('usuario', 'email')],
+        ], [
+            'email.email' => 'El correo no es válido o su dominio no existe (revisá lo que va después de la @).',
         ]);
 
         session([self::SESSION_KEY . '.personales' => $datos]);
@@ -238,7 +243,15 @@ class AlumnoController extends Controller
         $academicos = session(self::SESSION_KEY . '.academicos');
         $clave = session(self::SESSION_KEY . '.clave');
 
-        abort_unless($personales && $academicos && $clave, 419);
+        // Si se perdieron los datos de los pasos anteriores (se tocó
+        // "Registrar" dos veces y el primer clic ya lo registró, o se cerró la
+        // sesión en otra pestaña) no se muestra el error 419 en blanco: se
+        // vuelve al listado con un aviso para revisar si quedó registrado.
+        if (! $personales || ! $academicos || ! $clave) {
+            return redirect()->route('admin.alumnos.index')->withErrors([
+                'registro' => 'No se encontraron los datos del registro (puede que ya se haya registrado con el primer clic, o que la sesión se haya cerrado). Buscá al alumno en el listado y, si no aparece, registralo de nuevo.',
+            ]);
+        }
 
         $persona = Persona::create([
             'dni' => $personales['dni'],
@@ -345,6 +358,28 @@ class AlumnoController extends Controller
         $progreso['inscripcion']->update(['id_anio_cursada' => $progreso['proximoAnio']->id_anio_cursada]);
 
         return back()->with('status', "Se promovió a {$persona->nombre} {$persona->apellido} a {$progreso['proximoAnio']->nombre_anio}.");
+    }
+
+    /**
+     * Cambia la condición de la inscripción a la carrera: Regular,
+     * Recursante o Cursada completa. De eso depende qué cuotas paga y a qué
+     * mesas se puede anotar (ver CondicionAlumno::DE_INSCRIPCION).
+     */
+    public function actualizarCondicionInscripcion(Request $request, Persona $persona): RedirectResponse
+    {
+        $inscripcion = $persona->inscripcionCarreraActiva();
+
+        abort_unless($inscripcion, 404, 'El alumno no tiene una inscripción activa.');
+
+        $data = $request->validate([
+            'condicion' => ['required', Rule::in(CondicionAlumno::DE_INSCRIPCION)],
+        ]);
+
+        $inscripcion->update([
+            'id_condicion' => CondicionAlumno::where('nombre_condicion', $data['condicion'])->value('id_condicion'),
+        ]);
+
+        return back()->with('status', "Condición actualizada: {$persona->nombre} {$persona->apellido} ahora figura como {$data['condicion']}.");
     }
 
     public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse

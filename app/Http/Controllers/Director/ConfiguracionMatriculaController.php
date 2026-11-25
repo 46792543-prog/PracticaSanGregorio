@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
+use App\Models\CondicionAlumno;
 use App\Models\ConfiguracionMatricula;
 use App\Models\InscripcionCarrera;
 use App\Models\MatriculaAlumno;
@@ -78,8 +79,11 @@ class ConfiguracionMatriculaController extends Controller
     {
         $idAnio = $configuracion->id_anio_lectivo;
 
+        // Los de "Cursada completa" no se incluyen: pagan la matrícula solo
+        // del año en que vuelven a rendir, y se les genera a mano desde Cuotas.
         $alumnos = InscripcionCarrera::where('id_anio_lectivo', $idAnio)
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->whereDoesntHave('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::CURSADA_COMPLETA))
             ->pluck('id_persona_alumno')
             ->unique();
 

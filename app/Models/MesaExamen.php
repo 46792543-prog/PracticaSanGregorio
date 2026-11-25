@@ -22,12 +22,14 @@ class MesaExamen extends Model
         'fecha_fin_inscripcion',
         'id_estado_mesa',
         'cupo_maximo',
+        'extraordinaria',
     ];
 
     protected $casts = [
         'fecha_examen' => 'date',
         'fecha_inicio_inscripcion' => 'date',
         'fecha_fin_inscripcion' => 'date',
+        'extraordinaria' => 'boolean',
     ];
 
     public function materia(): BelongsTo

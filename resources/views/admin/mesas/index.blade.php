@@ -57,6 +57,9 @@
                                 <div class="min-w-0">
                                     <p class="font-semibold text-slate-800">{{ $mesa->materia->nombre }}</p>
                                     <p class="text-xs text-slate-400">{{ $mesa->materia->carrera->nombre_carrera }}</p>
+                                    @if ($mesa->extraordinaria)
+                                        <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto mt-1">Extraordinaria</span>
+                                    @endif
                                 </div>
                             </div>
                         </td>

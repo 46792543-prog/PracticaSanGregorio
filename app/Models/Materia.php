@@ -177,6 +177,18 @@ class Materia extends Model
      */
     public function bloqueoParaCursar(Persona $alumno): ?string
     {
+        if ($alumno->tieneCursadaCompleta()) {
+            return 'Ya terminó de cursar la carrera (Cursada completa): solo puede rendir finales.';
+        }
+
+        // La matrícula se exige a todos, también en Primer Año: sin
+        // matrícula paga no hay inscripción a materias.
+        $anioLectivoActivo = AnioLectivo::whereHas('estadoAnio', fn ($q) => $q->where('nombre_estado', 'Activo'))->first();
+
+        if ($anioLectivoActivo && ! $alumno->matriculaAlDia($anioLectivoActivo->id_anio_lectivo)) {
+            return "Tiene la matrícula {$anioLectivoActivo->anio} sin pagar.";
+        }
+
         // En Primer Año no hay correlativas previas ni tiempo de haber
         // pagado cuotas o entregado papeles todavía — estos controles solo
         // tienen sentido a partir de 2do año, cuando el alumno ya viene

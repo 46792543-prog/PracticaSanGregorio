@@ -25,7 +25,9 @@
                 <span>El usuario se crea con el email ingresado. La clave inicial se genera automáticamente en formato ISG-[últimos 4 del DNI]-[código] y se le envía al alumno por mail al registrar. En su primer ingreso el sistema le pide cambiarla por una contraseña propia.</span>
             </div>
 
-            <form method="POST" action="{{ route('admin.alumnos.confirmar') }}">
+            {{-- Al enviar se deshabilita el botón: evita el doble clic mientras se manda el mail (el segundo clic daba error 419). --}}
+            <form method="POST" action="{{ route('admin.alumnos.confirmar') }}"
+                  onsubmit="const b = this.querySelector('button[type=submit]'); b.disabled = true; b.classList.add('opacity-60'); b.lastChild.textContent = ' Registrando...';">
                 @csrf
                 <div class="mb-4">
                     <label class="sg-label">USUARIO (EMAIL)</label>

@@ -96,6 +96,14 @@
                 </div>
             </div>
 
+            <label class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 cursor-pointer">
+                <input type="checkbox" name="extraordinaria" value="1" class="mt-0.5" @checked(old('extraordinaria', $mesa->extraordinaria))>
+                <span class="text-sm text-slate-700">
+                    <strong>Mesa extraordinaria</strong>
+                    <span class="block text-xs text-slate-500">Solo pueden anotarse los alumnos con condición "Cursada completa" (ya terminaron de cursar y deben finales). Los que siguen cursando no la ven.</span>
+                </span>
+            </label>
+
             <div>
                 <label class="sg-label">LLAMADO *</label>
                 <div class="flex gap-2 w-full sm:w-64">

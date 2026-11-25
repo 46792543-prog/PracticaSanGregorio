@@ -65,11 +65,31 @@
                             <span class="sg-avatar sg-avatar--marca !h-12 !w-12 !rounded-2xl">{{ mb_substr($alumnoSeleccionado->nombre, 0, 1) }}{{ mb_substr($alumnoSeleccionado->apellido, 0, 1) }}</span>
                             <div>
                             <p class="font-display font-bold text-slate-900">{{ $alumnoSeleccionado->apellido }}, {{ $alumnoSeleccionado->nombre }}</p>
-                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $alumnoSeleccionado->persona->inscripcionesCarrera->first()?->carrera?->nombre_carrera }}</p>
+                            <p class="text-xs text-slate-400">DNI {{ $alumnoSeleccionado->dni }} · {{ $alumnoSeleccionado->persona->inscripcionesCarrera->first()?->carrera?->nombre_carrera }}
+                                @if ($condicionAlumno && $condicionAlumno !== 'Regular')
+                                    <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto ml-1">{{ $condicionAlumno }}</span>
+                                @endif
+                            </p>
+                            @if ($condicionAlumno === 'Cursada completa')
+                                <p class="text-xs text-amber-700 mt-1">No paga cuotas mensuales: solo la matrícula del año y la cuota del mes de la mesa que rinde (generala abajo, en "Generar cuota nueva").</p>
+                            @endif
                             </div>
                         </div>
                         <a href="{{ route('director.cuotas.index') }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="refresh" /> Cambiar alumno</a>
                     </div>
+
+                    @if (! $matricula && $hayConfiguracionMatricula && $anioMatricula)
+                        <div class="mb-5 rounded-2xl border-[1.5px] border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+                            <p class="text-sm font-semibold text-amber-700">No tiene generada la matrícula {{ $anioMatricula->anio }}. Sin matrícula paga no puede inscribirse a materias ni a mesas.</p>
+                            <form method="POST" action="{{ route('director.matricula.generar') }}">
+                                @csrf
+                                <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
+                                <input type="hidden" name="id_anio_lectivo" value="{{ $anioMatricula->id_anio_lectivo }}">
+                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}">
+                                <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="plus" /> Generar matrícula {{ $anioMatricula->anio }}</button>
+                            </form>
+                        </div>
+                    @endif
 
                     @if ($matricula)
                         <div class="mb-5 rounded-2xl border-[1.5px] px-4 py-3 {{ $matricula->pagado ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50' }}">
@@ -83,6 +103,14 @@
                                     <x-sg.icono nombre="x-circle" class="h-4 w-4 shrink-0" />
                                     Matrícula {{ $matricula->anioLectivo->anio }} pendiente — $ {{ number_format($matricula->monto, 0, ',', '.') }}. No se pueden cobrar cuotas de este año hasta pagarla.
                                 </p>
+                                @if ($matricula->fechaVencimiento())
+                                    <p class="text-xs mb-3 {{ $matricula->estaVencida() ? 'text-rose-700 font-semibold' : 'text-slate-500' }}">
+                                        {{ $matricula->estaVencida() ? 'Vencida el' : 'Vence el' }} {{ \App\Support\FechaEsp::corta($matricula->fechaVencimiento()) }}
+                                    </p>
+                                @endif
+                                @if (! $matricula->estaHabilitada())
+                                    <p class="sg-aviso sg-aviso--info">Todavía no se puede cobrar: se habilita a partir del {{ \App\Support\FechaEsp::corta($matricula->fechaHabilitacion()) }} (Configuración de Matrícula).</p>
+                                @else
                                 <form method="POST" action="{{ route('director.matricula.cobrar') }}" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
                                     @csrf
                                     <input type="hidden" name="persona_id" value="{{ $alumnoSeleccionado->persona->id_persona }}">
@@ -101,6 +129,7 @@
                                     </div>
                                     <button type="submit" class="sg-btn sg-btn--verde"><x-sg.icono nombre="check-circle" /> Cobrar matrícula</button>
                                 </form>
+                                @endif
                             @endif
                         </div>
                     @endif
@@ -312,14 +341,21 @@
                         $anioVigenteId = $corteActivo?->id_anio_lectivo ?? $anios->first()?->id_anio_lectivo;
                     @endphp
 
+                    @php $cargaManual = in_array($condicionAlumno, ['Recursante', 'Cursada completa'], true); @endphp
                     <div class="flex items-center gap-2 mb-1 mt-8 pt-6 border-t border-dashed border-slate-200">
                         <span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" class="h-4 w-4" /></span>
-                        <h3 class="font-display font-bold text-slate-800">¿Falta una cuota puntual?</h3>
+                        <h3 class="font-display font-bold text-slate-800">{{ $cargaManual ? 'Generar cuotas de este alumno' : '¿Falta una cuota puntual?' }}</h3>
                     </div>
-                    <p class="text-xs text-slate-400 mb-3">Las cuotas de cada mes se generan solas (ver "Configuración de Cuotas"). Abrí esto solo para un caso excepcional — por ejemplo, un alumno que se inscribió después de que ya se generaron las cuotas del año y le falta algún mes suelto.</p>
+                    @if ($condicionAlumno === 'Recursante')
+                        <p class="text-xs text-amber-700 mb-3">Alumno <strong>recursante</strong>: sus cuotas no se generan solas porque el monto depende de cuántas materias cursa. Elegí los meses y cargá el monto que le corresponde.</p>
+                    @elseif ($condicionAlumno === 'Cursada completa')
+                        <p class="text-xs text-amber-700 mb-3">Alumno con <strong>cursada completa</strong>: solo paga la cuota del mes de la mesa que rinde. Generá acá esa cuota.</p>
+                    @else
+                        <p class="text-xs text-slate-400 mb-3">Las cuotas de cada mes se generan solas (ver "Configuración de Cuotas"). Abrí esto solo para un caso excepcional — por ejemplo, un alumno que se inscribió después de que ya se generaron las cuotas del año y le falta algún mes suelto.</p>
+                    @endif
 
-                    <details class="mb-5 rounded-2xl border-[1.5px] border-dashed border-slate-200 bg-white open:border-[#BDE5FA] transition-colors">
-                        <summary class="cursor-pointer list-none flex items-center gap-3 px-4 py-3 font-semibold text-[#0B3D91] text-sm"><span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" /></span> Generar cuota extra (caso excepcional) <x-sg.icono nombre="chevron-down" class="h-4 w-4 ml-auto" /></summary>
+                    <details @if ($cargaManual) open @endif class="mb-5 rounded-2xl border-[1.5px] border-dashed border-slate-200 bg-white open:border-[#BDE5FA] transition-colors">
+                        <summary class="cursor-pointer list-none flex items-center gap-3 px-4 py-3 font-semibold text-[#0B3D91] text-sm"><span class="sg-chip sg-chip--chico sg-chip--amarillo"><x-sg.icono nombre="plus" /></span> {{ $cargaManual ? 'Generar cuota(s)' : 'Generar cuota extra (caso excepcional)' }} <x-sg.icono nombre="chevron-down" class="h-4 w-4 ml-auto" /></summary>
                         <div class="px-4 pb-4 pt-1 border-t border-slate-100">
                             <form method="POST" action="{{ route('director.cuotas.generar') }}" id="form-generar-cuota">
                                 @csrf
@@ -411,7 +447,9 @@
                                     inputDia.value = config.dia_vencimiento ?? '';
                                     inputConcepto.value = config.concepto ?? '';
                                     inputMonto.value = config.monto ?? '';
-                                    avisoConfig.textContent = '';
+                                    avisoConfig.textContent = config.monto == null
+                                        ? 'Alumno recursante: ingresá el monto según la cantidad de materias que cursa.'
+                                        : '';
                                 } else {
                                     inputDia.value = '';
                                     inputConcepto.value = '';

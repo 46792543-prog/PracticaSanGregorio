@@ -92,7 +92,22 @@
                 <div class="flex justify-between"><dt class="text-slate-400">Año lectivo</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->anioLectivo?->anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-400">Año que cursa</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->anioCursada?->nombre_anio ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-400">Turno</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->turnoCursada?->nombre_turno ?? '—' }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-400">Condición</dt><dd class="text-slate-700 font-medium">{{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}</dd></div>
+                <div class="flex justify-between items-center gap-2"><dt class="text-slate-400">Condición</dt><dd class="text-slate-700 font-medium">
+                    @if ($estadoInscNombre === 'Activo')
+                        {{-- Regular / Recursante / Cursada completa: define qué cuotas paga y a qué mesas se puede anotar --}}
+                        <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-1">
+                            @csrf @method('PUT')
+                            <select name="condicion" class="sg-input !py-1 text-xs" onchange="this.form.submit()"
+                                    title="Regular: cuota completa · Recursante: cuota reducida · Cursada completa: solo matrícula y el mes de la mesa">
+                                @foreach (\App\Models\CondicionAlumno::DE_INSCRIPCION as $opcion)
+                                    <option value="{{ $opcion }}" @selected(($inscripcion?->condicion?->nombre_condicion ?? 'Regular') === $opcion)>{{ $opcion }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @else
+                        {{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}
+                    @endif
+                </dd></div>
                 <div class="flex justify-between items-center"><dt class="text-slate-400">Estado</dt><dd>
                     <span @class(['sg-badge', 'sg-badge--verde' => $estadoInscNombre === 'Activo', 'sg-badge--rojo' => $estadoInscNombre === 'Baja'])>
                         {{ $estadoInscNombre ?? '—' }}

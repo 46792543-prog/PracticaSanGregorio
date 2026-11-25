@@ -68,6 +68,64 @@ class Persona extends Model
         return ! $matricula || $matricula->pagado;
     }
 
+    /**
+     * Para inscribirse a cursar o a rendir: la matrícula de ese año tiene
+     * que estar pagada. Si se configuró matrícula para ese año y al alumno
+     * todavía no se le generó, también cuenta como impaga. Solo si nunca se
+     * configuró matrícula para ese año no se bloquea nada.
+     */
+    public function matriculaAlDia(int $idAnioLectivo): bool
+    {
+        $matricula = $this->matriculas()->where('id_anio_lectivo', $idAnioLectivo)->first();
+
+        if ($matricula) {
+            return (bool) $matricula->pagado;
+        }
+
+        return ! ConfiguracionMatricula::where('id_anio_lectivo', $idAnioLectivo)->exists();
+    }
+
+    /**
+     * True si la cuota de ese mes (y año lectivo) está generada y pagada.
+     */
+    public function cuotaDelMesPagada(int $idAnioLectivo, int $mes): bool
+    {
+        return $this->cuotas()
+            ->where('id_anio_lectivo', $idAnioLectivo)
+            ->where('id_mes', $mes)
+            ->where('pagado', true)
+            ->exists();
+    }
+
+    /**
+     * La inscripción a la carrera que está activa (la más reciente), sin
+     * importar de qué año lectivo sea: el alumno con cursada completa puede
+     * tenerla de un año anterior.
+     */
+    public function inscripcionCarreraActiva(): ?InscripcionCarrera
+    {
+        return $this->inscripcionesCarrera()
+            ->with('condicion')
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->latest('id_inscripcion_carrera')
+            ->first();
+    }
+
+    public function condicionInscripcion(): ?string
+    {
+        return $this->inscripcionCarreraActiva()?->condicion?->nombre_condicion;
+    }
+
+    public function esRecursante(): bool
+    {
+        return $this->condicionInscripcion() === CondicionAlumno::RECURSANTE;
+    }
+
+    public function tieneCursadaCompleta(): bool
+    {
+        return $this->condicionInscripcion() === CondicionAlumno::CURSADA_COMPLETA;
+    }
+
     public function inscripcionesMesa()
     {
         return $this->hasMany(InscripcionMesa::class, 'id_persona_alumno', 'id_persona');
@@ -107,6 +165,21 @@ class Persona extends Model
             return collect();
         }
 
+        $hastaMes ??= now()->month;
+
+        // Cursada completa: no paga cuotas mensuales, solo las que se le
+        // generan a mano (la del mes de cada mesa que rinde). Su deuda son
+        // esas cuotas generadas e impagas, no todos los meses del año.
+        if ($this->tieneCursadaCompleta()) {
+            return $this->cuotas()
+                ->with('mes')
+                ->where('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo)
+                ->where('id_mes', '<=', min($hastaMes, 12))
+                ->orderBy('id_mes')
+                ->get()
+                ->map(fn (CuotaAlumno $cuota) => ['mes' => $cuota->mes, 'pagado' => (bool) $cuota->pagado]);
+        }
+
         $inscripcion = $this->inscripcionesCarrera()
             ->where('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo)
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
@@ -116,8 +189,12 @@ class Persona extends Model
             return collect();
         }
 
-        $inicioCiclo = max(3, $inscripcion->fecha_inscripcion->month); // el ciclo lectivo arranca en marzo
-        $hastaMes ??= now()->month;
+        // Período de cobro configurado por el director para ese año (por
+        // defecto marzo a diciembre). Todos deben desde mes_desde, sin
+        // importar el día en que se los cargó en el sistema.
+        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo)->first();
+        $inicioCiclo = $configuracion?->mes_desde ?? 3;
+        $finCiclo = $configuracion?->mes_hasta ?? 12;
 
         if ($hastaMes < $inicioCiclo) {
             return collect();
@@ -128,7 +205,7 @@ class Persona extends Model
             ->where('pagado', true)
             ->pluck('id_mes');
 
-        return Mes::whereBetween('id_mes', [$inicioCiclo, min($hastaMes, 12)])
+        return Mes::whereBetween('id_mes', [$inicioCiclo, min($hastaMes, $finCiclo)])
             ->orderBy('id_mes')
             ->get()
             ->map(fn (Mes $mes) => ['mes' => $mes, 'pagado' => $mesesPagados->contains($mes->id_mes)]);

@@ -122,12 +122,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/alumnos/nuevo/confirmar', [AlumnoController::class, 'confirmar'])->name('alumnos.confirmar');
     Route::get('/alumnos/historial/cargar', [HistorialPrevioController::class, 'index'])->name('alumnos.historial-previo.index');
     Route::post('/alumnos/historial/cargar', [HistorialPrevioController::class, 'store'])->name('alumnos.historial-previo.store');
+    Route::post('/alumnos/historial/cargar-anio', [HistorialPrevioController::class, 'storeLote'])->name('alumnos.historial-previo.store-lote');
     Route::put('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'update'])->name('alumnos.historial-previo.update');
     Route::delete('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'destroy'])->name('alumnos.historial-previo.destroy');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/promover', [AlumnoController::class, 'promoverAnio'])->name('alumnos.promover');
+    Route::put('/alumnos/{persona}/condicion', [AlumnoController::class, 'actualizarCondicionInscripcion'])->name('alumnos.condicion');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
@@ -234,6 +236,7 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
 
     Route::post('/matricula/cobrar', [DirectorCuotaController::class, 'cobrarMatricula'])->name('matricula.cobrar');
+    Route::post('/matricula/generar', [DirectorCuotaController::class, 'generarMatricula'])->name('matricula.generar');
 
     // Configuración económica de la matrícula (monto/mes de habilitación/día
     // límite): se genera una sola matrícula por alumno con inscripción
