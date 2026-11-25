@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\AnioCursada;
+use App\Models\AnioCursada; /* importa el archivo aniocursada para poder consultar o guardar datos*/
 use App\Models\AnioLectivo;
 use App\Models\CondicionAlumno;
 use App\Models\EspecialidadProfesor;
@@ -28,7 +28,7 @@ use App\Models\TipoCorrelativa;
 use App\Models\TipoMovimiento;
 use App\Models\TurnoCursada;
 use App\Models\TurnoExamen;
-use Illuminate\Database\Seeder;
+use Illuminate\Database\Seeder; /*importa la herramienta seder de laravel */
 
 /**
  * Carga solo el "vocabulario del sistema": los catálogos que antes eran

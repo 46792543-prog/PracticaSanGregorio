@@ -11,8 +11,8 @@ class ConfiguracionCuota extends Model
     protected $primaryKey = 'id_configuracion_cuota';
 
     protected $fillable = [
-        'id_anio_lectivo',
-        'monto_mensual',
+        'id_anio_lectivo', /* */
+        'monto_mensual',  /* monto configuracion */
         'mes_desde',
         'mes_hasta',
         'dia_vencimiento',

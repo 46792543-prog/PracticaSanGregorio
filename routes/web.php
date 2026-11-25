@@ -83,7 +83,7 @@ Route::middleware(['auth', 'alumno', 'clave.cambiada'])->group(function () {
     Route::get('/panel', [PanelController::class, 'index'])->name('panel.index');
     Route::get('/mi-estado-academico', [EstadoAcademicoController::class, 'index'])->name('estado-academico.index');
 
-    Route::get('/cursada', [CursadaController::class, 'index'])->name('cursada.index');
+    Route::get('/cursada', [CursadaController::class, 'index'])->name('cursada.index'); /* */
     Route::post('/cursada/{materia}/inscribirme', [CursadaController::class, 'inscribir'])->name('cursada.inscribir');
 
     Route::get('/mesas-examen', [MesaExamenController::class, 'index'])->name('mesas-examen.index');

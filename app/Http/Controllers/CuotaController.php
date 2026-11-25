@@ -24,7 +24,8 @@ class CuotaController extends Controller
         $pendientes = $cuotas->where('pagado', false);
         $pagadas = $cuotas->where('pagado', true);
         $proximaCuota = $pendientes->sortBy('fecha_vencimiento')->first();
-        $totalPagado = $pagadas->sum('monto');
+        $totalPagado = $pagadas->sum('monto') ;
+
 
         // Los meses adeudados se calculan por calendario (desde que se
         // inscribió hasta el mes actual), no solo mirando qué cuotas llegó
