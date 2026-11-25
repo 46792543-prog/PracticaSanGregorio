@@ -130,7 +130,7 @@ class PagoDocenteController extends Controller
         $movimiento = MovimientoCaja::create([
             'id_concepto' => $concepto->id_concepto,
             'monto' => $pago->monto,
-            'fecha_movimiento' => now()->setDateFrom($pago->fecha_pago), /* now es de laravel fecha y hr del servidr cuando se ejecuta esta linea*/ */
+            'fecha_movimiento' => now()->setDateFrom($pago->fecha_pago), 
             'descripcion_detalle' => $descripcion,
             'id_secretario_registra' => Auth::user()->id_persona,
             'id_medio_pago' => $medioPago->id_medio_pago,
