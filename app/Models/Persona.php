@@ -104,13 +104,14 @@ class Persona extends Model
      */
     public function matriculaAlDia(int $idAnioLectivo, ?int $idCarrera = null): bool
     {
+        $idCarrera = $this->carreraOPorDefecto($idCarrera);
         $matricula = $this->matriculaDe($idAnioLectivo, $idCarrera);
 
         if ($matricula) {
             return (bool) $matricula->pagado;
         }
 
-        return ! ConfiguracionMatricula::where('id_anio_lectivo', $idAnioLectivo)->exists();
+        return ! ConfiguracionMatricula::de($idAnioLectivo, $idCarrera);
     }
 
     /**
