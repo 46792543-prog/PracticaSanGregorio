@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\CondicionAlumno;
 use App\Models\ConfiguracionCuota;
 use App\Models\CuotaAlumno;
+use App\Models\TarifaRecursante;
 
 /**
  * Recalcula desde cero cada cuota IMPAGA con la configuración de hoy:
@@ -20,16 +21,34 @@ class RecalculadorCuotas
     {
         $configuracion->loadMissing('aumentos', 'anioLectivo');
         $actualizadas = 0;
+        $porAlumno = []; // inscripción y precio de recursante, calculados una vez por alumno
 
         $impagas = CuotaAlumno::with('personaAlumno')
             ->where('id_anio_lectivo', $configuracion->id_anio_lectivo)
+            ->where('id_carrera', $configuracion->id_carrera)
             ->where('pagado', false)
             ->get();
 
         foreach ($impagas as $cuota) {
-            // Al recursante el monto se lo pone el director a mano: se respeta, solo se le calcula la mora.
-            $monto = $cuota->personaAlumno?->condicionInscripcion($cuota->id_carrera) === CondicionAlumno::RECURSANTE
-                ? (float) $cuota->monto
+            $alumno = $porAlumno[$cuota->id_persona_alumno] ??= (function () use ($cuota, $configuracion) {
+                $inscripcion = $cuota->personaAlumno?->inscripcionCarreraActiva($configuracion->id_carrera);
+                $esRecursante = $inscripcion?->condicion?->nombre_condicion === CondicionAlumno::RECURSANTE;
+
+                return [
+                    'activo' => (bool) $inscripcion,
+                    'recursante' => $esRecursante,
+                    'precio' => $esRecursante ? TarifaRecursante::montoPara($cuota->personaAlumno, $configuracion->id_anio_lectivo, $configuracion->id_carrera) : null,
+                ];
+            })();
+
+            // Dado de baja en esta carrera: sus cuotas quedan congeladas como estaban.
+            if (! $alumno['activo']) {
+                continue;
+            }
+
+            // Recursante: precio de su tabla (los aumentos no lo afectan). Sin precio cargado, se deja el que tenía.
+            $monto = $alumno['recursante']
+                ? ($alumno['precio'] ?? (float) $cuota->monto)
                 : $configuracion->montoACobrar((int) $cuota->id_mes);
 
             $vencida = $cuota->fecha_vencimiento?->lt(today()) ?? false;

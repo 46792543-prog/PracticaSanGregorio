@@ -129,6 +129,10 @@ class MesaExamenController extends Controller
         $idAnio = $mesa->id_anio_lectivo;
         $idCarrera = $mesa->materia->id_carrera; // se mira solo la carrera de la materia
 
+        if ($alumno->planCaducado($idCarrera)) {
+            return 'Tu plan de estudios caducó: secretaría te tiene que pasar al plan vigente.';
+        }
+
         if (! $alumno->matriculaAlDia($idAnio, $idCarrera)) {
             return 'Tenés que pagar la matrícula ' . ($mesa->anioLectivo?->anio ?? '') . ' para poder rendir.';
         }
@@ -137,7 +141,7 @@ class MesaExamenController extends Controller
 
         // Si el mes anterior queda antes de que arranque el período de cobro
         // (por defecto marzo), todavía no hay ninguna cuota que exigir.
-        $mesDesde = ConfiguracionCuota::where('id_anio_lectivo', $idAnio)->value('mes_desde') ?? 3;
+        $mesDesde = ConfiguracionCuota::de($idAnio, $idCarrera)?->mes_desde ?? 3;
 
         if ($mesRequerido >= $mesDesde && ! $alumno->cuotaDelMesPagada($idAnio, $mesRequerido, $idCarrera)) {
             $nombreMes = Mes::find($mesRequerido)?->nombre_mes ?? 'ese mes';

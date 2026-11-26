@@ -149,6 +149,44 @@ class Persona extends Model
         return ($elegida ? $this->inscripcionCarreraActiva((int) $elegida) : null) ?? $this->inscripcionCarreraActiva();
     }
 
+    // Cuántas materias está RECURSANDO en una carrera y año (para el precio del recursante).
+    public function materiasCursando(int $idAnioLectivo, int $idCarrera): int
+    {
+        return $this->historialAlumno()
+            ->where('id_anio_lectivo', $idAnioLectivo)
+            ->whereHas('materia', fn ($q) => $q->where('id_carrera', $idCarrera))
+            ->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::RECURSANDO))
+            ->count();
+    }
+
+    // Condición automática: Recursante si recursa al menos una materia de la
+    // carrera; si deja de recursar, vuelve a Regular (Cursada completa no se toca).
+    public function sincronizarCondicionRecursante(?int $idCarrera): void
+    {
+        $inscripcion = $idCarrera ? $this->inscripcionCarreraActiva($idCarrera) : null;
+        $actual = $inscripcion?->condicion?->nombre_condicion;
+
+        if (! $inscripcion || $actual === CondicionAlumno::CURSADA_COMPLETA) {
+            return;
+        }
+
+        $recursa = $this->historialAlumno()
+            ->whereHas('materia', fn ($q) => $q->where('id_carrera', $idCarrera))
+            ->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::RECURSANDO))
+            ->exists();
+        $nueva = $recursa ? CondicionAlumno::RECURSANTE : CondicionAlumno::REGULAR;
+
+        if ($nueva !== $actual) {
+            $inscripcion->update(['id_condicion' => CondicionAlumno::where('nombre_condicion', $nueva)->value('id_condicion')]);
+        }
+    }
+
+    // ¿El plan de estudios con el que cursa esa carrera ya caducó? (hay que pasarlo a otro plan)
+    public function planCaducado(?int $idCarrera = null): bool
+    {
+        return $this->inscripcionCarreraActiva($idCarrera)?->plan?->estado() === 'Caducado';
+    }
+
     // Condición (Regular / Recursante / Cursada completa) en una carrera.
     public function condicionInscripcion(?int $idCarrera = null): ?string
     {
@@ -289,7 +327,7 @@ class Persona extends Model
         // Período de cobro configurado por el director para ese año (por
         // defecto marzo a diciembre). Todos deben desde mes_desde, sin
         // importar el día en que se los cargó en el sistema.
-        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $anioLectivoActivo->id_anio_lectivo)->first();
+        $configuracion = ConfiguracionCuota::de($anioLectivoActivo->id_anio_lectivo, $idCarrera);
         $inicioCiclo = $configuracion?->mes_desde ?? 3;
         $finCiclo = $configuracion?->mes_hasta ?? 12;
 

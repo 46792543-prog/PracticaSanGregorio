@@ -17,7 +17,7 @@ class EstadoAcademicoController extends Controller
         $condicionFiltro = $request->query('condicion');
 
         $materias = $inscripcionCarrera
-            ? $inscripcionCarrera->carrera->materias()
+            ? $inscripcionCarrera->materiasDelPlan()
                 ->with(['requisitos', 'nombreMateria', 'anioCursada', 'periodo', 'regimen', 'historial' => fn ($q) => $q->where('id_persona_alumno', $alumno->id_persona)])
                 ->when($busqueda, fn ($q) => $q->whereHas('nombreMateria', fn ($n) => $n->where('nombre', 'like', "%{$busqueda}%")))
                 ->orderBy('id_anio_cursada')

@@ -37,6 +37,17 @@ class Carrera extends Model
         return $this->hasMany(Materia::class, 'id_carrera', 'id_carrera');
     }
 
+    public function planes(): HasMany
+    {
+        return $this->hasMany(PlanEstudio::class, 'id_carrera', 'id_carrera')->orderByDesc('anio_desde');
+    }
+
+    // Plan al que entra un alumno nuevo ese año (el más nuevo que acepte inscripciones).
+    public function planParaInscribir(int $anio): ?PlanEstudio
+    {
+        return $this->planes()->get()->first(fn (PlanEstudio $p) => $p->aceptaInscripciones($anio));
+    }
+
     public function inscripcionesCarrera(): HasMany
     {
         return $this->hasMany(InscripcionCarrera::class, 'id_carrera', 'id_carrera');

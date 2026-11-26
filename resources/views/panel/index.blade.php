@@ -11,7 +11,7 @@
                 <p class="text-[11px] font-bold tracking-[.14em] uppercase text-[#4FC3F7]">Mi carrera</p>
                 <h2 class="text-lg md:text-xl font-bold text-[#0B3D91] mt-1">{{ $inscripcionCarrera->carrera->nombre }}</h2>
                 <p class="text-slate-500 text-sm mt-1">
-                    {{ $inscripcionCarrera->anioCursada?->nombre_anio }} · Plan {{ $inscripcionCarrera->carrera->materias->first()?->version_plan ?? '2024' }}
+                    {{ $inscripcionCarrera->anioCursada?->nombre_anio }} · {{ $inscripcionCarrera->plan?->nombre ?? 'Plan de estudios' }}
                     · Condición: {{ $inscripcionCarrera->condicion->nombre_condicion }}
                 </p>
 

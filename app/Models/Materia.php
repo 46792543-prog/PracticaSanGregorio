@@ -17,6 +17,7 @@ class Materia extends Model
 
     protected $fillable = [
         'id_carrera',
+        'id_plan_estudio',
         'numero_orden',
         'id_anio_cursada',
         'id_periodo',
@@ -33,6 +34,11 @@ class Materia extends Model
     public function carrera(): BelongsTo
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(PlanEstudio::class, 'id_plan_estudio', 'id_plan_estudio');
     }
 
     public function anioCursada(): BelongsTo
@@ -166,6 +172,68 @@ class Materia extends Model
             ->first();
     }
 
+    // La misma materia en todos los planes de la carrera (mismo nombre del
+    // catálogo): así, si el alumno cambia de plan, su historial del plan
+    // viejo sigue contando (cursada previa y veces recursada).
+    public function idsEquivalentes(): \Illuminate\Support\Collection
+    {
+        return self::where('id_carrera', $this->id_carrera)
+            ->where('id_nombre_materia', $this->id_nombre_materia)
+            ->pluck('id_materia');
+    }
+
+    // Cuántas veces la recursó (en cualquier plan).
+    public function vecesRecursada(Persona $alumno): int
+    {
+        return $alumno->historialAlumno()
+            ->whereIn('id_materia', $this->idsEquivalentes())
+            ->whereHas('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::RECURSANDO))
+            ->count();
+    }
+
+    // Reglas para cargarla como "Recursando" en un año lectivo. Devuelve el
+    // motivo si NO puede, o null si puede. Mira esta materia y la misma de
+    // otros planes de la carrera.
+    public function motivoNoPuedeRecursar(Persona $alumno, int $idAnioLectivo, ?int $excluirHistorial = null): ?string
+    {
+        $anio = AnioLectivo::find($idAnioLectivo)?->anio;
+        $historial = $alumno->historialAlumno()->with('condicion', 'anioLectivo')
+            ->whereIn('id_materia', $this->idsEquivalentes())
+            ->when($excluirHistorial, fn ($q, $id) => $q->whereKeyNot($id))
+            ->get();
+        $condicion = fn ($h) => $h->condicion?->nombre_condicion;
+
+        // 1. Ya aprobada (en este plan o en uno anterior): no se recursa.
+        if ($historial->contains(fn ($h) => CondicionAlumno::esAprobada($condicion($h)))) {
+            return 'Ya la tiene aprobada, no puede recursarla.';
+        }
+
+        // 2. Ya la está cursando ese mismo año: evita la doble inscripción.
+        if ($historial->contains(fn ($h) => $h->anioLectivo?->anio == $anio && in_array($condicion($h), CondicionAlumno::EN_CURSO, true))) {
+            return "Ya la está cursando en {$anio}: no se puede inscribir dos veces.";
+        }
+
+        // 3. Tiene que haberla cursado antes: se mira la última cursada de un año previo.
+        $ultima = $historial->filter(fn ($h) => $h->anioLectivo?->anio < $anio)->sortBy(fn ($h) => $h->anioLectivo->anio)->last();
+
+        if (! $ultima) {
+            return 'Para cargarla como Recursando tiene que tener una cursada anterior (de un año previo) de esta materia.';
+        }
+
+        // 4. Regular con la regularidad vigente: todavía puede rendir el final, no se recursa.
+        if ($condicion($ultima) === 'Regular' && ! $ultima->regularidad_vencida) {
+            $hasta = $ultima->fecha_limite_calculada?->format('d/m/Y');
+
+            return 'Tiene la regularidad vigente' . ($hasta ? " (hasta el {$hasta})" : '') . ': todavía puede rendir el final, no puede recursarla.';
+        }
+
+        // 5. Motivo válido: quedó Libre, con Final Desaprobado o se le venció la regularidad.
+        $motivoValido = in_array($condicion($ultima), ['Libre', CondicionAlumno::FINAL_DESAPROBADO], true) || $ultima->regularidad_vencida;
+
+        return $motivoValido ? null
+            : "La cursada anterior ({$ultima->anioLectivo->anio}) quedó \"{$condicion($ultima)}\": solo se recursa si quedó Libre, con Final Desaprobado o con la regularidad vencida.";
+    }
+
     /**
      * Motivo por el que el alumno no puede inscribirse a cursar esta materia
      * todavía, o null si no tiene ningún bloqueo. Se usa tanto en el
@@ -174,6 +242,10 @@ class Materia extends Model
      */
     public function bloqueoParaCursar(Persona $alumno): ?string
     {
+        if ($alumno->planCaducado($this->id_carrera)) {
+            return 'Su plan de estudios caducó: secretaría tiene que pasarlo al plan vigente.';
+        }
+
         if ($alumno->tieneCursadaCompleta($this->id_carrera)) {
             return 'Ya terminó de cursar la carrera (Cursada completa): solo puede rendir finales.';
         }

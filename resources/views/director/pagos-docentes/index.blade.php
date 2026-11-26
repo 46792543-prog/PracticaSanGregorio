@@ -197,9 +197,16 @@
             <span class="sg-chip sg-chip--amarillo mx-auto mb-3"><x-sg.icono nombre="alert" /></span>
             <h3 class="font-display font-bold text-slate-800 mb-2">Confirmar pago</h3>
             <p id="texto-confirmar-pago" class="text-sm text-slate-600 mb-5"></p>
+            {{-- Solo al editar: motivo obligatorio (va dentro del formulario con form="...") --}}
+            <div id="bloque-motivo-pago" class="hidden text-left mb-5">
+                <label class="sg-label">¿Por qué se edita este pago? *</label>
+                <textarea form="form-pago-docente" name="motivo" id="input-motivo-pago" rows="2" maxlength="500"
+                          placeholder="Ej: error de tipeo en el monto" class="sg-input w-full"></textarea>
+                <p id="error-motivo-pago" class="hidden text-xs text-red-500 mt-1">Escribí el motivo (al menos 5 letras).</p>
+            </div>
             <div class="flex gap-3">
                 <button type="button" onclick="cerrarModal('modal-confirmar-pago')" class="sg-btn sg-btn--borde flex-1 justify-center">Cancelar</button>
-                <button type="button" onclick="document.getElementById('form-pago-docente').submit()" class="sg-btn sg-btn--primario flex-1 justify-center"><x-sg.icono nombre="check" /> Sí, confirmar</button>
+                <button type="button" onclick="confirmarPago()" class="sg-btn sg-btn--primario flex-1 justify-center"><x-sg.icono nombre="check" /> Sí, confirmar</button>
             </div>
         </div>
     </div>
@@ -336,8 +343,22 @@
             document.getElementById('texto-confirmar-pago').textContent = pagoEditando
                 ? `¿Está seguro de actualizar el pago a ${docente} por $ ${monto}?`
                 : `¿Está seguro de abonar $ ${monto} a ${docente}?`;
+            document.getElementById('bloque-motivo-pago').classList.toggle('hidden', !pagoEditando);
+            document.getElementById('error-motivo-pago').classList.add('hidden');
             abrirModal('modal-confirmar-pago');
         });
+
+        // "Sí, confirmar": al editar, no deja seguir sin motivo.
+        function confirmarPago() {
+            const motivo = document.getElementById('input-motivo-pago');
+            if (pagoEditando && motivo.value.trim().length < 5) {
+                document.getElementById('error-motivo-pago').classList.remove('hidden');
+                motivo.focus();
+                return;
+            }
+            if (!pagoEditando) motivo.value = ''; // al registrar no se manda motivo
+            formPago.submit();
+        }
 
         @if ($errors->any())
             // Si volvió con error, reabre el modal (en modo edición si se estaba editando).

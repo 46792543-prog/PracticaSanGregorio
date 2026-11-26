@@ -15,12 +15,20 @@
         <div class="p-6">
             <form method="POST" action="{{ route('director.configuracion-cuotas.store') }}" id="form-configuracion-cuota">
                 @csrf
-                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                <div class="grid sm:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label class="sg-label">PERÍODO LECTIVO *</label>
                         <select name="id_anio_lectivo" id="select-anio-config" required class="sg-input w-full">
                             @foreach ($anios as $anio)
                                 <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === old('id_anio_lectivo', $anioActivoId))>{{ $anio->anio }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="sg-label">CARRERA *</label>
+                        <select name="id_carrera" id="select-carrera-config" required class="sg-input w-full">
+                            @foreach ($carreras as $carrera)
+                                <option value="{{ $carrera->id_carrera }}" @selected((int) $carrera->id_carrera === (int) old('id_carrera'))>{{ $carrera->nombre_carrera }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -75,7 +83,7 @@
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">
-                    Al guardar, se genera automáticamente la cuota de cada mes (del período elegido arriba) para todos los alumnos con inscripción activa en el período elegido. No se duplican cuotas que ya existan, y las que todavía no se pagaron (también las de meses anteriores) pasan al monto nuevo; las ya pagadas no se tocan.
+                    Al guardar, se genera automáticamente la cuota de cada mes (del período elegido arriba) para los alumnos con inscripción activa en la carrera y el período elegidos. Cada carrera tiene su propio monto. No se duplican cuotas que ya existan, y las que todavía no se pagaron (también las de meses anteriores) pasan al monto nuevo; las ya pagadas no se tocan.
                 </p>
 
                 <div class="flex justify-end">
@@ -93,7 +101,7 @@
             </div>
         </div>
         <div class="p-6">
-            <form method="POST" action="{{ route('director.configuracion-cuotas.aumentos.store') }}" class="grid sm:grid-cols-4 gap-4 items-end">
+            <form method="POST" action="{{ route('director.configuracion-cuotas.aumentos.store') }}" class="grid sm:grid-cols-5 gap-4 items-end">
                 @csrf
                 <div>
                     <label class="sg-label">PERÍODO LECTIVO *</label>
@@ -103,6 +111,14 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                        <label class="sg-label">CARRERA *</label>
+                        <select name="aumento_id_carrera" id="select-carrera-aumento" required class="sg-input w-full">
+                            @foreach ($carreras as $carrera)
+                                <option value="{{ $carrera->id_carrera }}" @selected((int) $carrera->id_carrera === (int) old('aumento_id_carrera'))>{{ $carrera->nombre_carrera }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 <div>
                     <label class="sg-label">A PARTIR DE *</label>
                     <select name="aumento_mes_desde" required class="sg-input w-full">
@@ -132,6 +148,7 @@
                     <thead>
                         <tr>
                             <th>Año lectivo</th>
+                            <th>Carrera</th>
                             <th>Desde</th>
                             <th>Monto</th>
                             <th style="text-align:center">Acciones</th>
@@ -144,6 +161,7 @@
                                 @php $hayAumentos = true; $nombreMesAumento = $meses->firstWhere('id_mes', $aumento->mes_desde)?->nombre_mes; @endphp
                                 <tr>
                                     <td class="font-semibold text-slate-700">{{ $configuracion->anioLectivo->anio }}</td>
+                                    <td class="text-slate-500">{{ $configuracion->carrera?->nombre_carrera }}</td>
                                     <td class="text-slate-500">{{ $nombreMesAumento }}</td>
                                     <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($aumento->monto, 0, ',', '.') }}</td>
                                     <td><div class="flex justify-center gap-1">
@@ -160,7 +178,7 @@
                                 </tr>
                                 {{-- Fila de edición (oculta hasta tocar el lápiz) --}}
                                 <tr id="editar-aumento-{{ $aumento->id_aumento_cuota }}" class="hidden bg-slate-50">
-                                    <td colspan="4">
+                                    <td colspan="5">
                                         <form method="POST" action="{{ route('director.configuracion-cuotas.aumentos.update', $aumento) }}" class="flex flex-wrap items-end gap-3">
                                             @csrf
                                             @method('PUT')
@@ -183,7 +201,7 @@
                             @endforeach
                         @endforeach
                         @unless ($hayAumentos)
-                            <tr><td colspan="4"><x-sg.vacio icono="chart">Todavía no se cargó ningún aumento.</x-sg.vacio></td></tr>
+                            <tr><td colspan="5"><x-sg.vacio icono="chart">Todavía no se cargó ningún aumento.</x-sg.vacio></td></tr>
                         @endunless
                     </tbody>
                 </table>
@@ -195,7 +213,7 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--verde"><x-sg.icono nombre="chart" /></span>
-                <div><h3>Configuraciones guardadas</h3><p>Una por período lectivo</p></div>
+                <div><h3>Configuraciones guardadas</h3><p>Una por período lectivo y carrera</p></div>
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -203,6 +221,7 @@
                 <thead>
                     <tr>
                         <th>Año lectivo</th>
+                        <th>Carrera</th>
                         <th>Monto mensual</th>
                         <th>Período</th>
                         <th>Día de vencimiento</th>
@@ -211,9 +230,10 @@
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
-                    @forelse ($configuraciones as $configuracion)
+                    @forelse ($configuraciones->sortBy(fn ($c) => [-$c->anioLectivo->anio, $c->carrera?->nombre_carrera]) as $configuracion)
                         <tr>
                             <td class="font-semibold text-slate-700">{{ $configuracion->anioLectivo->anio }}</td>
+                            <td class="text-slate-500">{{ $configuracion->carrera?->nombre_carrera }}</td>
                             <td class="font-display font-bold text-[#0B3D91]">
                                 $ {{ number_format($configuracion->monto_mensual, 0, ',', '.') }}
                                 @if ($configuracion->aumentos->isNotEmpty())
@@ -226,7 +246,7 @@
                             <td class="text-slate-500">{{ $configuracion->concepto ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
+                        <tr><td colspan="7"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -234,7 +254,7 @@
     </div>
 
     @php
-        $configuracionesJs = $configuraciones->mapWithKeys(fn ($c) => [$c->id_anio_lectivo => [
+        $configuracionesJs = $configuraciones->mapWithKeys(fn ($c, $clave) => [$clave => [
             'monto_mensual' => (float) $c->monto_mensual,
             'mes_desde' => $c->mes_desde,
             'mes_hasta' => $c->mes_hasta,
@@ -247,12 +267,14 @@
         (function () {
             const configuraciones = @json($configuracionesJs);
             const selectAnio = document.getElementById('select-anio-config');
+            const selectCarrera = document.getElementById('select-carrera-config');
             const montoInput = document.getElementById('input-monto-mensual');
             const diaInput = document.getElementById('input-dia-vencimiento');
             const interesInput = document.getElementById('input-interes-mora');
 
             function precargarConfiguracion() {
-                const config = configuraciones[selectAnio.value];
+                // Clave "año-carrera": cada carrera tiene su propia configuración.
+                const config = configuraciones[selectAnio.value + '-' + selectCarrera.value];
                 if (! config) return;
                 montoInput.value = config.monto_mensual;
                 document.getElementById('input-mes-desde').value = config.mes_desde;
@@ -262,6 +284,7 @@
             }
 
             selectAnio.addEventListener('change', precargarConfiguracion);
+            selectCarrera.addEventListener('change', precargarConfiguracion);
             precargarConfiguracion();
         })();
     </script>

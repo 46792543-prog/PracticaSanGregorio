@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Director;
 use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
 use App\Models\AumentoCuota;
+use App\Models\Carrera;
 use App\Models\CondicionAlumno;
 use App\Models\ConfiguracionCuota;
 use App\Models\CuotaAlumno;
 use App\Models\InscripcionCarrera;
 use App\Models\Mes;
+use App\Support\GeneradorCuotas;
 use App\Support\RecalculadorCuotas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +36,9 @@ class ConfiguracionCuotaController extends Controller
         return view('director.configuracion-cuotas.index', [
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
             'anioActivoId' => $anioActivo?->id_anio_lectivo,
-            'configuraciones' => ConfiguracionCuota::with('anioLectivo', 'aumentos')->get()->keyBy('id_anio_lectivo'),
+            // Clave "año-carrera": una configuración por cada combinación.
+            'configuraciones' => ConfiguracionCuota::with('anioLectivo', 'aumentos', 'carrera')->get()->keyBy(fn ($c) => "{$c->id_anio_lectivo}-{$c->id_carrera}"),
+            'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'meses' => Mes::orderBy('id_mes')->get(),
         ]);
     }
@@ -43,6 +47,7 @@ class ConfiguracionCuotaController extends Controller
     {
         $data = $request->validate([
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
             'monto_mensual' => ['required', 'numeric', 'min:0.01', 'max:1000000'],
             'mes_desde' => ['required', 'integer', 'between:1,12'],
             'mes_hasta' => ['required', 'integer', 'between:1,12', 'gte:mes_desde'],
@@ -62,7 +67,7 @@ class ConfiguracionCuotaController extends Controller
         $this->validarContraAumentos($data);
 
         $configuracion = ConfiguracionCuota::updateOrCreate(
-            ['id_anio_lectivo' => $data['id_anio_lectivo']],
+            ['id_anio_lectivo' => $data['id_anio_lectivo'], 'id_carrera' => $data['id_carrera']],
             [
                 'monto_mensual' => round((float) $data['monto_mensual'], 2),
                 'mes_desde' => $data['mes_desde'],
@@ -73,12 +78,12 @@ class ConfiguracionCuotaController extends Controller
             ]
         );
 
-        $configuracion->load('anioLectivo', 'aumentos');
+        $configuracion->load('anioLectivo', 'aumentos', 'carrera');
 
-        $creadas = $this->generarCuotasAutomaticas($configuracion);
+        $creadas = GeneradorCuotas::generar($configuracion);
         $actualizadas = RecalculadorCuotas::aplicar($configuracion);
 
-        $mensaje = "Se guardó la configuración de cuotas para el año {$configuracion->anioLectivo->anio}.";
+        $mensaje = "Se guardó la configuración de cuotas de {$configuracion->carrera->nombre_carrera} para el año {$configuracion->anioLectivo->anio}.";
         $mensaje .= $creadas > 0
             ? " Se generaron {$creadas} cuota(s) nueva(s) para los alumnos con inscripción activa."
             : ' No se generaron cuotas nuevas: ya estaban todas generadas.';
@@ -93,10 +98,17 @@ class ConfiguracionCuotaController extends Controller
     // Carga un aumento: desde ese mes en adelante la cuota vale el monto nuevo.
     public function storeAumento(Request $request): RedirectResponse
     {
-        $request->validate(['aumento_id_anio_lectivo' => ['required', 'exists:configuracion_cuota,id_anio_lectivo']],
-            ['aumento_id_anio_lectivo.exists' => 'Primero guardá la configuración de cuotas de ese año lectivo.']);
+        $request->validate([
+            'aumento_id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'aumento_id_carrera' => ['required', 'exists:carrera,id_carrera'],
+        ]);
 
-        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $request->input('aumento_id_anio_lectivo'))->first();
+        // El aumento es de la configuración de ese año y esa carrera.
+        $configuracion = ConfiguracionCuota::de($request->integer('aumento_id_anio_lectivo'), $request->integer('aumento_id_carrera'));
+
+        if (! $configuracion) {
+            throw ValidationException::withMessages(['aumento_id_carrera' => 'Primero guardá la configuración de cuotas de esa carrera para ese año lectivo.']);
+        }
 
         return $this->guardarAumento($request, $configuracion->aumentos()->make());
     }
@@ -159,7 +171,7 @@ class ConfiguracionCuotaController extends Controller
     // primero y el período tiene que incluir todos los meses con aumento.
     private function validarContraAumentos(array $data): void
     {
-        $aumentos = ConfiguracionCuota::where('id_anio_lectivo', $data['id_anio_lectivo'])->first()?->aumentos;
+        $aumentos = ConfiguracionCuota::de($data['id_anio_lectivo'], $data['id_carrera'])?->aumentos;
 
         if ($aumentos?->isNotEmpty() && (
             (float) $data['monto_mensual'] >= (float) $aumentos->first()->monto
@@ -169,64 +181,5 @@ class ConfiguracionCuotaController extends Controller
             throw ValidationException::withMessages(['monto_mensual' => 'Este año ya tiene aumentos cargados: el monto tiene que ser menor al primer aumento '
                 . 'y el período tiene que incluir los meses de los aumentos. Si no, eliminá los aumentos primero.']);
         }
-    }
-
-    /**
-     * Una cuota por mes, dentro del período de cobro configurado (mes_desde
-     * a mes_hasta), para cada alumno con inscripción activa en ese año —
-     * mismo criterio que Persona::estadoMensualCuotas().
-     * No duplica cuotas que ya existan. Cada cuota nace con el precio que
-     * le toca según los aumentos (ver ConfiguracionCuota::montoACobrar()).
-     *
-     * Según la condición de la inscripción, no se les genera nada a:
-     *  - Recursante: su cuota depende de cuántas materias cursa; el director
-     *    se la genera desde Registrar Cuotas con el monto que corresponda.
-     *  - Cursada completa: solo paga la cuota del mes en que rinde, que
-     *    también se carga a mano desde Registrar Cuotas.
-     */
-    private function generarCuotasAutomaticas(ConfiguracionCuota $configuracion): int
-    {
-        $anio = $configuracion->anioLectivo;
-        $creadas = 0;
-
-        // Cada inscripción activa (alumno + carrera): si cursa dos carreras, se le generan las cuotas de las dos.
-        $inscripciones = InscripcionCarrera::with('condicion')
-            ->where('id_anio_lectivo', $anio->id_anio_lectivo)
-            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
-            ->get();
-
-        DB::transaction(function () use ($inscripciones, $anio, $configuracion, &$creadas) {
-            foreach ($inscripciones as $inscripcion) {
-                if (in_array($inscripcion->condicion?->nombre_condicion, [CondicionAlumno::RECURSANTE, CondicionAlumno::CURSADA_COMPLETA], true)) {
-                    continue;
-                }
-
-                for ($mes = $configuracion->mes_desde; $mes <= $configuracion->mes_hasta; $mes++) {
-                    $cuota = CuotaAlumno::firstOrNew([
-                        'id_persona_alumno' => $inscripcion->id_persona_alumno,
-                        'id_anio_lectivo' => $anio->id_anio_lectivo,
-                        'id_carrera' => $inscripcion->id_carrera,
-                        'id_mes' => $mes,
-                    ]);
-
-                    if ($cuota->exists) {
-                        continue;
-                    }
-
-                    $cuota->fill([
-                        'concepto' => $configuracion->concepto,
-                        'fecha_vencimiento' => ConfiguracionCuota::fechaVencimiento($anio->anio, $mes, $configuracion->dia_vencimiento),
-                        'monto' => $configuracion->montoACobrar($mes),
-                        'recargo' => 0,
-                        'mora_aplicada' => false,
-                        'pagado' => false,
-                    ])->save();
-
-                    $creadas++;
-                }
-            }
-        });
-
-        return $creadas;
     }
 }

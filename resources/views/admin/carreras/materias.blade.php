@@ -8,6 +8,9 @@
         <a href="{{ route('admin.carreras.correlativas', $carrera) }}" class="sg-btn sg-btn--primario">Configurar correlativas <x-sg.icono nombre="arrow-right" class="sg-flecha" /></a>
     </x-sg.encabezado>
 
+    @include('admin.carreras.partials.plan-selector', ['editable' => true])
+
+
     <div class="sg-card sg-revelar mb-6 overflow-hidden">
         <div class="sg-card__head">
             <div class="sg-card__titulo">

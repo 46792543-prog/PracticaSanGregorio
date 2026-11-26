@@ -36,6 +36,9 @@
         <a href="{{ route('admin.carreras.plan', $carrera) }}" class="sg-btn sg-btn--primario"><x-sg.icono nombre="eye" /> Ver plan de estudio</a>
     </x-sg.encabezado>
 
+    @include('admin.carreras.partials.plan-selector', ['editable' => true])
+
+
     <div class="grid gap-6 xl:grid-cols-5 items-start">
         {{-- ====================== Editor (crear y editar) ====================== --}}
         <div id="editor-correlativas" class="sg-card xl:col-span-2 xl:sticky xl:top-24 border-t-4 border-t-[#FFC107]">

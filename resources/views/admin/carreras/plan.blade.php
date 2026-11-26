@@ -8,6 +8,9 @@
         <a href="{{ route('admin.carreras.materias', $carrera) }}" class="sg-btn sg-btn--suave"><x-sg.icono nombre="pencil" /> Editar materias</a>
     </x-sg.encabezado>
 
+    @include('admin.carreras.partials.plan-selector', ['editable' => false])
+
+
     <div class="sg-card sg-revelar overflow-x-auto">
         <table class="w-full text-[13px] border-collapse">
             <thead>

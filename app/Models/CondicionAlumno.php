@@ -31,6 +31,12 @@ class CondicionAlumno extends Model
      */
     public const REGULAR = 'Regular';
     public const RECURSANTE = 'Recursante';
+
+    // Historial: la materia se cursa de nuevo (tenía una cursada anterior no aprobada).
+    public const RECURSANDO = 'Recursando';
+
+    // Materias en curso (todavía sin cerrar la cursada).
+    public const EN_CURSO = ['Cursando', self::RECURSANDO];
     public const CURSADA_COMPLETA = 'Cursada completa';
     public const DE_INSCRIPCION = [self::REGULAR, self::RECURSANTE, self::CURSADA_COMPLETA];
 
@@ -85,6 +91,7 @@ class CondicionAlumno extends Model
             'Regular' => 'Regular (aprobó la cursada, le falta rendir el final)',
             'Libre' => 'Libre (desaprobó la cursada o quedó libre por faltas)',
             'Cursando' => 'Cursando (la está cursando ahora)',
+            self::RECURSANDO => 'Recursando (la cursa de nuevo; ya la había cursado y no la aprobó)',
         ],
         'Materia aprobada (cerrada)' => [
             'Examen Final' => 'Final Aprobado',

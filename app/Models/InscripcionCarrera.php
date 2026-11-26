@@ -13,6 +13,7 @@ class InscripcionCarrera extends Model
     protected $fillable = [
         'id_persona_alumno',
         'id_carrera',
+        'id_plan_estudio',
         'id_anio_cursada',
         'id_anio_lectivo',
         'id_turno_cursada',
@@ -37,6 +38,19 @@ class InscripcionCarrera extends Model
     public function carrera(): BelongsTo
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(PlanEstudio::class, 'id_plan_estudio', 'id_plan_estudio');
+    }
+
+    // Materias del plan del alumno (si por algún motivo no tiene plan, las de la carrera).
+    public function materiasDelPlan()
+    {
+        return $this->id_plan_estudio
+            ? Materia::where('id_plan_estudio', $this->id_plan_estudio)
+            : Materia::where('id_carrera', $this->id_carrera);
     }
 
     public function anioCursada(): BelongsTo

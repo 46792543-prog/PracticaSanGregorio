@@ -7,6 +7,7 @@ use App\Mail\ClaveInicialMail;
 use App\Models\AnioCursada;
 use App\Models\AnioLectivo;
 use App\Models\Carrera;
+use App\Models\ConfiguracionCuota;
 use App\Models\CondicionAlumno;
 use App\Models\DetalleActa;
 use App\Models\EstadoInscripcion;
@@ -20,6 +21,7 @@ use App\Models\Rol;
 use App\Models\TurnoCursada;
 use App\Models\Usuario;
 use App\Support\Auditor;
+use App\Support\CambioDePlan;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -150,7 +152,7 @@ class AlumnoController extends Controller
 
         $inscripcionActiva = $persona->inscripcionesCarrera->first();
         $totalMateriasPlan = $inscripcionActiva
-            ? Materia::where('id_carrera', $inscripcionActiva->id_carrera)->where('activa', true)->count()
+            ? $inscripcionActiva->materiasDelPlan()->where('activa', true)->count()
             : 0;
         $materiasAprobadasTotal = $persona->historialAlumno
             ->filter(fn (HistorialAlumno $h) => CondicionAlumno::esAprobada($h->condicion?->nombre_condicion))
@@ -159,7 +161,7 @@ class AlumnoController extends Controller
             ->count();
         $porcentajeAvance = $totalMateriasPlan > 0 ? (int) round($materiasAprobadasTotal / $totalMateriasPlan * 100) : 0;
 
-        $montoActualCuota = CorteActivo::actual()?->configuracionCuota?->montoVigente();
+        $montoActualCuota = ConfiguracionCuota::de(CorteActivo::id(), $idCarrera)?->montoVigente();
 
         return view('admin.alumnos.show', [
             'alumno' => $persona,
@@ -181,7 +183,44 @@ class AlumnoController extends Controller
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
             'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
             'corteActivoId' => CorteActivo::id(),
+        ] + $this->datosCambioDePlan($request, $inscripcion));
+    }
+
+    // Para el panel "Pasar a otro plan": planes destino, el elegido y la vista previa.
+    private function datosCambioDePlan(Request $request, ?InscripcionCarrera $inscripcion): array
+    {
+        $destinos = $inscripcion
+            ? $inscripcion->carrera->planes()->get()->filter(fn ($p) => $p->estado() === 'Vigente' && $p->id_plan_estudio !== $inscripcion->id_plan_estudio)->values()
+            : collect();
+        $destino = $destinos->firstWhere('id_plan_estudio', $request->integer('plan_destino')) ?? $destinos->first();
+
+        return [
+            'planActual' => $inscripcion?->plan,
+            'planesDestino' => $destinos,
+            'planDestino' => $destino,
+            'vistaPreviaPlan' => $destino ? CambioDePlan::vistaPrevia($inscripcion, $destino) : null,
+            'impedimentoPlan' => $destino ? CambioDePlan::impedimento($inscripcion, $destino) : null,
+        ];
+    }
+
+    public function cambiarPlan(Request $request, Persona $persona): RedirectResponse
+    {
+        $data = $request->validate([
+            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
+            'id_plan_destino' => ['required', 'exists:plan_estudio,id_plan_estudio'],
         ]);
+
+        $inscripcion = $this->inscripcionDe($persona, (int) $data['id_carrera']);
+        $destino = \App\Models\PlanEstudio::findOrFail($data['id_plan_destino']);
+        abort_unless($inscripcion, 404);
+
+        if ($motivo = CambioDePlan::impedimento($inscripcion, $destino)) {
+            return back()->withErrors(['plan' => $motivo]);
+        }
+
+        $copiadas = CambioDePlan::aplicar($inscripcion, $destino);
+
+        return back()->with('status', "Se pasó a {$persona->nombre} {$persona->apellido} al {$destino->nombre}. Se le reconocieron {$copiadas} registro(s) de su historial.");
     }
 
     // Inscribe a un alumno que ya existe en otra carrera. Desde ahí, cada
@@ -196,9 +235,12 @@ class AlumnoController extends Controller
             'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
         ], ['carrera_id.unique' => 'El alumno ya está inscripto en esa carrera.']);
 
+        $plan = $this->planParaInscribir($data['carrera_id'], $data['anio_lectivo_id']);
+
         InscripcionCarrera::create([
             'id_persona_alumno' => $persona->id_persona,
             'id_carrera' => $data['carrera_id'],
+            'id_plan_estudio' => $plan->id_plan_estudio,
             'id_anio_cursada' => $data['anio_cursada_id'],
             'id_anio_lectivo' => $data['anio_lectivo_id'],
             'id_turno_cursada' => $data['turno_cursada_id'],
@@ -210,6 +252,22 @@ class AlumnoController extends Controller
         return redirect()->route('admin.alumnos.show', [$persona, 'carrera' => $data['carrera_id']])
             ->with('status', 'Se inscribió al alumno en ' . Carrera::find($data['carrera_id'])->nombre_carrera
                 . '. Generale la matrícula y las cuotas de esta carrera desde Registrar Cuotas.');
+    }
+
+    // Plan al que entra un alumno nuevo en esa carrera y año lectivo. Si ninguno
+    // acepta inscripciones (cerrado o caducado), no se lo puede inscribir.
+    private function planParaInscribir(int|string $idCarrera, int|string $idAnioLectivo): \App\Models\PlanEstudio
+    {
+        $anio = (int) AnioLectivo::find($idAnioLectivo)?->anio;
+        $plan = Carrera::find($idCarrera)?->planParaInscribir($anio);
+
+        if (! $plan) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'carrera_id' => "La carrera no tiene un plan de estudios que acepte inscripciones en {$anio}. Revisá la vigencia en Carreras → Planes.",
+            ]);
+        }
+
+        return $plan;
     }
 
     // Inscripción del alumno en una carrera (o la más reciente si no se indica),
@@ -275,6 +333,7 @@ class AlumnoController extends Controller
             'turno_cursada_id' => ['required', 'exists:turno_cursada,id_turno_cursada'],
         ]);
 
+        $this->planParaInscribir($datos['carrera_id'], $datos['anio_lectivo_id']); // que haya un plan abierto ese año
         session([self::SESSION_KEY . '.academicos' => $datos]);
 
         return redirect()->route('admin.alumnos.acceso');
@@ -332,6 +391,7 @@ class AlumnoController extends Controller
         InscripcionCarrera::create([
             'id_persona_alumno' => $persona->id_persona,
             'id_carrera' => $academicos['carrera_id'],
+            'id_plan_estudio' => $this->planParaInscribir($academicos['carrera_id'], $academicos['anio_lectivo_id'])->id_plan_estudio,
             'id_anio_cursada' => $academicos['anio_cursada_id'],
             'id_anio_lectivo' => $academicos['anio_lectivo_id'],
             'id_turno_cursada' => $academicos['turno_cursada_id'],
@@ -367,6 +427,11 @@ class AlumnoController extends Controller
             'fecha_baja' => now(),
             'id_secretario_baja' => Auth::user()->id_persona,
         ]);
+
+        // Las cuotas se frenan: se borran las impagas de los meses siguientes a la
+        // baja. Las anteriores y la de este mes quedan (las tiene que pagar).
+        $persona->cuotas()->where('id_carrera', $inscripcion->id_carrera)->where('pagado', false)
+            ->whereDate('fecha_vencimiento', '>', now()->endOfMonth())->delete();
 
         // Si el alumno tiene usuario para entrar al sistema, se lo desactiva
         // también: dar de baja la inscripción no debía impedir el login por sí
@@ -419,28 +484,6 @@ class AlumnoController extends Controller
         return back()->with('status', "Se promovió a {$persona->nombre} {$persona->apellido} a {$progreso['proximoAnio']->nombre_anio}.");
     }
 
-    /**
-     * Cambia la condición de la inscripción a la carrera: Regular,
-     * Recursante o Cursada completa. De eso depende qué cuotas paga y a qué
-     * mesas se puede anotar (ver CondicionAlumno::DE_INSCRIPCION).
-     */
-    public function actualizarCondicionInscripcion(Request $request, Persona $persona): RedirectResponse
-    {
-        $inscripcion = $persona->inscripcionCarreraActiva($request->integer('id_carrera') ?: null);
-
-        abort_unless($inscripcion, 404, 'El alumno no tiene una inscripción activa.');
-
-        $data = $request->validate([
-            'condicion' => ['required', Rule::in(CondicionAlumno::DE_INSCRIPCION)],
-        ]);
-
-        $inscripcion->update([
-            'id_condicion' => CondicionAlumno::where('nombre_condicion', $data['condicion'])->value('id_condicion'),
-        ]);
-
-        return back()->with('status', "Condición actualizada: {$persona->nombre} {$persona->apellido} ahora figura como {$data['condicion']}.");
-    }
-
     public function actualizarPlazoRegularidad(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
     {
         abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
@@ -465,7 +508,7 @@ class AlumnoController extends Controller
         // secretaría necesita poder inscribir en casos excepcionales
         // (recursada, materias de otro año, etc.), por eso el bloqueo se
         // muestra solo como aviso, no impide tildar la materia.
-        $materias = $inscripcion->carrera->materias()
+        $materias = $inscripcion->materiasDelPlan()
             ->where('activa', true)
             ->with(['nombreMateria', 'anioCursada', 'periodo', 'requisitos'])
             ->get()
@@ -491,7 +534,7 @@ class AlumnoController extends Controller
 
         $data = $request->validate([
             'materias' => ['required', 'array', 'min:1'],
-            'materias.*' => ['integer', Rule::exists('materia', 'id_materia')->where('id_carrera', $inscripcion->id_carrera)],
+            'materias.*' => ['integer', Rule::exists('materia', 'id_materia')->where('id_plan_estudio', $inscripcion->id_plan_estudio)],
         ]);
 
         $anioLectivoActivo = AnioLectivo::activo();
@@ -583,7 +626,7 @@ class AlumnoController extends Controller
             return null;
         }
 
-        $total = Materia::where('id_carrera', $inscripcion->id_carrera)
+        $total = $inscripcion->materiasDelPlan()
             ->where('id_anio_cursada', $inscripcion->id_anio_cursada)
             ->where('activa', true)
             ->count();

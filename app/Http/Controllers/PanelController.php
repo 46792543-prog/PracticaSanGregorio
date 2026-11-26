@@ -19,7 +19,7 @@ class PanelController extends Controller
         $deLaCarrera = fn ($q) => $q->whereHas('materia', fn ($m) => $m->where('id_carrera', $idCarrera));
 
         $totalMaterias = $inscripcionCarrera
-            ? $inscripcionCarrera->carrera->materias()->count()
+            ? $inscripcionCarrera->materiasDelPlan()->count()
             : 0;
         $materiasAprobadas = $alumno->historialAlumno()->tap($deLaCarrera)->whereHas('condicion', fn ($q) => $q->whereIn('nombre_condicion', CondicionAlumno::APROBADA))->count();
         $porcentaje = $totalMaterias > 0 ? (int) round($materiasAprobadas / $totalMaterias * 100) : 0;

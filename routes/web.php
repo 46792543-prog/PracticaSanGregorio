@@ -128,10 +128,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::delete('/alumnos/historial/cargar/{historial}', [HistorialPrevioController::class, 'destroy'])->name('alumnos.historial-previo.destroy');
     Route::get('/alumnos/{persona}', [AlumnoController::class, 'show'])->name('alumnos.show');
     Route::post('/alumnos/{persona}/carreras', [AlumnoController::class, 'inscribirCarrera'])->name('alumnos.carreras.store');
+    Route::post('/alumnos/{persona}/cambiar-plan', [AlumnoController::class, 'cambiarPlan'])->name('alumnos.cambiar-plan');
     Route::put('/alumnos/{persona}/baja', [AlumnoController::class, 'baja'])->name('alumnos.baja');
     Route::put('/alumnos/{persona}/alta', [AlumnoController::class, 'alta'])->name('alumnos.alta');
     Route::put('/alumnos/{persona}/promover', [AlumnoController::class, 'promoverAnio'])->name('alumnos.promover');
-    Route::put('/alumnos/{persona}/condicion', [AlumnoController::class, 'actualizarCondicionInscripcion'])->name('alumnos.condicion');
     Route::put('/alumnos/{persona}/historial/{historial}/plazo', [AlumnoController::class, 'actualizarPlazoRegularidad'])->name('alumnos.historial.plazo');
     Route::get('/alumnos/{persona}/materias', [AlumnoController::class, 'materias'])->name('alumnos.materias');
     Route::post('/alumnos/{persona}/materias', [AlumnoController::class, 'materiasStore'])->name('alumnos.materias.store');
@@ -163,6 +163,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/carreras/{carrera}/editar', [CarreraController::class, 'edit'])->name('carreras.edit');
     Route::put('/carreras/{carrera}', [CarreraController::class, 'update'])->name('carreras.update');
     Route::get('/carreras/{carrera}/plan', [CarreraController::class, 'plan'])->name('carreras.plan');
+    // Planes de estudio de la carrera (historial y vigencia).
+    Route::get('/carreras/{carrera}/planes', [CarreraController::class, 'planes'])->name('carreras.planes');
+    Route::post('/carreras/{carrera}/planes', [CarreraController::class, 'storePlan'])->name('carreras.planes.store');
+    Route::put('/carreras/{carrera}/planes/{plan}', [CarreraController::class, 'updatePlan'])->name('carreras.planes.update');
+    Route::delete('/carreras/{carrera}/planes/{plan}', [CarreraController::class, 'destroyPlan'])->name('carreras.planes.destroy');
+    Route::post('/carreras/{carrera}/planes/{plan}/pasar-alumnos', [CarreraController::class, 'pasarAlumnos'])->name('carreras.planes.pasar-alumnos');
     Route::get('/carreras/{carrera}/materias', [CarreraController::class, 'materias'])->name('carreras.materias');
     Route::post('/carreras/{carrera}/materias', [CarreraController::class, 'storeMateria'])->name('carreras.materias.store');
     Route::put('/carreras/{carrera}/materias/{materia}', [CarreraController::class, 'updateMateria'])->name('carreras.materias.update');
@@ -234,7 +240,6 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/cuotas', [DirectorCuotaController::class, 'index'])->name('cuotas.index');
     Route::post('/cuotas/cobrar', [DirectorCuotaController::class, 'cobrar'])->name('cuotas.cobrar');
     Route::post('/cuotas/generar', [DirectorCuotaController::class, 'generar'])->name('cuotas.generar');
-    Route::delete('/cuotas/{cuota}', [DirectorCuotaController::class, 'eliminar'])->name('cuotas.eliminar');
 
     Route::post('/matricula/cobrar', [DirectorCuotaController::class, 'cobrarMatricula'])->name('matricula.cobrar');
     Route::post('/matricula/generar', [DirectorCuotaController::class, 'generarMatricula'])->name('matricula.generar');
@@ -250,6 +255,11 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     // resto del panel de dirección. El Secretario (sin más) no entra.
     Route::get('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'index'])->name('configuracion-cuotas.index');
     Route::post('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'store'])->name('configuracion-cuotas.store');
+    // Cuotas de Recursantes: precio por cantidad de materias, por año y carrera.
+    Route::get('/tarifas-recursantes', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'index'])->name('tarifas-recursantes.index');
+    Route::post('/tarifas-recursantes', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'store'])->name('tarifas-recursantes.store');
+    Route::put('/tarifas-recursantes/{tarifa}', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'update'])->name('tarifas-recursantes.update');
+    Route::delete('/tarifas-recursantes/{tarifa}', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'destroy'])->name('tarifas-recursantes.destroy');
     Route::post('/configuracion-cuotas/aumentos', [ConfiguracionCuotaController::class, 'storeAumento'])->name('configuracion-cuotas.aumentos.store');
     Route::put('/configuracion-cuotas/aumentos/{aumento}', [ConfiguracionCuotaController::class, 'updateAumento'])->name('configuracion-cuotas.aumentos.update');
     Route::delete('/configuracion-cuotas/aumentos/{aumento}', [ConfiguracionCuotaController::class, 'destroyAumento'])->name('configuracion-cuotas.aumentos.destroy');

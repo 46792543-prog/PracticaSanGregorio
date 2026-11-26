@@ -39,6 +39,8 @@
                 </div>
                 <div class="px-5 pt-3 pb-5 flex-1">
                     <h3 class="font-display font-bold text-[17px] text-slate-900 leading-snug">{{ $carrera->nombre_carrera }}</h3>
+                    @php $planVigente = $carrera->planes->first(fn ($p) => $p->estado() === 'Vigente'); @endphp
+                    <p class="text-xs text-slate-500 mt-1">{{ $planVigente ? $planVigente->nombre . ' (vigente)' : 'Sin plan vigente' }}{{ $carrera->planes->count() > 1 ? ' · ' . $carrera->planes->count() . ' planes' : '' }}</p>
                     @if ($carrera->familia_profesional)
                         <p class="text-xs text-slate-500 mt-1">Familia Profesional: {{ $carrera->familia_profesional }}</p>
                     @endif
@@ -53,11 +55,12 @@
                         </a>
                     </div>
                 </div>
-                <div class="grid grid-cols-4 border-t border-slate-100 text-xs font-semibold">
+                <div class="grid grid-cols-5 border-t border-slate-100 text-xs font-semibold">
                     <a href="{{ route('admin.carreras.plan', $carrera) }}" class="flex flex-col items-center gap-1 py-3 text-slate-500 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors"><x-sg.icono nombre="eye" class="h-4 w-4" />Ver plan</a>
                     <a href="{{ route('admin.carreras.materias', $carrera) }}" class="flex flex-col items-center gap-1 py-3 text-slate-500 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors border-l border-slate-100"><x-sg.icono nombre="book" class="h-4 w-4" />Materias</a>
                     <a href="{{ route('admin.carreras.correlativas', $carrera) }}" class="flex flex-col items-center gap-1 py-3 text-slate-500 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors border-l border-slate-100"><x-sg.icono nombre="link" class="h-4 w-4" />Correlativas</a>
                     <a href="{{ route('admin.carreras.edit', $carrera) }}" class="flex flex-col items-center gap-1 py-3 text-slate-500 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors border-l border-slate-100"><x-sg.icono nombre="pencil" class="h-4 w-4" />Editar</a>
+                    <a href="{{ route('admin.carreras.planes', $carrera) }}" class="flex flex-col items-center gap-1 py-3 text-slate-500 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors border-l border-slate-100"><x-sg.icono nombre="book" class="h-4 w-4" />Planes</a>
                 </div>
             </article>
         @empty

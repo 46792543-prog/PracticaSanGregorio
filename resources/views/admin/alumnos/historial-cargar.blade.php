@@ -431,7 +431,7 @@
         // Según la condición elegida: la nota se oculta en curso, se pide
         // obligatoria en una aprobación definitiva y queda opcional en Libre.
         // Una Equivalencia no lleva veces rendida, pero sí institución y resolución.
-        const SIN_NOTA = ['Cursando', 'Regular'];
+        const SIN_NOTA = ['Cursando', 'Recursando', 'Regular'];
         // Rango de nota por condición (igual que en el controlador): Promocionada 7 a 10,
         // Final Aprobado y Equivalencia 4 a 10, Final Desaprobado y Libre 1 a 3.
         const RANGO_NOTA = { 'Promocionada': [7, 10], 'Examen Final': [4, 10], 'Equivalencia': [4, 10], 'Final Desaprobado': [1, 3], 'Libre': [1, 3] };

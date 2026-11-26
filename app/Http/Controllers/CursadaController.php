@@ -36,6 +36,7 @@ class CursadaController extends Controller
             // de los períodos que secretaría haya abierto para su carrera (ver Admin\PeriodoCursadaController).
             $materias = Materia::with('nombreMateria', 'periodo', 'requisitos')
                 ->where('id_carrera', $inscripcionCarrera->id_carrera)
+                ->where('id_plan_estudio', $inscripcionCarrera->id_plan_estudio) // solo su plan de estudios
                 ->where('id_anio_cursada', $inscripcionCarrera->id_anio_cursada)
                 ->where('activa', true)
                 ->whereIn('id_periodo', $periodosAbiertos)
@@ -45,7 +46,7 @@ class CursadaController extends Controller
                     $historial = $materia->historialDe($alumno);
 
                     return $historial && $historial->id_anio_lectivo === $anioLectivo->id_anio_lectivo
-                        && in_array($historial->condicion?->nombre_condicion, array_merge(['Cursando'], CondicionAlumno::REGULARIZADA, CondicionAlumno::APROBADA), true);
+                        && in_array($historial->condicion?->nombre_condicion, array_merge(CondicionAlumno::EN_CURSO, CondicionAlumno::REGULARIZADA, CondicionAlumno::APROBADA), true);
                 })
                 ->map(fn (Materia $materia) => [
                     'materia' => $materia,
@@ -72,6 +73,7 @@ class CursadaController extends Controller
 
         abort_unless($inscripcionCarrera && $materia->id_carrera === $inscripcionCarrera->id_carrera, 403);
         abort_unless($materia->id_anio_cursada === $inscripcionCarrera->id_anio_cursada, 403);
+        abort_unless($materia->id_plan_estudio === $inscripcionCarrera->id_plan_estudio, 403); // materia de otro plan
 
         $periodoAbierto = PeriodoInscripcionCursada::where('id_anio_lectivo', $anioLectivo->id_anio_lectivo)
             ->where('id_periodo', $materia->id_periodo)
@@ -86,7 +88,7 @@ class CursadaController extends Controller
 
         $historial = $materia->historialDe($alumno);
         $yaCursando = $historial && $historial->id_anio_lectivo === $anioLectivo->id_anio_lectivo
-            && in_array($historial->condicion?->nombre_condicion, array_merge(['Cursando'], CondicionAlumno::REGULARIZADA, CondicionAlumno::APROBADA), true);
+            && in_array($historial->condicion?->nombre_condicion, array_merge(CondicionAlumno::EN_CURSO, CondicionAlumno::REGULARIZADA, CondicionAlumno::APROBADA), true);
         abort_if($yaCursando, 409, 'Ya estás inscripto a esta materia.');
 
         if ($bloqueo = $materia->bloqueoParaCursar($alumno)) {

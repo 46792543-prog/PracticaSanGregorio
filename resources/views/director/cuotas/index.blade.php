@@ -223,14 +223,6 @@
                                                 <span class="sg-badge sg-badge--gris">Vence el {{ \App\Support\FechaEsp::corta($cuota->fecha_vencimiento) }} — todavía no está vencida</span>
                                             @endif
                                         </label>
-                                        <div class="flex items-center gap-1 shrink-0">
-                                            <form method="POST" action="{{ route('director.cuotas.eliminar', $cuota) }}" onsubmit="return confirm('¿Eliminar esta cuota? Esta acción no se puede deshacer.');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <input type="hidden" name="alumno_usuario_id" value="{{ $alumnoSeleccionado->id_usuario }}"><input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
-                                                <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar cuota"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
-                                            </form>
-                                        </div>
                                     </div>
                                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
                                         <div>

@@ -20,10 +20,10 @@ use Illuminate\View\View;
 class HistorialPrevioController extends Controller
 {
     private const TOPE_VECES_RENDIDA = 3;
-    private const CONDICIONES_DISPONIBLES = ['Cursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre', 'Final Desaprobado'];
+    private const CONDICIONES_DISPONIBLES = ['Cursando', 'Recursando', 'Regular', 'Promocionada', 'Examen Final', 'Equivalencia', 'Libre', 'Final Desaprobado'];
 
     // Condiciones "en curso": todavía no hay una nota final que cargar.
-    private const SIN_NOTA = ['Cursando', 'Regular'];
+    private const SIN_NOTA = ['Cursando', 'Recursando', 'Regular'];
 
     // A qué puede pasar una materia "Cursando" al terminar la cursada (ver
     // cerrarCursada()): recién ahí el alumno puede anotarse a la mesa de esa
@@ -71,7 +71,8 @@ class HistorialPrevioController extends Controller
             'anioLectivoActual' => $anioLectivoActual,
             'nombreAnioActual' => $nombreAnioActual,
             'carreraAlumnoId' => $carreraAlumnoId,
-            'carreras' => Carrera::with(['materias' => fn ($q) => $q->where('activa', true)->with(['nombreMateria', 'anioCursada'])])
+            'carreras' => Carrera::with(['materias' => fn ($q) => $q->where('activa', true)->with(['nombreMateria', 'anioCursada'])
+                    ->when($alumno?->inscripcionesCarrera->pluck('id_plan_estudio')->filter()->all(), fn ($q, $planes) => $q->whereIn('id_plan_estudio', $planes))])
                 ->orderBy('nombre_carrera')
                 ->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
@@ -110,6 +111,10 @@ class HistorialPrevioController extends Controller
 
         [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
+
+        if ($error = $this->validarRecursada($condicionNombre, $data['id_persona_alumno'], $data['id_materia'], $data['id_anio_lectivo'])) {
+            return back()->withErrors(['id_condicion' => $error])->withInput();
+        }
 
         if ($error = $this->validarReglasNota($condicionNombre, $data['nota_cursada'] ?? null)) {
             return back()->withErrors(['nota_cursada' => $error])->withInput();
@@ -221,7 +226,8 @@ class HistorialPrevioController extends Controller
             [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $datos['id_condicion'], $veces);
             $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
-            $error = $this->validarReglasNota($condicionNombre, $nota)
+            $error = $this->validarRecursada($condicionNombre, $idPersona, $materia->id_materia, $datos['id_anio_lectivo'])
+                ?? $this->validarReglasNota($condicionNombre, $nota)
                 ?? $this->validarCamposEquivalencia($condicionNombre, $datos['institucion_equivalencia'] ?? null, $datos['resolucion_equivalencia'] ?? null);
 
             if ($error) {
@@ -312,6 +318,10 @@ class HistorialPrevioController extends Controller
         [$idCondicion, $sePasoALibre] = $this->resolverCondicion((int) $data['id_condicion'], $data['veces_rendida'] ?? null);
         $condicionNombre = CondicionAlumno::find($idCondicion)?->nombre_condicion;
 
+        if ($error = $this->validarRecursada($condicionNombre, $historial->id_persona_alumno, $historial->id_materia, $data['id_anio_lectivo'], $historial->id_historial)) {
+            return back()->withErrors(['id_condicion' => $error])->withInput();
+        }
+
         if ($error = $this->validarReglasNota($condicionNombre, $data['nota_cursada'] ?? null)) {
             return back()->withErrors(['nota_cursada' => $error])->withInput();
         }
@@ -350,7 +360,7 @@ class HistorialPrevioController extends Controller
     public function cerrarCursada(Request $request, Persona $persona, HistorialAlumno $historial): RedirectResponse
     {
         abort_unless($historial->id_persona_alumno === $persona->id_persona, 404);
-        abort_unless($historial->condicion?->nombre_condicion === 'Cursando', 422, 'Esta materia no está en curso: no se puede cerrar la cursada.');
+        abort_unless(in_array($historial->condicion?->nombre_condicion, CondicionAlumno::EN_CURSO, true), 422, 'Esta materia no está en curso: no se puede cerrar la cursada.');
 
         // Para que al volver a la ficha (éxito o error de validación) el
         // panel "Cerrar cursada" quede abierto en vez de volver a esconderse.
@@ -443,6 +453,16 @@ class HistorialPrevioController extends Controller
      * Devuelve el mensaje de error si la nota no corresponde a la condición
      * final, o null si está todo bien.
      */
+    // Solo para "Recursando": aplica las reglas de Materia::motivoNoPuedeRecursar().
+    private function validarRecursada(?string $condicionNombre, $idPersona, $idMateria, $idAnio, ?int $excluirHistorial = null): ?string
+    {
+        if ($condicionNombre !== CondicionAlumno::RECURSANDO || ! $idPersona || ! $idMateria || ! $idAnio) {
+            return null;
+        }
+
+        return Materia::find($idMateria)?->motivoNoPuedeRecursar(Persona::find($idPersona), (int) $idAnio, $excluirHistorial);
+    }
+
     private function validarReglasNota(?string $condicionNombre, ?int $nota): ?string
     {
         if (in_array($condicionNombre, self::SIN_NOTA, true) && $nota !== null) {

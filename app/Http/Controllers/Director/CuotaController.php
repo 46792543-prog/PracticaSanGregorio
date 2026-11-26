@@ -14,6 +14,7 @@ use App\Models\MedioPago;
 use App\Models\Mes;
 use App\Models\MovimientoCaja;
 use App\Models\Persona;
+use App\Models\TarifaRecursante;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
 use App\Support\RecalculadorCuotas;
@@ -74,7 +75,7 @@ class CuotaController extends Controller
         $persona?->setRelation('cuotas', $persona->cuotas->where('id_carrera', $idCarrera)->values());
 
         $corteActivo = CorteActivo::actual();
-        $montoActual = $corteActivo?->configuracionCuota?->montoVigente();
+        $montoActual = ConfiguracionCuota::de($corteActivo?->id_anio_lectivo, $idCarrera)?->montoVigente();
 
         // Regular / Recursante / Cursada completa: al recursante y al de
         // cursada completa no se les generan cuotas solas — se les cargan
@@ -85,10 +86,13 @@ class CuotaController extends Controller
         // Para que "Generar cuota nueva" autocomplete monto/concepto/día de
         // vencimiento con lo cargado en Configuración de Cuotas, por cada
         // año lectivo (el formulario permite elegir cualquiera, no solo el activo).
-        $configuracionesCuotaPorAnio = ConfiguracionCuota::with('aumentos', 'anioLectivo')->get()
+        $configuracionesCuotaPorAnio = ConfiguracionCuota::with('aumentos', 'anioLectivo')->where('id_carrera', $idCarrera)->get()
             ->keyBy('id_anio_lectivo')
             ->map(fn (ConfiguracionCuota $c) => [
-                'monto' => $condicionAlumno === CondicionAlumno::RECURSANTE ? null : $c->montoVigente(),
+                // Recursante: precio de su tabla según cuántas materias cursa.
+                'monto' => $condicionAlumno === CondicionAlumno::RECURSANTE
+                    ? TarifaRecursante::montoPara($persona, $c->id_anio_lectivo, $idCarrera)
+                    : $c->montoVigente(),
                 'dia_vencimiento' => $c->dia_vencimiento,
                 'concepto' => $c->concepto,
             ]);
@@ -146,7 +150,7 @@ class CuotaController extends Controller
         $idCarrera = (int) $request->input('id_carrera');
         $respetaPeriodo = ! $persona?->tieneCursadaCompleta($idCarrera);
 
-        $configuracion = ConfiguracionCuota::where('id_anio_lectivo', $request->input('id_anio_lectivo'))->first();
+        $configuracion = ConfiguracionCuota::de($request->integer('id_anio_lectivo'), $idCarrera);
         $mesDesde = $configuracion?->mes_desde ?? 3;
         $mesHasta = $configuracion?->mes_hasta ?? 12;
         // Tope del importe: lo que vale hoy la cuota del mes más avanzado de
@@ -155,6 +159,11 @@ class CuotaController extends Controller
         $montoMaximo = $configuracion && $mesesElegidos
             ? $configuracion->montoACobrar(max($mesesElegidos))
             : $configuracion?->montoVigente();
+
+        // Recursante: el tope es el precio de su tabla (no el de la cuota regular).
+        if ($persona?->esRecursante($idCarrera)) {
+            $montoMaximo = TarifaRecursante::montoPara($persona, $request->integer('id_anio_lectivo'), $idCarrera);
+        }
 
         $data = $request->validate([
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
@@ -237,20 +246,6 @@ class CuotaController extends Controller
 
         return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
             ->with('status', $mensaje);
-    }
-
-    public function eliminar(Request $request, CuotaAlumno $cuota): RedirectResponse
-    {
-        abort_if($cuota->pagado, 403, 'No se puede eliminar una cuota que ya fue cobrada.');
-
-        $data = $request->validate([
-            'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
-        ]);
-
-        $cuota->delete();
-
-        return redirect()->route('director.cuotas.index', ['alumno' => $data['alumno_usuario_id'], 'carrera' => $request->input('id_carrera')])
-            ->with('status', 'Se eliminó la cuota correctamente.');
     }
 
     public function cobrar(Request $request): RedirectResponse

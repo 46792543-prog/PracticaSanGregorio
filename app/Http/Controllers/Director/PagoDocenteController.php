@@ -11,6 +11,7 @@ use App\Models\MovimientoCaja;
 use App\Models\PagoDocente;
 use App\Models\Profesor;
 use App\Models\TipoMovimiento;
+use App\Support\Auditor;
 use App\Support\FechaEsp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -70,7 +71,21 @@ class PagoDocenteController extends Controller
     // borra y se vuelve a generar con los datos corregidos.
     public function update(Request $request, PagoDocente $pago): RedirectResponse
     {
-        $pago->update($this->validar($request, $pago));
+        $datos = $this->validar($request, $pago);
+
+        // Motivo obligatorio: queda guardado en Auditoría junto con el cambio.
+        $motivo = $request->validate(['motivo' => ['required', 'string', 'min:5', 'max:500']], [
+            'motivo.required' => 'Indicá el motivo de la edición del pago.',
+            'motivo.min' => 'El motivo es muy corto: contá brevemente por qué se edita.',
+        ])['motivo'];
+
+        // Si no se cambió ningún dato, no hay nada que guardar ni auditar.
+        if (! $pago->fill($datos)->isDirty()) {
+            return back()->with('status', 'No se modificó ningún dato del pago.');
+        }
+
+        Auditor::conMotivo($motivo);
+        $pago->save();
         $pago->movimientoCaja?->delete();
         $this->asentarEnCajaSiPagado($pago->fresh());
 
@@ -151,7 +166,9 @@ class PagoDocenteController extends Controller
             'id_medio_pago' => $medioPago->id_medio_pago,
         ]);
 
-        $pago->update(['id_movimiento_caja' => $movimiento->id_movimiento]);
+        // Enlace interno con la caja: se guarda sin auditar, para que en
+        // Auditoría quede una sola fila con los cambios del pago y el motivo.
+        $pago->forceFill(['id_movimiento_caja' => $movimiento->id_movimiento])->saveQuietly();
     }
 
     public function storeMetodoPago(Request $request): RedirectResponse

@@ -122,7 +122,7 @@ class CatalogoSeeder extends Seeder
         // Final/Equivalencia/Libre) — las últimas tres reemplazan a la vieja
         // "Aprobada" genérica, distinguiendo cómo se aprobó cada materia
         // (ver CondicionAlumno::APROBADA).
-        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Promocionada', 'Examen Final', 'Equivalencia'] as $nombre) {
+        foreach (['Regular', 'Promoción', 'Libre', 'Pendiente', 'Cursando', 'Promocionada', 'Examen Final', 'Equivalencia', 'Recursando'] as $nombre) {
             CondicionAlumno::firstOrCreate(['nombre_condicion' => $nombre]);
         }
 

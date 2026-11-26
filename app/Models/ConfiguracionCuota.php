@@ -13,6 +13,7 @@ class ConfiguracionCuota extends Model
 
     protected $fillable = [
         'id_anio_lectivo', /* */
+        'id_carrera', // cada carrera tiene su propia configuración
         'monto_mensual',  /* monto base: rige desde mes_desde hasta el primer aumento */
         'mes_desde',
         'mes_hasta',
@@ -29,6 +30,20 @@ class ConfiguracionCuota extends Model
     public function anioLectivo(): BelongsTo
     {
         return $this->belongsTo(AnioLectivo::class, 'id_anio_lectivo', 'id_anio_lectivo');
+    }
+
+    public function carrera(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    // Configuración de un año lectivo para una carrera.
+    public static function de(?int $idAnioLectivo, ?int $idCarrera): ?self
+    {
+        return self::with('aumentos', 'anioLectivo')
+            ->where('id_anio_lectivo', $idAnioLectivo)
+            ->where('id_carrera', $idCarrera)
+            ->first();
     }
 
     // Aumentos del año, ordenados por mes (ej: julio $110.000, octubre $120.000).

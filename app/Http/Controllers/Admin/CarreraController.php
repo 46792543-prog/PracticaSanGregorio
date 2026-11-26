@@ -9,19 +9,24 @@ use App\Models\Correlativa;
 use App\Models\EstadoCarrera;
 use App\Models\Materia;
 use App\Models\NombreMateria;
+use App\Models\PlanEstudio;
 use App\Models\PeriodoDictado;
 use App\Models\RegimenAprobacion;
+use App\Support\CambioDePlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CarreraController extends Controller
 {
     public function index(Request $request): View
     {
-        $carreras = Carrera::withCount('materias')->with('estadoCarrera')
+        // La tarjeta muestra las materias del plan vigente de cada carrera.
+        $idsVigentes = PlanEstudio::all()->filter(fn ($p) => $p->estado() === 'Vigente')->pluck('id_plan_estudio');
+        $carreras = Carrera::withCount(['materias' => fn ($q) => $q->whereIn('id_plan_estudio', $idsVigentes)])->with('estadoCarrera', 'planes')
             ->when($request->query('q'), fn ($q, $busqueda) => $q->where('nombre_carrera', 'like', "%{$busqueda}%"))
             ->orderBy('nombre_carrera')
             ->get();
@@ -54,6 +59,12 @@ class CarreraController extends Controller
         ]);
 
         $carrera = Carrera::create($data);
+        $carrera->planes()->create([
+            'nombre' => 'Plan ' . now()->year,
+            'resolucion_ministerial' => $carrera->resolucion_ministerial,
+            'duracion_anos' => $carrera->duracion_anos,
+            'anio_desde' => now()->year,
+        ]);
 
         return redirect()->route('admin.carreras.materias', $carrera)
             ->with('status', 'Carrera creada. Ahora sumá las materias de su plan de estudio.');
@@ -108,13 +119,15 @@ class CarreraController extends Controller
         }
     }
 
-    public function materias(Carrera $carrera): View
+    public function materias(Request $request, Carrera $carrera): View
     {
         $this->asegurarCatalogosPlan();
+        $plan = $this->planElegido($request, $carrera);
 
         return view('admin.carreras.materias', [
             'carrera' => $carrera,
-            'materias' => $carrera->materias()->with('nombreMateria', 'anioCursada', 'periodo', 'regimen')->orderBy('numero_orden')->get(),
+            'plan' => $plan,
+            'materias' => $plan->materias()->with('nombreMateria', 'anioCursada', 'periodo', 'regimen')->orderBy('numero_orden')->get(),
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
             'periodos' => PeriodoDictado::orderBy('id_periodo')->get(),
             'regimenes' => RegimenAprobacion::orderBy('id_regimen')->get(),
@@ -133,15 +146,18 @@ class CarreraController extends Controller
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
         ]);
 
+        $plan = $this->planElegido($request, $carrera);
+        $this->exigirPlanEditable($plan);
         $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
 
         $carrera->materias()->create([
+            'id_plan_estudio' => $plan->id_plan_estudio,
             'numero_orden' => $data['numero_orden'],
             'id_nombre_materia' => $nombreMateria->id_nombre_materia,
             'id_anio_cursada' => $data['id_anio_cursada'],
             'id_periodo' => $data['id_periodo'],
             'id_regimen' => $data['id_regimen'],
-            'version_plan' => (string) now()->year,
+            'version_plan' => (string) $plan->anio_desde,
         ]);
 
         return back()->with('status', 'Materia agregada al plan de estudio.');
@@ -159,6 +175,7 @@ class CarreraController extends Controller
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
         ]);
 
+        $this->exigirPlanEditable($materia->plan);
         $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
 
         $materia->update([
@@ -174,6 +191,7 @@ class CarreraController extends Controller
 
     public function bajaMateria(Carrera $carrera, Materia $materia): RedirectResponse
     {
+        $this->exigirPlanEditable($materia->plan);
         $materia->update(['activa' => false]);
 
         return back()->with('status', 'Materia dada de baja.');
@@ -181,21 +199,22 @@ class CarreraController extends Controller
 
     public function reactivarMateria(Carrera $carrera, Materia $materia): RedirectResponse
     {
+        $this->exigirPlanEditable($materia->plan);
         $materia->update(['activa' => true]);
 
         return back()->with('status', 'Materia reactivada.');
     }
 
-    public function correlativas(Carrera $carrera): View
+    public function correlativas(Request $request, Carrera $carrera): View
     {
-        return $this->vistaCorrelativas($carrera);
+        return $this->vistaCorrelativas($this->planElegido($request, $carrera));
     }
 
-    public function editGrupoCorrelativas(Carrera $carrera, int $principal): View
+    public function editGrupoCorrelativas(Request $request, Carrera $carrera, int $principal): View
     {
         $this->buscarPrincipalDeCarrera($carrera, $principal);
 
-        return $this->vistaCorrelativas($carrera, $principal);
+        return $this->vistaCorrelativas($this->planElegido($request, $carrera), $principal);
     }
 
     /**
@@ -203,9 +222,10 @@ class CarreraController extends Controller
      * materias requeridas de una materia destino (agregar, quitar y marcar para
      * cursar/rendir) y la matriz lleva los datos para editar sin recargar la página.
      */
-    private function vistaCorrelativas(Carrera $carrera, ?int $principalEditar = null): View
+    private function vistaCorrelativas(PlanEstudio $plan, ?int $principalEditar = null): View
     {
-        $materias = $carrera->materias()->with('nombreMateria')->orderBy('numero_orden')->get();
+        $carrera = $plan->carrera;
+        $materias = $plan->materias()->with('nombreMateria')->orderBy('numero_orden')->get();
 
         $correlativas = Correlativa::whereIn('id_materia_principal', $materias->pluck('id_materia'))
             ->get()
@@ -217,6 +237,7 @@ class CarreraController extends Controller
 
         return view('admin.carreras.correlativas', [
             'carrera' => $carrera,
+            'plan' => $plan,
             'materias' => $materias->keyBy('id_materia'),
             'correlativas' => $correlativas,
             'principalEditar' => $principalEditar,
@@ -229,7 +250,9 @@ class CarreraController extends Controller
      */
     public function storeCorrelativa(Request $request, Carrera $carrera): RedirectResponse
     {
-        $idsMaterias = $carrera->materias()->pluck('id_materia')->all();
+        $plan = $this->planElegido($request, $carrera);
+        $this->exigirPlanEditable($plan);
+        $idsMaterias = $plan->materias()->pluck('id_materia')->all();
 
         $data = $request->validate([
             'id_materia_principal' => ['required', 'integer', Rule::in($idsMaterias)],
@@ -289,7 +312,7 @@ class CarreraController extends Controller
 
     public function destroyGrupoCorrelativas(Carrera $carrera, int $principal): RedirectResponse
     {
-        $this->buscarPrincipalDeCarrera($carrera, $principal);
+        $this->exigirPlanEditable($this->buscarPrincipalDeCarrera($carrera, $principal)->plan);
 
         DB::transaction(fn () => Correlativa::where('id_materia_principal', $principal)->get()->each->delete());
 
@@ -304,9 +327,10 @@ class CarreraController extends Controller
             ->firstOrFail();
     }
 
-    public function plan(Carrera $carrera): View
+    public function plan(Request $request, Carrera $carrera): View
     {
-        $materias = $carrera->materias()
+        $plan = $this->planElegido($request, $carrera);
+        $materias = $plan->materias()
             ->with(['requisitos.nombreMateria', 'nombreMateria', 'anioCursada', 'periodo', 'regimen'])
             ->orderBy('numero_orden')
             ->get()
@@ -314,7 +338,163 @@ class CarreraController extends Controller
 
         return view('admin.carreras.plan', [
             'carrera' => $carrera,
+            'plan' => $plan,
             'materiasPorAnio' => $materias,
         ]);
+    }
+
+    // ---------- Planes de estudio de la carrera (historial y vigencia) ----------
+
+    public function planes(Carrera $carrera): View
+    {
+        return view('admin.carreras.planes', [
+            'carrera' => $carrera,
+            'planes' => $carrera->planes()->withCount(['materias', 'inscripciones'])->get(),
+        ]);
+    }
+
+    // Nuevo plan: copia las materias y correlativas del plan elegido, y le
+    // cierra las inscripciones al plan anterior el año antes de que empiece el nuevo.
+    public function storePlan(Request $request, Carrera $carrera): RedirectResponse
+    {
+        $data = $this->validarPlan($request, $carrera) + $request->validate([
+            'copiar_de' => ['nullable', Rule::exists('plan_estudio', 'id_plan_estudio')->where('id_carrera', $carrera->id_carrera)],
+        ]);
+
+        $nuevo = DB::transaction(function () use ($data, $carrera) {
+            $nuevo = $carrera->planes()->create($data);
+            $base = $data['copiar_de'] ? PlanEstudio::find($data['copiar_de']) : null;
+
+            if ($base) {
+                // Copia materias (id viejo => id nuevo) y después las correlativas entre ellas.
+                $mapa = [];
+                foreach ($base->materias as $materia) {
+                    $copia = $materia->replicate();
+                    $copia->id_plan_estudio = $nuevo->id_plan_estudio;
+                    $copia->version_plan = (string) $nuevo->anio_desde;
+                    $copia->save();
+                    $mapa[$materia->id_materia] = $copia->id_materia;
+                }
+
+                foreach (Correlativa::whereIn('id_materia_principal', array_keys($mapa))->get() as $c) {
+                    Correlativa::create([
+                        'id_materia_principal' => $mapa[$c->id_materia_principal],
+                        'id_materia_requisito' => $mapa[$c->id_materia_requisito] ?? $c->id_materia_requisito,
+                        'id_tipo_correlativa' => $c->id_tipo_correlativa,
+                        'requiere_regularizada' => $c->requiere_regularizada,
+                        'requiere_aprobada' => $c->requiere_aprobada,
+                    ]);
+                }
+
+                // (solo si ese año queda después del inicio del plan viejo: nunca el mismo año)
+                if ($base->anio_cierre_inscripcion === null && $base->anio_desde < $nuevo->anio_desde - 1) {
+                    $base->update(['anio_cierre_inscripcion' => $nuevo->anio_desde - 1]);
+                }
+            }
+
+            return $nuevo;
+        });
+
+        session(["plan_carrera.{$carrera->id_carrera}" => $nuevo->id_plan_estudio]);
+
+        return redirect()->route('admin.carreras.planes', $carrera)
+            ->with('status', "Se creó el {$nuevo->nombre}. Ya podés editar sus materias y correlativas. Acordate de cargar en el plan anterior hasta qué año sigue vigente (caducidad).");
+    }
+
+    // Cambiar nombre, resolución, duración o vigencia (no toca materias, se puede siempre).
+    public function updatePlan(Request $request, Carrera $carrera, PlanEstudio $plan): RedirectResponse
+    {
+        abort_unless($plan->id_carrera === $carrera->id_carrera, 404);
+        $plan->update($this->validarPlan($request, $carrera, $plan));
+
+        return back()->with('status', "Se actualizó el {$plan->nombre}.");
+    }
+
+    // Pasa a todos los alumnos de un plan a otro (ej. cuando el plan caduca).
+    // Los que están cursando alguna materia se saltean hasta que cierren la cursada.
+    public function pasarAlumnos(Request $request, Carrera $carrera, PlanEstudio $plan): RedirectResponse
+    {
+        abort_unless($plan->id_carrera === $carrera->id_carrera, 404);
+        $destino = PlanEstudio::where('id_carrera', $carrera->id_carrera)->findOrFail($request->integer('id_plan_destino'));
+
+        $pasados = 0;
+        $salteados = [];
+
+        foreach ($plan->inscripciones()->with('personaAlumno', 'plan')->get() as $inscripcion) {
+            if ($motivo = CambioDePlan::impedimento($inscripcion, $destino)) {
+                $salteados[] = "{$inscripcion->personaAlumno->apellido}, {$inscripcion->personaAlumno->nombre} ({$motivo})";
+                continue;
+            }
+
+            CambioDePlan::aplicar($inscripcion, $destino);
+            $pasados++;
+        }
+
+        $respuesta = back()->with('status', "Se pasaron {$pasados} alumno(s) del {$plan->nombre} al {$destino->nombre}.");
+
+        return $salteados ? $respuesta->withErrors(['plan' => 'No se pasaron: ' . implode(' · ', $salteados)]) : $respuesta;
+    }
+
+    public function destroyPlan(Carrera $carrera, PlanEstudio $plan): RedirectResponse
+    {
+        abort_unless($plan->id_carrera === $carrera->id_carrera, 404);
+
+        if ($plan->tieneAlumnos() || $carrera->planes()->count() === 1) {
+            return back()->withErrors(['plan' => 'No se puede eliminar un plan con alumnos inscriptos, ni el único plan de la carrera.']);
+        }
+
+        DB::transaction(function () use ($plan) {
+            $ids = $plan->materias()->pluck('id_materia');
+            Correlativa::whereIn('id_materia_principal', $ids)->orWhereIn('id_materia_requisito', $ids)->get()->each->delete();
+            $plan->materias()->delete();
+            $plan->delete();
+        });
+
+        session()->forget("plan_carrera.{$carrera->id_carrera}");
+
+        return back()->with('status', 'Plan eliminado.');
+    }
+
+    private function validarPlan(Request $request, Carrera $carrera, ?PlanEstudio $plan = null): array
+    {
+        return $request->validate([
+            'nombre' => ['required', 'string', 'max:40',
+                Rule::unique('plan_estudio', 'nombre')->where('id_carrera', $carrera->id_carrera)->ignore($plan?->id_plan_estudio, 'id_plan_estudio')],
+            'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
+            'anio_desde' => ['required', 'integer', 'between:2000,2100'],
+            // Inscripciones hasta: un año POSTERIOR al de inicio (no el mismo).
+            'anio_cierre_inscripcion' => ['nullable', 'integer', 'gt:anio_desde', 'max:2100'],
+            'anio_caducidad' => ['nullable', 'integer', 'gte:anio_desde', 'max:2100'],
+        ], [
+            'nombre.unique' => 'Ya hay un plan con ese nombre en esta carrera.',
+            'anio_cierre_inscripcion.gt' => '"Inscripciones hasta" tiene que ser un año posterior a "Desde" (no puede ser el mismo año).',
+            'anio_caducidad.gte' => 'La caducidad no puede ser antes del año en que empieza.',
+        ]);
+    }
+
+    // Plan que se está viendo en Materias / Correlativas / Ver plan (?plan=, o el
+    // último elegido, o el vigente). Se recuerda en la sesión.
+    private function planElegido(Request $request, Carrera $carrera): PlanEstudio
+    {
+        $planes = $carrera->planes()->get();
+        $id = $request->integer('plan') ?: session("plan_carrera.{$carrera->id_carrera}");
+        $plan = $planes->firstWhere('id_plan_estudio', $id)
+            ?? $planes->first(fn ($p) => $p->estado() === 'Vigente')
+            ?? $planes->first();
+
+        abort_unless($plan, 404, 'La carrera no tiene planes de estudio.');
+        session(["plan_carrera.{$carrera->id_carrera}" => $plan->id_plan_estudio]);
+        view()->share('planesCarrera', $planes);
+
+        return $plan;
+    }
+
+    // Un plan con alumnos no se modifica: para cambiar materias/correlativas se crea un plan nuevo.
+    private function exigirPlanEditable(?PlanEstudio $plan): void
+    {
+        if ($plan?->tieneAlumnos()) {
+            throw ValidationException::withMessages(['plan' => "El {$plan->nombre} ya tiene alumnos inscriptos: sus materias y correlativas no se pueden cambiar. Creá un plan nuevo desde \"Planes\" (se copia este como base)."]);
+        }
     }
 }

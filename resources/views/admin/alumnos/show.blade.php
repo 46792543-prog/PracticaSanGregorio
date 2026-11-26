@@ -11,7 +11,7 @@
         $cuotasVencidas = $alumno->cuotas->filter(fn ($c) => $c->vencida)->count();
         $condicionesFinCursada = \App\Models\CondicionAlumno::whereIn('nombre_condicion', ['Regular', 'Promocionada', 'Libre'])->get()->keyBy('nombre_condicion');
         $materiasCursando = $alumno->historialAlumno
-            ->filter(fn ($h) => $h->condicion?->nombre_condicion === 'Cursando')
+            ->filter(fn ($h) => in_array($h->condicion?->nombre_condicion, \App\Models\CondicionAlumno::EN_CURSO, true))
             ->sortBy([['materia.anioCursada.id_anio_cursada', 'asc'], ['materia.nombre', 'asc']]);
     @endphp
 
@@ -137,6 +137,87 @@
         </form>
         @endif
     </div>
+
+    {{-- Plan de estudios del alumno en esta carrera + pasarlo a otro plan --}}
+    @if ($planActual)
+        @php $caducado = $planActual->estado() === 'Caducado'; @endphp
+        <div class="sg-card p-5 mb-6 {{ $caducado ? 'ring-2 ring-red-200' : '' }}">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="text-sm text-slate-600">
+                    <span class="font-semibold text-slate-800">Plan de estudios:</span> {{ $planActual->nombre }}
+                    <span class="sg-badge {{ $caducado ? 'sg-badge--rojo' : 'sg-badge--verde' }} sg-badge--sin-punto ml-1">{{ $planActual->estado() }}</span>
+                </p>
+                @if ($planesDestino->isNotEmpty())
+                    <button type="button" onclick="document.getElementById('panel-cambio-plan').classList.toggle('hidden')" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="refresh" /> Pasar a otro plan</button>
+                @endif
+            </div>
+            @if ($caducado)
+                <p class="sg-aviso sg-aviso--error text-xs mt-3"><span>
+                    Su plan caducó{{ $planActual->anio_caducidad ? ' en ' . $planActual->anio_caducidad : '' }}: <strong>no puede inscribirse a cursar ni a rendir</strong> hasta que lo pases al plan vigente.
+                </span></p>
+            @endif
+
+            @if ($planDestino)
+                <div id="panel-cambio-plan" class="{{ $caducado || request('plan_destino') ? '' : 'hidden' }} mt-4 pt-4 border-t border-slate-100">
+                    {{-- Elegir el plan destino recarga la vista previa --}}
+                    <form method="GET" class="flex flex-wrap items-end gap-3 mb-4">
+                        <input type="hidden" name="carrera" value="{{ $idCarrera }}">
+                        <div>
+                            <label class="sg-label">Pasar al plan</label>
+                            <select name="plan_destino" onchange="this.form.submit()" class="sg-input">
+                                @foreach ($planesDestino as $p)
+                                    <option value="{{ $p->id_plan_estudio }}" @selected($p->id_plan_estudio === $planDestino->id_plan_estudio)>{{ $p->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+
+                    <p class="text-xs font-semibold text-slate-500 mb-2">Así queda su historial en el {{ $planDestino->nombre }}:</p>
+                    <div class="overflow-x-auto mb-4">
+                        <table class="sg-tabla">
+                            <thead><tr><th>Materia (plan actual)</th><th>Condición</th><th>En el {{ $planDestino->nombre }}</th></tr></thead>
+                            <tbody class="sg-filas">
+                                @foreach ($vistaPreviaPlan['filas'] as $fila)
+                                    <tr>
+                                        <td>{{ $fila['materia']->nombre }}</td>
+                                        <td class="text-slate-500">{{ $fila['condicion'] }}{{ $fila['nota'] ? ' (' . (int) $fila['nota'] . ')' : '' }}</td>
+                                        <td>
+                                            @if (in_array($fila['condicion'], \App\Models\CondicionAlumno::EN_CURSO, true))
+                                                <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto">Está cursando: primero cerrá la cursada</span>
+                                            @elseif ($fila['destino'])
+                                                <span class="sg-badge sg-badge--verde sg-badge--sin-punto">Se reconoce igual</span>
+                                            @else
+                                                <span class="sg-badge sg-badge--gris sg-badge--sin-punto">No existe en el plan nuevo: queda en el historial viejo</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                @foreach ($vistaPreviaPlan['nuevas'] as $materia)
+                                    <tr>
+                                        <td class="text-slate-400">—</td>
+                                        <td class="text-slate-400">—</td>
+                                        <td><span class="sg-badge sg-badge--azul sg-badge--sin-punto">{{ $materia->nombre }}: la tiene que cursar</span></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if ($impedimentoPlan)
+                        <p class="sg-aviso sg-aviso--alerta text-xs"><span>{{ $impedimentoPlan }}</span></p>
+                    @else
+                        <form method="POST" action="{{ route('admin.alumnos.cambiar-plan', $alumno) }}" class="flex justify-end"
+                              onsubmit="return confirm('¿Pasar a {{ $alumno->nombre }} {{ $alumno->apellido }} del {{ $planActual->nombre }} al {{ $planDestino->nombre }}?');">
+                            @csrf
+                            <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
+                            <input type="hidden" name="id_plan_destino" value="{{ $planDestino->id_plan_estudio }}">
+                            <button type="submit" class="sg-btn sg-btn--azul sg-btn--chico"><x-sg.icono nombre="check" /> Confirmar cambio de plan</button>
+                        </form>
+                    @endif
+                </div>
+            @endif
+        </div>
+    @endif
 
     <div id="panel-cerrar-cursada" class="{{ session('panel_abierto') === 'cerrar-cursada' ? '' : 'hidden' }}">
     <x-sg.tarjeta titulo="Cerrar cursada" subtitulo="Cuando termina el cuatrimestre o el año, marcá cómo quedó cada materia — recién ahí el alumno se puede anotar a la mesa de examen." icono="document-check" tono="amarillo" class="mb-6" :cuerpo="false">
@@ -283,19 +364,9 @@
                 <span class="sg-chip sg-chip--chico sg-chip--gris"><x-sg.icono nombre="refresh" /></span>
                 <h3 class="font-display font-bold text-slate-800 text-sm">Modalidad de cursada</h3>
             </div>
-            @if ($estadoInscNombre === 'Activo')
-                <form method="POST" action="{{ route('admin.alumnos.condicion', $alumno) }}" class="flex items-center gap-2">
-                    @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
-                    <select name="condicion" class="sg-input text-sm" onchange="this.form.submit()"
-                            title="Regular: cuota completa · Recursante: cuota reducida · Cursada completa: solo matrícula y el mes de la mesa">
-                        @foreach (\App\Models\CondicionAlumno::DE_INSCRIPCION as $opcion)
-                            <option value="{{ $opcion }}" @selected(($inscripcion?->condicion?->nombre_condicion ?? 'Regular') === $opcion)>{{ $opcion }}</option>
-                        @endforeach
-                    </select>
-                </form>
-            @else
-                <p class="text-slate-700 font-medium text-sm">{{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}</p>
-            @endif
+            {{-- Ya no se cambia a mano: es Recursante si recursa alguna materia de la carrera (ver historial) --}}
+            <p class="text-slate-700 font-medium text-sm">{{ $inscripcion?->condicion?->nombre_condicion ?? '—' }}</p>
+            <p class="text-xs text-slate-400 mt-1">Se actualiza sola: pasa a Recursante cuando se le carga una materia como "Recursando" en el historial.</p>
         </div>
         <div class="sg-card p-5">
             <div class="flex items-center gap-3 mb-4">
@@ -421,7 +492,7 @@
                                                 'bg-amber-400' => \App\Models\CondicionAlumno::esRegular($condicionNombre) && ! $historial->regularidad_vencida,
                                                 'bg-rose-500' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
                                                 'bg-slate-300' => $condicionNombre === 'Pendiente',
-                                                'bg-sky-500' => $condicionNombre === 'Cursando',
+                                                'bg-sky-500' => in_array($condicionNombre, ['Cursando', 'Recursando'], true),
                                             ])></span>
                                         <span class="font-semibold text-slate-700">{{ $historial->materia->nombre }}</span>
                                     </span>
@@ -434,7 +505,7 @@
                                             'sg-badge--amarillo' => \App\Models\CondicionAlumno::esRegular($condicionNombre) && ! $historial->regularidad_vencida,
                                             'sg-badge--rojo' => $historial->regularidad_vencida || $condicionNombre === 'Libre',
                                             'sg-badge--gris' => $condicionNombre === 'Pendiente',
-                                            'sg-badge--azul' => $condicionNombre === 'Cursando',
+                                            'sg-badge--azul' => in_array($condicionNombre, ['Cursando', 'Recursando'], true),
                                         ])>
                                         {{ $historial->regularidad_vencida ? 'Venció' : \App\Models\CondicionAlumno::etiqueta($condicionNombre) }}
                                     </span>

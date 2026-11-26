@@ -31,6 +31,15 @@ class HistorialAlumno extends Model
         'anios_plazo_regularidad' => 'integer',
     ];
 
+    // Cada vez que cambia el historial, la condición de la inscripción se
+    // pone al día sola: Recursante si recursa alguna materia de la carrera.
+    protected static function booted(): void
+    {
+        $sincronizar = fn (self $h) => $h->personaAlumno?->sincronizarCondicionRecursante($h->materia?->id_carrera);
+        static::saved($sincronizar);
+        static::deleted($sincronizar);
+    }
+
     public function personaAlumno(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'id_persona_alumno', 'id_persona');
