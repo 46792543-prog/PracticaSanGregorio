@@ -84,7 +84,7 @@ class DesignacionController extends Controller
             'vigentes' => Designacion::vigentes()->with('profesor.persona')->where('id_anio_lectivo', $anio?->id_anio_lectivo)->get()
                 ->map(fn ($d) => ['id' => $d->id_asignacion, 'id_materia' => $d->id_materia, 'id_turno' => $d->id_turno_cursada,
                     'docente' => "{$d->profesor->apellido}, {$d->profesor->nombre}", 'horas' => $d->horas_catedra, 'tipo' => $d->tipo])->values(),
-            'carreras' => Carrera::with('turnos')->orderBy('nombre_carrera')->get(),
+            'carreras' => Carrera::with('turnos', 'planes')->orderBy('nombre_carrera')->get(),
         ]);
     }
 
@@ -130,7 +130,6 @@ class DesignacionController extends Controller
             'fecha_baja' => ['nullable', 'date', 'after:fecha_alta'],
             // Solo el número: el año lectivo se agrega solo (123 → "123/2026").
             'resolucion_numero' => ['nullable', 'digits_between:1,6'],
-            'aula' => ['nullable', 'string', 'max:20'],
         ], [
             'id_profesor.exists' => 'El profesor no existe o está dado de baja.',
             'fecha_baja.after' => 'La fecha de baja tiene que ser posterior a la de alta.',
@@ -196,7 +195,6 @@ class DesignacionController extends Controller
             'fecha_baja' => $data['fecha_baja'] ?? null,
             'resolucion' => ! empty($data['resolucion_numero']) ? $data['resolucion_numero'] . '/' . AnioLectivo::find($data['id_anio_lectivo'])->anio : null,
             'id_turno_cursada' => $data['id_turno_cursada'],
-            'aula' => $data['aula'] ?? null,
             'id_anio_cursada' => $materia->id_anio_cursada,
             'fecha_asignacion' => $designacion->fecha_asignacion ?? now(),
             'activa' => (bool) $data['activa'],
