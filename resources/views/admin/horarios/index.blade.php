@@ -95,7 +95,11 @@
                             <input type="radio" name="id_turno_cursada" value="{{ $turno->id_turno_cursada }}" class="peer sr-only" onchange="franjaRevisar()">
                             <span class="flex w-44 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 transition peer-checked:border-[#0B3D91] peer-checked:ring-2 peer-checked:ring-[#0B3D91]/20">
                                 <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br {{ $grad }} text-xl">{{ $emoji }}</span>
-                                <span class="font-semibold text-slate-700">{{ $turno->nombre_turno }}</span>
+                                @php $rangoTurno = \App\Http\Controllers\Admin\HorarioCarreraController::RANGOS_TURNO[$turno->nombre_turno] ?? null; @endphp
+                                <span class="leading-tight">
+                                    <span class="block font-semibold text-slate-700">{{ $turno->nombre_turno }}</span>
+                                    @if ($rangoTurno)<span class="block text-[11px] text-slate-400">{{ $rangoTurno[0] }} a {{ $rangoTurno[1] === '23:59' ? '24:00' : $rangoTurno[1] }}</span>@endif
+                                </span>
                             </span>
                         </label>
                     @endforeach
@@ -167,6 +171,7 @@
         const franjaDesignaciones = @json($franjaDesignaciones);
         const franjaClases = @json($franjaClases);
         const franjaHC = {{ \App\Models\Materia::MINUTOS_HORA_CATEDRA }};
+        const franjaRangos = @json(\App\Http\Controllers\Admin\HorarioCarreraController::RANGOS_TURNO); // horario de cada turno
         const fId = id => document.getElementById(id);
         const aMin = h => { const m = /^(\d{1,2}):(\d{2})$/.exec(h || ''); return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : null; };
         const aHora = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
@@ -233,6 +238,7 @@
 
             const d = franjaDesignaciones.find(x => String(x.id_profesor) === docente && String(x.id_materia) === materia && String(x.id_turno) === turno);
             const caja = fId('franja-superposicion'), texto = fId('franja-superposicion-texto');
+            fId('franja-guardar').disabled = false;
             if (!d || !dia || dur === null || dur <= 0) {
                 caja.className = 'rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 mb-5';
                 texto.innerHTML = problemas.length && desde !== null ? problemas.join('<br>') : 'Elegí docente, día y horario para revisar superposiciones.';
@@ -243,9 +249,15 @@
                 const otra = franjaDesignaciones.find(x => x.id === c.id_asignacion);
                 if (!otra) continue;
                 if (otra.id_profesor === d.id_profesor) problemas.push(`${d.docente} ya da «${otra.materia}» el ${dia} de ${c.desde} a ${c.hasta}.`);
-                else if (otra.id_carrera === d.id_carrera && otra.id_anio_cursada === d.id_anio_cursada && otra.id_turno === d.id_turno
-                    && !(d.practica && otra.id_materia === d.id_materia)) problemas.push(`Ese año ya tiene «${otra.materia}» el ${dia} de ${c.desde} a ${c.hasta}.`);
+                // Mismo curso: tampoco dos docentes de la misma práctica a la misma hora.
+                else if (otra.id_carrera === d.id_carrera && otra.id_anio_cursada === d.id_anio_cursada && otra.id_turno === d.id_turno)
+                    problemas.push(`Ese año ya tiene «${otra.materia}» con ${otra.docente} el ${dia} de ${c.desde} a ${c.hasta}`
+                        + (otra.id_materia === d.id_materia ? ' (la misma práctica: cada docente necesita su propio horario).' : '.'));
             }
+            // Dentro del horario de su turno (ej. Mañana 07:00 a 13:00).
+            const rango = franjaRangos[d.turno];
+            if (rango && (desde < aMin(rango[0]) || hasta > aMin(rango[1])))
+                problemas.push(`El turno ${d.turno} es de ${rango[0]} a ${rango[1] === '23:59' ? '24:00' : rango[1]}: la franja queda fuera de ese horario.`);
             // Al editar, los minutos de la propia franja no cuentan como ya cargados.
             const propios = franjaEditando && franjaEditando.id_asignacion === d.id ? hcMin(franjaEditando.hasta) - hcMin(franjaEditando.desde) : 0;
             const cargados = d.cargados - propios;
@@ -255,6 +267,9 @@
             caja.className = 'rounded-2xl border px-4 py-3 mb-5 ' + (ok ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50');
             texto.innerHTML = ok ? `✓ Sin superposiciones. Quedarían ${cargados + dur} de ${d.tope} min cargados.` : problemas.map(p => '✕ ' + p).join('<br>');
             texto.className = 'text-sm mt-1 ' + (ok ? 'text-emerald-700' : 'text-red-700');
+            // Con superposición (u otro problema) no se puede guardar; igual lo vuelve a validar el servidor.
+            fId('franja-guardar').disabled = !ok;
+            fId('franja-guardar').title = ok ? '' : 'Corregí la superposición para poder guardar';
         }
         // ---------- Editar una franja (lápiz del Horario de cursada) ----------
         let franjaEditando = null;

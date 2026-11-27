@@ -27,6 +27,13 @@ class HorarioCarreraController extends Controller
     // Se cursa de lunes a viernes.
     private const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
+    // Horario de cada turno: la franja tiene que quedar entera dentro del de su turno.
+    public const RANGOS_TURNO = [
+        'Mañana' => ['07:00', '13:00'],
+        'Tarde' => ['13:00', '19:00'],
+        'Noche' => ['19:00', '23:59'],
+    ];
+
     /**
      * Horarios: arriba el formulario "Franja horaria" para cargar clases, y
      * abajo el "Horario de cursada" para verlas por docente o por curso
@@ -142,6 +149,7 @@ class HorarioCarreraController extends Controller
      *  4. Ese año y turno de la carrera no puede tener otra materia a esa hora
      *     (en una práctica sí pueden estar varios docentes a la vez).
      *  5. Sin pasarse de las horas cátedra de la designación.
+     *  6. Dentro del horario de su turno (Mañana 07–13, Tarde 13–19, Noche 19–24).
      * Las clases pegadas (una termina 19:20 y otra empieza 19:20) no chocan.
      */
     private function guardarClase(AsignacionProfesorMateria $designacion, string $dia, string $desde, string $hasta, ?int $idModulo, ?HorarioAsignacion $actual = null): RedirectResponse
@@ -158,6 +166,15 @@ class HorarioCarreraController extends Controller
             $fallar("La franja dura {$minutos} min: tiene que ser múltiplo de {$hc} min (horas cátedra enteras: 40, 80, 120…).");
         }
 
+        // Dentro del horario de su turno: ej. a la mañana no se puede cargar 14:00, ni a la noche 14:30.
+        $turno = $designacion->turnoCursada?->nombre_turno;
+        if ($rango = self::RANGOS_TURNO[$turno] ?? null) {
+            [$inicio, $fin] = $rango;
+            if ($desde < $inicio || $hasta > $fin) {
+                $fallar("El turno {$turno} es de {$inicio} a " . ($fin === '23:59' ? '24:00' : $fin) . ": la franja {$desde} a {$hasta} queda fuera de ese horario.");
+            }
+        }
+
         $seSuperponen = fn ($q) => $q->where('dia_semana', $dia)->where('hora_desde', '<', $hasta)->where('hora_fin', '>', $desde)
             ->when($actual, fn ($w) => $w->whereKeyNot($actual->id_horario));
 
@@ -170,18 +187,21 @@ class HorarioCarreraController extends Controller
                 . substr($choqueDocente->hora_desde, 0, 5) . ' a ' . substr($choqueDocente->hora_fin, 0, 5) . '.');
         }
 
-        $choqueCurso = HorarioAsignacion::with('asignacion.materia.nombreMateria')->tap($seSuperponen)
+        // Mismo curso (carrera + año + turno): no puede haber dos clases a la misma hora,
+        // tampoco dos docentes de la misma práctica (cada uno va en su propio horario).
+        $choqueCurso = HorarioAsignacion::with('asignacion.materia.nombreMateria', 'asignacion.profesor.persona')->tap($seSuperponen)
             ->whereHas('asignacion', fn ($q) => $q->vigentes()
                 ->where('id_anio_lectivo', $designacion->id_anio_lectivo)
                 ->where('id_turno_cursada', $designacion->id_turno_cursada)
                 ->whereKeyNot($designacion->id_asignacion)
                 ->whereHas('materia', fn ($m) => $m->where('id_carrera', $designacion->materia->id_carrera)
                     ->where('id_anio_cursada', $designacion->materia->id_anio_cursada)))
-            ->get()
-            ->first(fn ($h) => ! ($designacion->materia->es_taller && $h->asignacion->id_materia === $designacion->id_materia));
+            ->first();
         if ($choqueCurso) {
+            $otro = $choqueCurso->asignacion->profesor;
             $fallar("El {$dia} de " . substr($choqueCurso->hora_desde, 0, 5) . ' a ' . substr($choqueCurso->hora_fin, 0, 5)
-                . " ese año ya tiene «{$choqueCurso->asignacion->materia->nombre}».");
+                . " ese año ya tiene «{$choqueCurso->asignacion->materia->nombre}» con {$otro->apellido}, {$otro->nombre}"
+                . ($choqueCurso->asignacion->id_materia === $designacion->id_materia ? ' (la misma práctica: cada docente necesita su propio horario).' : '.'));
         }
 
         $cargados = $designacion->horarios()->when($actual, fn ($q) => $q->whereKeyNot($actual->id_horario))->get()->sum('minutos');
