@@ -41,9 +41,16 @@
         .estado-pie { text-align: center; font-size: 8px; color: #94a3b8; margin-top: 8px; }
     </style>
 </head>
+    @php $configuracionInstitucion = \App\Models\ConfiguracionInstitucion::first(); @endphp
 <body>
     <div class="header">
-        <div class="logo"><span>ISG</span></div>
+        <div class="logo">
+            @if ($configuracionInstitucion?->logo_base64)
+                <img src="{{ $configuracionInstitucion->logo_base64 }}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+            @else
+                <span>ISG</span>
+            @endif
+        </div>
         <div class="info">
             <p class="institucion">Instituto Superior San Gregorio</p>
             <p class="direccion">San Pedro de Jujuy — Pedro Goyena 33 — Tel. 03888-480686</p>
