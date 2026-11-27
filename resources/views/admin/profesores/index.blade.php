@@ -42,8 +42,8 @@
                     <input type="text" data-solo="letras" data-max-len="25" maxlength="25" name="nombre" id="input-profesor-nombre" placeholder="Ej.: María Laura" required class="sg-input w-full">
                 </div>
                 <div>
-                    <label class="sg-label">Sexo</label>
-                    <select name="sexo" id="input-profesor-sexo" class="sg-input w-full">
+                    <label class="sg-label">Sexo <span class="text-red-500">*</span></label>
+                    <select name="sexo" id="input-profesor-sexo" required onchange="autocompletarCuil()" class="sg-input w-full">
                         <option value="">Elegir...</option>
                         @foreach (\App\Models\Profesor::SEXOS as $valor => $texto)
                             <option value="{{ $valor }}">{{ $texto }}</option>
@@ -52,28 +52,21 @@
                 </div>
                 <div>
                     <label class="sg-label">DNI <span class="text-red-500">*</span></label>
-                    <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" id="input-profesor-dni" placeholder="8 números" required class="sg-input w-full">
+                    <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="dni" id="input-profesor-dni" placeholder="8 números" required oninput="autocompletarCuil()" class="sg-input w-full">
                 </div>
                 <div>
                     <label class="sg-label">CUIL</label>
                     <div class="flex gap-2">
-                        <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="11" maxlength="11" name="cuil" id="input-profesor-cuil" placeholder="11 números, sin guiones" class="sg-input min-w-0 flex-1">
+                        <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="11" maxlength="11" name="cuil" id="input-profesor-cuil" placeholder="Se genera solo con el DNI y el sexo" class="sg-input min-w-0 flex-1">
                         <button type="button" onclick="calcularCuil()" title="Generar con el DNI y el sexo" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="sparkles" class="h-5 w-5" /></button>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1">Escribilo o generalo con la varita (DNI + sexo).</p>
+                    <p class="text-xs text-slate-400 mt-1">Se genera solo apenas cargás el DNI y el sexo. También lo podés escribir o regenerar con la varita.</p>
                 </div>
                 <div>
-                    <label class="sg-label">Fecha de nacimiento</label>
-                    <input type="date" name="fecha_nacimiento" id="input-profesor-nacimiento" max="{{ now()->subYears(16)->toDateString() }}" class="sg-input w-full">
-                </div>
-                <div>
-                    <label class="sg-label">Condición <span class="text-red-500">*</span></label>
-                    <select name="condicion" id="input-profesor-condicion" required class="sg-input w-full">
-                        <option value="">Elegir...</option>
-                        @foreach (\App\Models\Profesor::CONDICIONES as $condicion)
-                            <option value="{{ $condicion }}">{{ $condicion }}</option>
-                        @endforeach
-                    </select>
+                    <label class="sg-label">Fecha de nacimiento <span class="text-red-500">*</span></label>
+                    <input type="date" name="fecha_nacimiento" id="input-profesor-nacimiento" required min="{{ now()->subYears(75)->toDateString() }}" max="{{ now()->subYears(20)->toDateString() }}" class="sg-input w-full">
+                    <p class="text-xs text-slate-400 mt-1">Tiene que tener entre 20 y 75 años.</p>
+                    <p id="error-nacimiento" class="hidden text-xs text-red-600 mt-1"></p>
                 </div>
             </div>
 
@@ -97,6 +90,7 @@
                                 <option value="{{ $provincia->id_provincia }}">{{ $provincia->nombre }}</option>
                             @endforeach
                         </select>
+                        <button type="button" onclick="abrirModalEditarLugar('provincia')" title="Editar la provincia elegida" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="pencil" class="h-5 w-5" /></button>
                         <button type="button" onclick="abrirModalLugar('provincia')" title="Agregar provincia" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-[#FFC107] text-[#0B3D91] hover:brightness-95"><x-sg.icono nombre="plus" /></button>
                     </div>
                 </div>
@@ -106,6 +100,7 @@
                         <select name="id_localidad" id="input-profesor-localidad" required class="sg-input min-w-0 flex-1">
                             <option value="">Primero elegí la provincia</option>
                         </select>
+                        <button type="button" onclick="abrirModalEditarLugar('localidad')" title="Editar la localidad elegida" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="pencil" class="h-5 w-5" /></button>
                         <button type="button" onclick="abrirModalLugar('localidad')" title="Agregar localidad" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-[#FFC107] text-[#0B3D91] hover:brightness-95"><x-sg.icono nombre="plus" /></button>
                     </div>
                 </div>
@@ -119,9 +114,10 @@
                         <select id="input-profesor-titulo" onchange="elegirTitulo(this)" class="sg-input min-w-0 flex-1">
                             <option value="">Elegir título...</option>
                             @foreach ($titulosCatalogo as $titulo)
-                                <option value="{{ $titulo->id_titulo }}">{{ $titulo->nombre }} · {{ $titulo->nivel }}</option>
+                                <option value="{{ $titulo->id_titulo }}">{{ $titulo->nombre }}@if ($titulo->nivel) · {{ $titulo->nivel }}@endif</option>
                             @endforeach
                         </select>
+                        <button type="button" onclick="abrirModalEditarTitulo()" title="Editar el título elegido" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-blue-100 text-[#0B3D91] hover:bg-[#0B3D91] hover:text-white transition-colors"><x-sg.icono nombre="pencil" class="h-5 w-5" /></button>
                         <button type="button" onclick="abrirModalTitulo()" title="Agregar un título nuevo" class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-[#FFC107] text-[#0B3D91] hover:brightness-95"><x-sg.icono nombre="plus" /></button>
                     </div>
                     <div id="titulos-elegidos" class="flex flex-wrap gap-2 mt-2"></div>
@@ -191,22 +187,27 @@
         </div>
     </div>
 
-    {{-- Ventanita: título nuevo (nombre + nivel) --}}
+    {{-- Ventanita: título nuevo o edición del nombre de uno existente --}}
     <div id="modal-titulo" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[70] items-center justify-center p-4">
         <div class="sg-modal bg-white rounded-3xl shadow-2xl w-full max-w-md p-6">
-            <h3 class="font-display font-bold text-slate-800 mb-4">Nuevo título</h3>
+            <h3 id="titulo-modal-titulo" class="font-display font-bold text-slate-800 mb-4">Nuevo título</h3>
+            <div id="campo-titulo-elegir" class="hidden mb-3">
+                <label class="sg-label">¿Cuál título querés editar?</label>
+                <select id="input-titulo-elegir" onchange="cargarTituloParaEditar()" class="sg-input w-full">
+                    <option value="">Elegir...</option>
+                    @foreach ($titulosCatalogo as $titulo)
+                        <option value="{{ $titulo->id_titulo }}">{{ $titulo->nombre }}@if ($titulo->nivel) · {{ $titulo->nivel }}@endif</option>
+                    @endforeach
+                </select>
+            </div>
             <label class="sg-label">Nombre del título</label>
-            <input type="text" id="input-titulo-nombre" maxlength="150" placeholder="Ej.: Licenciado/a en Enfermería" class="sg-input w-full mb-3">
-            <label class="sg-label">Nivel</label>
-            <select id="input-titulo-nivel" class="sg-input w-full mb-2">
-                @foreach (\App\Models\Titulo::NIVELES as $nivel)
-                    <option value="{{ $nivel }}">{{ $nivel }}</option>
-                @endforeach
-            </select>
+            <input type="text" id="input-titulo-nombre" maxlength="150" placeholder="Ej.: Licenciado/a en Enfermería" class="sg-input w-full mb-2"
+                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); guardarTituloNuevo(); }">
             <p id="error-titulo" class="hidden text-xs text-red-600 mb-2"></p>
             <div class="flex gap-3 mt-4">
                 <button type="button" onclick="cerrarModalTitulo()" class="sg-btn sg-btn--borde flex-1 justify-center">Cancelar</button>
-                <button type="button" onclick="guardarTituloNuevo()" class="sg-btn sg-btn--azul flex-1 justify-center">Guardar título</button>
+                <button type="button" id="btn-eliminar-titulo" onclick="eliminarTituloElegido()" title="Eliminar este título del catálogo" class="hidden sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                <button type="button" id="btn-guardar-titulo" onclick="guardarTituloNuevo()" class="sg-btn sg-btn--azul flex-1 justify-center">Guardar título</button>
             </div>
         </div>
     </div>
@@ -263,7 +264,7 @@
                                         <p class="text-xs text-slate-500">Antigüedad: {{ $profesor->antiguedad }}</p>
                                     @endif
                                     @foreach ($profesor->titulos as $titulo)
-                                        <span class="sg-badge sg-badge--azul sg-badge--sin-punto mt-1 mr-1">{{ $titulo->nombre }} · {{ $titulo->nivel }}</span>
+                                        <span class="sg-badge sg-badge--azul sg-badge--sin-punto mt-1 mr-1">{{ $titulo->nombre }}@if ($titulo->nivel) · {{ $titulo->nivel }}@endif</span>
                                     @endforeach
                                 </div>
                             </div>
@@ -324,16 +325,20 @@
 
             <div id="lista-especialidades" class="space-y-2 mb-5">
                 @foreach ($especialidades as $especialidad)
+                    @php $enUso = $especialidad->profesores_count > 0; @endphp
                     <div class="flex gap-2 items-center border border-slate-200 rounded-xl p-2 hover:border-blue-200 transition-colors" data-id="{{ $especialidad->id_especialidad }}">
                         <form method="POST" action="{{ route('admin.profesores.especialidades.update', $especialidad) }}" class="form-especialidad-update flex flex-1 gap-2 items-center min-w-0">
                             @csrf @method('PUT')
                             <input type="text" name="nombre_especialidad" value="{{ $especialidad->nombre_especialidad }}" required maxlength="120"
-                                   class="sg-input sg-input--chico min-w-0 flex-1">
-                            <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
+                                   @if ($enUso) disabled title="No se puede editar: hay profesores cargados con esta especialidad." @endif
+                                   class="sg-input sg-input--chico min-w-0 flex-1 {{ $enUso ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : '' }}">
+                            <button type="submit" @if ($enUso) disabled @endif title="{{ $enUso ? 'No se puede editar: hay profesores cargados con esta especialidad.' : 'Guardar cambios' }}"
+                                    class="sg-btn sg-btn--suave sg-btn--chico shrink-0 {{ $enUso ? 'opacity-50 cursor-not-allowed' : '' }}">Guardar</button>
                         </form>
                         <form method="POST" action="{{ route('admin.profesores.especialidades.destroy', $especialidad) }}" class="form-especialidad-destroy" data-confirm-especialidad="{{ $especialidad->nombre_especialidad }}">
                             @csrf @method('DELETE')
-                            <button type="submit" title="Eliminar especialidad" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
+                            <button type="submit" @if ($enUso) disabled @endif title="{{ $enUso ? 'No se puede eliminar: hay profesores cargados con esta especialidad.' : 'Eliminar especialidad' }}"
+                                    class="sg-btn sg-btn--peligro sg-btn--icono shrink-0 {{ $enUso ? 'opacity-50 cursor-not-allowed' : '' }}"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
                         </form>
                     </div>
                 @endforeach
@@ -529,10 +534,42 @@
             document.getElementById('error-paso').classList.add('hidden');
         }
 
-        // Antes de avanzar, revisa los obligatorios del paso.
+        // Años cumplidos a partir de una fecha "AAAA-MM-DD".
+        function edadDesde(fechaTexto) {
+            const nacimiento = new Date(fechaTexto + 'T00:00:00'), hoy = new Date();
+            let edad = hoy.getFullYear() - nacimiento.getFullYear();
+            const aunNoCumplioEsteAnio = (hoy.getMonth() < nacimiento.getMonth()) || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+            if (aunNoCumplioEsteAnio) edad--;
+            return edad;
+        }
+        // Avisa al toque (no recién al querer avanzar de paso) si la fecha tipeada o
+        // elegida da una edad fuera de 20-75 años, con el motivo explicado.
+        function mostrarErrorNacimiento(fechaISO) {
+            const aviso = document.getElementById('error-nacimiento');
+            if (!fechaISO) { aviso.classList.add('hidden'); aviso.textContent = ''; return; }
+            const edad = edadDesde(fechaISO);
+            if (edad < 20) {
+                aviso.textContent = `Con esa fecha tendría ${edad} años: tiene que tener al menos 20 para ser docente.`;
+                aviso.classList.remove('hidden');
+            } else if (edad > 75) {
+                aviso.textContent = `Con esa fecha tendría ${edad} años: no puede tener más de 75.`;
+                aviso.classList.remove('hidden');
+            } else {
+                aviso.classList.add('hidden');
+                aviso.textContent = '';
+            }
+        }
+        // Antes de avanzar, revisa los obligatorios del paso (y, en Identidad, que la fecha de nacimiento sea coherente).
         function pasoValido(n) {
             const errores = [];
             document.querySelectorAll(`[data-paso="${n}"] [required]`).forEach(el => { if (!el.value.trim()) errores.push(el.closest('div').querySelector('.sg-label')?.textContent.replace('*', '').trim()); });
+            if (n === 1) {
+                const fechaNacimiento = document.getElementById('input-profesor-nacimiento').value;
+                if (fechaNacimiento) {
+                    const edad = edadDesde(fechaNacimiento);
+                    if (edad < 20 || edad > 75) errores.push('Fecha de nacimiento (tiene que tener entre 20 y 75 años)');
+                }
+            }
             if (n === 3) {
                 if (!document.querySelector('#titulos-elegidos input')) errores.push('Títulos');
                 if (!document.querySelector('#input-profesor-especialidad input:checked')) errores.push('Especialidades');
@@ -556,21 +593,42 @@
             lista.forEach(l => select.add(new Option(l.nombre, l.id_localidad)));
             select.value = seleccionada;
         }
-        async function postJson(url, datos) {
-            const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': tokenCsrf }, body: JSON.stringify(datos) });
+        async function enviarJson(url, metodo, datos) {
+            const res = await fetch(url, { method: metodo, headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': tokenCsrf }, body: JSON.stringify(datos) });
             const json = await res.json();
-            if (!res.ok) throw new Error(json.message || Object.values(json.errors ?? {}).flat().join(' ') || 'No se pudo guardar.');
+            if (!res.ok) {
+                const error = new Error(json.message || Object.values(json.errors ?? {}).flat().join(' ') || 'No se pudo guardar.');
+                error.status = res.status;
+                throw error;
+            }
             return json;
         }
-        // Ventanita para agregar una provincia o una localidad.
+        async function postJson(url, datos) { return enviarJson(url, 'POST', datos); }
+        async function putJson(url, datos) { return enviarJson(url, 'PUT', datos); }
+
+        // Ventanita para agregar o editar una provincia o una localidad.
         let tipoLugar = 'localidad';
+        let modoLugar = 'agregar';
+        let idLugarEditando = null;
         function abrirModalLugar(tipo) {
             const select = document.getElementById('input-profesor-provincia');
             if (tipo === 'localidad' && !select.value) { mostrarToast('Primero elegí la provincia', 'error'); select.focus(); return; }
-            tipoLugar = tipo;
+            tipoLugar = tipo; modoLugar = 'agregar'; idLugarEditando = null;
             document.getElementById('titulo-modal-lugar').textContent = tipo === 'provincia' ? 'Nueva provincia' : 'Nueva localidad';
             document.getElementById('subtitulo-modal-lugar').textContent = tipo === 'provincia' ? 'Se suma a la lista de provincias' : 'En ' + select.selectedOptions[0].textContent;
             document.getElementById('input-lugar-nombre').value = '';
+            document.getElementById('error-lugar').classList.add('hidden');
+            const m = document.getElementById('modal-lugar'); m.classList.remove('hidden'); m.classList.add('flex');
+            document.getElementById('input-lugar-nombre').focus();
+        }
+        function abrirModalEditarLugar(tipo) {
+            const selectProvincia = document.getElementById('input-profesor-provincia');
+            const select = tipo === 'provincia' ? selectProvincia : document.getElementById('input-profesor-localidad');
+            if (!select.value) { mostrarToast(tipo === 'provincia' ? 'Primero elegí una provincia' : 'Primero elegí una localidad', 'error'); select.focus(); return; }
+            tipoLugar = tipo; modoLugar = 'editar'; idLugarEditando = select.value;
+            document.getElementById('titulo-modal-lugar').textContent = tipo === 'provincia' ? 'Editar provincia' : 'Editar localidad';
+            document.getElementById('subtitulo-modal-lugar').textContent = tipo === 'provincia' ? 'Cambia el nombre en toda la lista' : 'En ' + selectProvincia.selectedOptions[0].textContent;
+            document.getElementById('input-lugar-nombre').value = select.selectedOptions[0].textContent;
             document.getElementById('error-lugar').classList.add('hidden');
             const m = document.getElementById('modal-lugar'); m.classList.remove('hidden'); m.classList.add('flex');
             document.getElementById('input-lugar-nombre').focus();
@@ -581,7 +639,18 @@
             const error = document.getElementById('error-lugar');
             if (!nombre) { error.textContent = 'Escribí el nombre.'; error.classList.remove('hidden'); return; }
             try {
-                if (tipoLugar === 'provincia') {
+                if (modoLugar === 'editar') {
+                    if (tipoLugar === 'provincia') {
+                        const { provincia } = await putJson(`${rutaBaseProfesores}/provincias/${idLugarEditando}`, { nombre });
+                        document.querySelector(`#input-profesor-provincia option[value="${provincia.id_provincia}"]`).textContent = provincia.nombre;
+                    } else {
+                        const { localidad } = await putJson(`${rutaBaseProfesores}/localidades/${idLugarEditando}`, { nombre });
+                        const idProvincia = document.getElementById('input-profesor-provincia').value;
+                        const item = (localidadesPorProvincia[idProvincia] || []).find(l => String(l.id_localidad) === String(localidad.id_localidad));
+                        if (item) item.nombre = localidad.nombre;
+                        document.querySelector(`#input-profesor-localidad option[value="${localidad.id_localidad}"]`).textContent = localidad.nombre;
+                    }
+                } else if (tipoLugar === 'provincia') {
                     const { provincia } = await postJson(@json(route('admin.profesores.provincias.store')), { nombre });
                     localidadesPorProvincia[provincia.id_provincia] = [];
                     const select = document.getElementById('input-profesor-provincia');
@@ -622,21 +691,107 @@
             if (select.value) agregarChipTitulo(select.value, select.selectedOptions[0].textContent);
             select.value = '';
         }
-        function abrirModalTitulo() { const m = document.getElementById('modal-titulo'); m.classList.remove('hidden'); m.classList.add('flex'); document.getElementById('input-titulo-nombre').focus(); }
+        // El select de "Títulos" del paso 3 convierte cada elección en una etiqueta
+        // y se vacía enseguida (para poder elegir otro) — por eso editar no puede
+        // depender de lo que tenga seleccionado ese select en ese momento. El
+        // modal de edición trae su propio selector con todo el catálogo, separado
+        // de las etiquetas ya elegidas para este profesor.
+        let modoTitulo = 'agregar';
+        let idTituloEditando = null;
+        function abrirModalTitulo() {
+            modoTitulo = 'agregar'; idTituloEditando = null;
+            document.getElementById('titulo-modal-titulo').textContent = 'Nuevo título';
+            document.getElementById('btn-guardar-titulo').textContent = 'Guardar título';
+            document.getElementById('campo-titulo-elegir').classList.add('hidden');
+            document.getElementById('btn-eliminar-titulo').classList.add('hidden');
+            const nombreInput = document.getElementById('input-titulo-nombre');
+            nombreInput.value = '';
+            nombreInput.disabled = false;
+            document.getElementById('error-titulo').classList.add('hidden');
+            const m = document.getElementById('modal-titulo'); m.classList.remove('hidden'); m.classList.add('flex'); nombreInput.focus();
+        }
+        function abrirModalEditarTitulo() {
+            modoTitulo = 'editar'; idTituloEditando = null;
+            document.getElementById('titulo-modal-titulo').textContent = 'Editar título';
+            document.getElementById('btn-guardar-titulo').textContent = 'Guardar cambios';
+            document.getElementById('campo-titulo-elegir').classList.remove('hidden');
+            document.getElementById('btn-eliminar-titulo').classList.add('hidden');
+            document.getElementById('input-titulo-elegir').value = '';
+            const nombreInput = document.getElementById('input-titulo-nombre');
+            nombreInput.value = '';
+            nombreInput.disabled = true;
+            document.getElementById('error-titulo').classList.add('hidden');
+            const m = document.getElementById('modal-titulo'); m.classList.remove('hidden'); m.classList.add('flex');
+            document.getElementById('input-titulo-elegir').focus();
+        }
+        function cargarTituloParaEditar() {
+            const select = document.getElementById('input-titulo-elegir');
+            const nombreInput = document.getElementById('input-titulo-nombre');
+            const btnEliminar = document.getElementById('btn-eliminar-titulo');
+            idTituloEditando = select.value || null;
+            if (!select.value) { nombreInput.value = ''; nombreInput.disabled = true; btnEliminar.classList.add('hidden'); return; }
+            nombreInput.value = select.selectedOptions[0].textContent.split(' · ')[0];
+            nombreInput.disabled = false;
+            btnEliminar.classList.remove('hidden');
+            nombreInput.focus();
+        }
         function cerrarModalTitulo() { const m = document.getElementById('modal-titulo'); m.classList.add('hidden'); m.classList.remove('flex'); document.getElementById('error-titulo').classList.add('hidden'); }
         async function guardarTituloNuevo() {
-            const nombre = document.getElementById('input-titulo-nombre').value.trim(), nivel = document.getElementById('input-titulo-nivel').value;
+            const nombre = document.getElementById('input-titulo-nombre').value.trim();
             const error = document.getElementById('error-titulo');
+            if (modoTitulo === 'editar' && !idTituloEditando) { error.textContent = 'Elegí qué título vas a editar.'; error.classList.remove('hidden'); return; }
             if (!nombre) { error.textContent = 'Escribí el nombre del título.'; error.classList.remove('hidden'); return; }
             try {
-                const { titulo } = await postJson(@json(route('admin.profesores.titulos.store')), { nombre, nivel });
-                const texto = `${titulo.nombre} · ${titulo.nivel}`;
-                document.getElementById('input-profesor-titulo').add(new Option(texto, titulo.id_titulo));
-                agregarChipTitulo(titulo.id_titulo, texto);
+                if (modoTitulo === 'editar') {
+                    const { titulo } = await putJson(`${rutaBaseProfesores}/titulos/${idTituloEditando}`, { nombre });
+                    document.querySelectorAll(`#input-profesor-titulo option[value="${titulo.id_titulo}"], #input-titulo-elegir option[value="${titulo.id_titulo}"]`)
+                        .forEach(option => { option.textContent = titulo.nivel ? `${titulo.nombre} · ${titulo.nivel}` : titulo.nombre; });
+                    const chipInput = document.querySelector(`#titulos-elegidos input[value="${titulo.id_titulo}"]`);
+                    if (chipInput) chipInput.closest('span').querySelector('span').textContent = titulo.nivel ? `${titulo.nombre} · ${titulo.nivel}` : titulo.nombre;
+                } else {
+                    const { titulo } = await postJson(@json(route('admin.profesores.titulos.store')), { nombre });
+                    document.getElementById('input-profesor-titulo').add(new Option(titulo.nombre, titulo.id_titulo));
+                    document.getElementById('input-titulo-elegir').add(new Option(titulo.nombre, titulo.id_titulo));
+                    agregarChipTitulo(titulo.id_titulo, titulo.nombre);
+                }
                 document.getElementById('input-titulo-nombre').value = '';
                 cerrarModalTitulo();
                 mostrarToast('Guardado');
-            } catch (e) { error.textContent = e.message; error.classList.remove('hidden'); }
+            } catch (e) {
+                // Si lo que se estaba editando ya no existe (pantalla vieja abierta desde antes de borrarlo), se avisa claro en vez de un error técnico.
+                if (modoTitulo === 'editar' && e.status === 404) {
+                    document.querySelectorAll(`#input-profesor-titulo option[value="${idTituloEditando}"], #input-titulo-elegir option[value="${idTituloEditando}"]`).forEach(o => o.remove());
+                    cerrarModalTitulo();
+                    mostrarToast('Ese título ya no existía (se actualizó la lista).', 'error');
+                    return;
+                }
+                error.textContent = e.message; error.classList.remove('hidden');
+            }
+        }
+        async function eliminarTituloElegido() {
+            if (!idTituloEditando) return;
+            const texto = document.getElementById('input-titulo-elegir').selectedOptions[0]?.textContent || 'este título';
+            if (!confirm(`¿Eliminar "${texto}" del catálogo? Esta acción no se puede deshacer.`)) return;
+            const error = document.getElementById('error-titulo');
+            const idBorrado = idTituloEditando;
+            try {
+                await enviarJson(`${rutaBaseProfesores}/titulos/${idBorrado}`, 'DELETE', {});
+                document.querySelectorAll(`#input-profesor-titulo option[value="${idBorrado}"], #input-titulo-elegir option[value="${idBorrado}"]`).forEach(o => o.remove());
+                document.querySelector(`#titulos-elegidos input[value="${idBorrado}"]`)?.closest('span')?.remove();
+                cerrarModalTitulo();
+                mostrarToast('Título eliminado');
+            } catch (e) {
+                // Si ya no existe (por ejemplo, esta pantalla quedó abierta desde antes de borrarlo), no tiene sentido
+                // mostrar el error técnico: se saca igual de la lista y se avisa con un mensaje claro.
+                if (e.status === 404) {
+                    document.querySelectorAll(`#input-profesor-titulo option[value="${idBorrado}"], #input-titulo-elegir option[value="${idBorrado}"]`).forEach(o => o.remove());
+                    document.querySelector(`#titulos-elegidos input[value="${idBorrado}"]`)?.closest('span')?.remove();
+                    cerrarModalTitulo();
+                    mostrarToast('Ese título ya no existía (se actualizó la lista).', 'error');
+                    return;
+                }
+                error.textContent = e.message; error.classList.remove('hidden');
+            }
         }
 
         // ---------- Antigüedad ----------
@@ -655,10 +810,7 @@
             texto.className = 'text-xs text-[#0B3D91] font-semibold mt-1';
         }
         // CUIL a partir del DNI y el sexo (mismo cálculo que AFIP: 20 varón, 27 mujer, 23 si da 10).
-        function calcularCuil() {
-            const dni = document.getElementById('input-profesor-dni').value.padStart(8, '0');
-            const sexo = document.getElementById('input-profesor-sexo').value;
-            if (!/^\d{8}$/.test(dni) || !sexo) { alert('Cargá primero el DNI y el sexo.'); return; }
+        function cuilDesde(dni, sexo) {
             const digito = (diez) => {
                 const suma = [...diez].reduce((t, n, i) => t + n * [5, 4, 3, 2, 7, 6, 5, 4, 3, 2][i], 0);
                 const d = 11 - (suma % 11);
@@ -666,7 +818,22 @@
             };
             const prefijo = sexo === 'F' ? '27' : '20';
             const d = digito(prefijo + dni);
-            document.getElementById('input-profesor-cuil').value = d !== null ? prefijo + dni + d : '23' + dni + (sexo === 'F' ? '4' : '9');
+            return d !== null ? prefijo + dni + d : '23' + dni + (sexo === 'F' ? '4' : '9');
+        }
+        function calcularCuil() {
+            const dni = document.getElementById('input-profesor-dni').value.padStart(8, '0');
+            const sexo = document.getElementById('input-profesor-sexo').value;
+            if (!/^\d{8}$/.test(dni) || !sexo) { alert('Cargá primero el DNI y el sexo.'); return; }
+            document.getElementById('input-profesor-cuil').value = cuilDesde(dni, sexo);
+        }
+        // Apenas se completan el DNI y el sexo, genera el CUIL solo (sin pisar uno ya escrito a mano).
+        function autocompletarCuil() {
+            const cuilInput = document.getElementById('input-profesor-cuil');
+            if (cuilInput.value.trim()) return;
+            const dni = document.getElementById('input-profesor-dni').value.padStart(8, '0');
+            const sexo = document.getElementById('input-profesor-sexo').value;
+            if (!/^\d{8}$/.test(dni) || !sexo) return;
+            cuilInput.value = cuilDesde(dni, sexo);
         }
 
         // ---------- Editar / limpiar ----------
@@ -676,16 +843,17 @@
             const form = document.getElementById('form-profesor');
             form.action = rutaBaseProfesores + '/' + profesor.id_profesor;
             document.getElementById('input-profesor-method').value = 'PUT';
-            for (const [campo, id] of [['dni', 'dni'], ['apellido', 'apellido'], ['nombre', 'nombre'], ['condicion', 'condicion'], ['cuil', 'cuil'], ['sexo', 'sexo'], ['telefono', 'telefono'], ['direccion', 'direccion']]) {
+            for (const [campo, id] of [['dni', 'dni'], ['apellido', 'apellido'], ['nombre', 'nombre'], ['cuil', 'cuil'], ['sexo', 'sexo'], ['telefono', 'telefono'], ['direccion', 'direccion']]) {
                 document.getElementById('input-profesor-' + id).value = profesor[campo] ?? '';
             }
             ponerFecha('input-profesor-nacimiento', profesor.fecha_nacimiento);
+            mostrarErrorNacimiento(profesor.fecha_nacimiento || '');
             ponerFecha('input-profesor-ingreso', profesor.fecha_ingreso);
             document.getElementById('input-profesor-provincia').value = profesor.id_provincia ?? '';
             cargarLocalidades(profesor.id_localidad ?? '');
             const ids = (profesor.id_especialidad || []).map(String);
             document.querySelectorAll('#input-profesor-especialidad input').forEach(c => c.checked = ids.includes(c.value));
-            (profesor.titulos || []).forEach(t => agregarChipTitulo(t.id_titulo, `${t.nombre} · ${t.nivel}`));
+            (profesor.titulos || []).forEach(t => agregarChipTitulo(t.id_titulo, t.nivel ? `${t.nombre} · ${t.nivel}` : t.nombre));
             mostrarAntiguedad();
             document.getElementById('titulo-form-profesor').textContent = 'Editar profesor';
             document.getElementById('input-profesor-submit').innerHTML = 'Guardar cambios';
@@ -700,6 +868,7 @@
             form.action = rutaGuardarProfesor;
             document.getElementById('input-profesor-method').value = '';
             ['input-profesor-nacimiento', 'input-profesor-ingreso'].forEach(id => ponerFecha(id, null));
+            mostrarErrorNacimiento('');
             document.getElementById('titulos-elegidos').innerHTML = '';
             cargarLocalidades();
             document.getElementById('texto-antiguedad').textContent = 'Se calcula solo con la fecha de ingreso.';
@@ -711,6 +880,52 @@
             irAPaso(1);
         }
 
+        // Avisa en el momento si lo que se eligió en "Fecha de nacimiento" da una edad
+        // fuera de 20-75 años. El campo de año de arriba del calendario de Flatpickr
+        // (fp.currentYearElement) SÍ deja escribir cualquier número ahí (se ve en
+        // pantalla, por ej. "1900"), pero Flatpickr internamente lo rechaza sin avisar
+        // nada: el calendario se queda clavado en el último año válido y no pasa nada,
+        // lo que parece un cuelgue. Por eso hay que escuchar ese campo de año
+        // directamente (confirmado con un navegador real que es el que recibe el valor
+        // tipeado) en vez de esperar a que Flatpickr "acepte" el cambio.
+        document.addEventListener('DOMContentLoaded', function () {
+            const campoNacimiento = document.getElementById('input-profesor-nacimiento');
+            const fp = campoNacimiento._flatpickr;
+            const anioMinimo = parseInt(campoNacimiento.min.slice(0, 4), 10);
+            const anioMaximo = parseInt(campoNacimiento.max.slice(0, 4), 10);
+
+            function revisarAnio(texto) {
+                const anio = parseInt(texto, 10);
+                if (String(texto || '').length < 4 || isNaN(anio)) return;
+                const aviso = document.getElementById('error-nacimiento');
+                if (anio < anioMinimo || anio > anioMaximo) {
+                    aviso.textContent = `El año ${anio} no corresponde: tiene que estar entre ${anioMinimo} y ${anioMaximo} (entre 20 y 75 años).`;
+                    aviso.classList.remove('hidden');
+                } else {
+                    aviso.classList.add('hidden');
+                    aviso.textContent = '';
+                }
+            }
+
+            if (fp) {
+                if (fp.altInput) {
+                    fp.altInput.addEventListener('input', () => {
+                        const m = fp.altInput.value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                        mostrarErrorNacimiento(m ? `${m[3]}-${m[2]}-${m[1]}` : '');
+                    });
+                }
+                if (fp.currentYearElement) {
+                    // Es un <input type="number">: no acepta "maxlength", así que se recorta a mano a 4 dígitos.
+                    fp.currentYearElement.addEventListener('input', (e) => {
+                        if (e.target.value.length > 4) e.target.value = e.target.value.slice(0, 4);
+                        revisarAnio(e.target.value);
+                    });
+                }
+                fp.config.onChange.push((fechas, texto) => mostrarErrorNacimiento(texto || ''));
+            }
+            campoNacimiento.addEventListener('change', () => mostrarErrorNacimiento(campoNacimiento.value));
+        });
+
         // Al volver con errores del servidor: conserva lo cargado y abre el paso del primer error.
         document.addEventListener('DOMContentLoaded', function () {
             irAPaso(1);
@@ -721,7 +936,7 @@
                     document.getElementById('input-profesor-provincia').value = prov ?? '';
                     cargarLocalidades(viejo.id_localidad);
                 }
-                for (const campo of ['dni', 'apellido', 'nombre', 'condicion', 'cuil', 'sexo', 'telefono', 'direccion']) {
+                for (const campo of ['dni', 'apellido', 'nombre', 'cuil', 'sexo', 'telefono', 'direccion']) {
                     if (viejo[campo] !== undefined) document.getElementById('input-profesor-' + campo).value = viejo[campo] ?? '';
                 }
                 (viejo.id_especialidad || []).forEach(id => { const c = document.querySelector(`#input-profesor-especialidad input[value="${id}"]`); if (c) c.checked = true; });
