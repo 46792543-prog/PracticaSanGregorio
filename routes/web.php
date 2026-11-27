@@ -214,8 +214,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::put('/profesores/{profesor}/reactivar', [ProfesorController::class, 'reactivar'])->name('profesores.reactivar');
     Route::post('/profesores/especialidades', [ProfesorController::class, 'storeEspecialidad'])->name('profesores.especialidades.store');
     Route::post('/profesores/titulos', [ProfesorController::class, 'storeTitulo'])->name('profesores.titulos.store');
+    Route::put('/profesores/titulos/{titulo}', [ProfesorController::class, 'updateTitulo'])->name('profesores.titulos.update');
+    Route::delete('/profesores/titulos/{titulo}', [ProfesorController::class, 'destroyTitulo'])->name('profesores.titulos.destroy');
     Route::post('/profesores/provincias', [ProfesorController::class, 'storeProvincia'])->name('profesores.provincias.store');
+    Route::put('/profesores/provincias/{provincia}', [ProfesorController::class, 'updateProvincia'])->name('profesores.provincias.update');
     Route::post('/profesores/localidades', [ProfesorController::class, 'storeLocalidad'])->name('profesores.localidades.store');
+    Route::put('/profesores/localidades/{localidad}', [ProfesorController::class, 'updateLocalidad'])->name('profesores.localidades.update');
     Route::put('/profesores/especialidades/{especialidad}', [ProfesorController::class, 'updateEspecialidad'])->name('profesores.especialidades.update');
     Route::delete('/profesores/especialidades/{especialidad}', [ProfesorController::class, 'destroyEspecialidad'])->name('profesores.especialidades.destroy');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
