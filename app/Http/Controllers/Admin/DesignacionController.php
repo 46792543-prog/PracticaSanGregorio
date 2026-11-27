@@ -134,6 +134,8 @@ class DesignacionController extends Controller
             'id_profesor.exists' => 'El profesor no existe o está dado de baja.',
             'fecha_baja.after' => 'La fecha de baja tiene que ser posterior a la de alta.',
             'id_turno_cursada.required' => 'Elegí el turno.',
+            'horas_catedra.min' => 'Elegí al menos 1 hora cátedra.',
+            'horas_catedra.max' => 'No puede tener más de 30 horas cátedra.',
             'resolucion_numero.digits_between' => 'El número de resolución tiene que tener solo números (hasta 6).',
         ]);
 
@@ -183,6 +185,12 @@ class DesignacionController extends Controller
                 throw ValidationException::withMessages(['id_materia' => "«{$materia->nombre}» ya está designada en este turno a {$otro->profesor->apellido}, {$otro->profesor->nombre}. Finalizá esa designación primero, o marcá la materia como práctica para repartir las horas."]);
             }
             $horas = $materia->horas_catedra;
+        }
+
+        // 4. Al editar: no se pueden dejar menos horas que las que ya tiene cargadas en el Horario.
+        $cargadas = $designacion->exists ? intdiv($designacion->horarios()->get()->sum('minutos'), Materia::MINUTOS_HORA_CATEDRA) : 0;
+        if ($horas < $cargadas) {
+            throw ValidationException::withMessages(['horas_catedra' => "Este docente ya tiene {$cargadas} h cargadas en el Horario: no se le pueden dejar {$horas} h. Primero quitale franjas en Horarios."]);
         }
 
         $designacion->fill([

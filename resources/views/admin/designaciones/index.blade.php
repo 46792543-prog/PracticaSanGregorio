@@ -98,11 +98,16 @@
                 <div class="grid sm:grid-cols-4 gap-4 items-start">
                     <div>
                         <label class="sg-label">Carga horaria <span class="text-red-500">*</span> <span class="font-normal normal-case text-slate-400">— hs cátedra</span></label>
-                        {{-- Bloqueada: la pone el sistema según la materia --}}
-                        <div class="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-[#0B3D91]">
+                        {{-- Materia común: bloqueada (son todas las horas de la materia). --}}
+                        <div id="carga-bloqueada" class="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-[#0B3D91]">
                             <x-sg.icono nombre="lock" class="h-4 w-4 text-slate-500" />
                             <span id="texto-carga" class="font-display font-bold text-lg">—</span>
                             <span id="texto-carga-detalle" class="text-xs text-slate-500"></span>
+                        </div>
+                        {{-- Práctica: se elige cuántas horas da este docente (de 1 a las que quedan libres). --}}
+                        <div id="carga-practica" class="hidden">
+                            <select id="select-carga-practica" onchange="porId('input-designacion-horas').value = this.value" class="sg-input w-full font-semibold"></select>
+                            <p id="texto-carga-practica" class="text-xs text-slate-500 mt-1"></p>
                         </div>
                         <input type="hidden" name="horas_catedra" id="input-designacion-horas" value="{{ old('horas_catedra') }}">
                     </div>
@@ -325,11 +330,13 @@
             porId('input-designacion-resolucion').value = resolucion || '';
         }
 
-        // Recuadro de la materia + carga horaria bloqueada.
+        // Recuadro de la materia + carga horaria (bloqueada; en práctica se elige).
         function actualizarMateria() {
             const select = porId('input-designacion-materia'), id = select.value, m = datosMaterias[id];
             const turno = porId('input-designacion-turno').value;
             const caja = porId('info-materia'), carga = porId('texto-carga'), detalle = porId('texto-carga-detalle'), horas = porId('input-designacion-horas');
+            const elegidas = +horas.value || 0; // lo que ya estaba elegido (al editar o al volver con error)
+            porId('carga-bloqueada').classList.remove('hidden'); porId('carga-practica').classList.add('hidden');
             if (!m) { caja.classList.add('hidden'); carga.textContent = '—'; detalle.textContent = ''; horas.value = ''; return; }
 
             const otras = vigentes.filter(v => String(v.id_materia) === id && (!turno || String(v.id_turno) === turno) && (!designacionEditando || v.id !== designacionEditando.id));
@@ -342,11 +349,21 @@
             caja.classList.remove('hidden');
 
             if (!m.horas) { carga.textContent = '—'; detalle.textContent = 'cargá las horas en Materias'; horas.value = ''; return; }
-            const libres = m.horas - otras.reduce((t, o) => t + (o.horas || 0), 0);
-            const h = m.practica ? Math.max(libres, 0) : m.horas;
-            horas.value = h || '';
-            carga.textContent = h + ' h';
-            detalle.textContent = m.practica ? `libres de ${m.horas} (práctica)` : 'de la materia';
+            const libres = Math.max(m.horas - otras.reduce((t, o) => t + (o.horas || 0), 0), 0);
+            if (m.practica) {
+                // Práctica: las horas se reparten entre varios docentes; se elige cuántas da este.
+                if (!libres) { carga.textContent = '0 h'; detalle.textContent = `no quedan horas libres de ${m.horas}`; horas.value = ''; return; }
+                const sel = porId('select-carga-practica');
+                sel.innerHTML = Array.from({ length: libres }, (_, i) => i + 1).map(h => `<option value="${h}">${h} h cátedra${h === libres ? ' (todas las libres)' : ''}</option>`).join('');
+                sel.value = elegidas >= 1 && elegidas <= libres ? elegidas : libres;
+                horas.value = sel.value;
+                porId('texto-carga-practica').textContent = `Práctica: quedan ${libres} h libres de ${m.horas}. Elegí cuántas da este docente.`;
+                porId('carga-bloqueada').classList.add('hidden'); porId('carga-practica').classList.remove('hidden');
+                return;
+            }
+            horas.value = m.horas;
+            carga.textContent = m.horas + ' h';
+            detalle.textContent = 'de la materia';
         }
 
         // Docente: buscador por apellido, nombre o DNI.
@@ -388,6 +405,7 @@
             porId('input-designacion-anio').value = d.id_anio_lectivo; actualizarAnioResolucion();
             ponerFecha('input-designacion-alta', d.fecha_alta);
             ponerFecha('input-designacion-baja', d.fecha_baja);
+            porId('input-designacion-horas').value = d.horas_catedra ?? ''; // en práctica, queda elegida la que tenía
             actualizarMateria();
             porId('titulo-form-designacion').textContent = 'Editar designación';
             porId('btn-designacion').innerHTML = 'Guardar cambios';
@@ -402,6 +420,7 @@
             form.action = rutaGuardarDesignacion;
             porId('input-designacion-method').value = '';
             porId('input-designacion-profesor').value = '';
+            porId('input-designacion-horas').value = '';
             porId('campos-designacion').disabled = true;
             ponerFecha('input-designacion-alta', @json(now()->toDateString()));
             ponerFecha('input-designacion-baja', null);
