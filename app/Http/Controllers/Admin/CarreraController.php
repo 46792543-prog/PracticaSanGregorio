@@ -147,6 +147,9 @@ class CarreraController extends Controller
     {
         $this->asegurarCatalogosPlan();
 
+        $plan = $this->planElegido($request, $carrera);
+        $this->exigirPlanEditable($plan);
+
         $data = $request->validate([
             'numero_orden' => ['required', 'integer', 'min:1'],
             'nombre' => ['required', 'string', 'max:150', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
@@ -155,16 +158,20 @@ class CarreraController extends Controller
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
             // Horas cátedra semanales (1 h cátedra = 40 min), CUPOF y si es práctica.
             'horas_catedra' => ['required', 'integer', 'min:1', 'max:30'],
-            'cupof' => ['nullable', 'digits_between:1,8'],
+            'cupof' => [
+                'required',
+                'digits_between:1,8',
+                Rule::unique('materia', 'cupof')->where('id_plan_estudio', $plan->id_plan_estudio),
+            ],
             'es_taller' => ['nullable', 'boolean'],
         ], [
             'horas_catedra.required' => 'Cargá las horas cátedra semanales de la materia.',
             'horas_catedra.max' => 'Una materia no puede tener más de 30 horas cátedra semanales.',
+            'cupof.required' => 'Cargá el CUPOF de la materia.',
             'cupof.digits_between' => 'El CUPOF tiene que tener solo números (hasta 8).',
+            'cupof.unique' => 'Ese CUPOF ya está usado por otra materia de este plan.',
         ]);
 
-        $plan = $this->planElegido($request, $carrera);
-        $this->exigirPlanEditable($plan);
         $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
 
         $carrera->materias()->create([
@@ -195,12 +202,20 @@ class CarreraController extends Controller
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
             // Horas cátedra semanales (1 h cátedra = 40 min), CUPOF y si es práctica.
             'horas_catedra' => ['required', 'integer', 'min:1', 'max:30'],
-            'cupof' => ['nullable', 'digits_between:1,8'],
+            'cupof' => [
+                'required',
+                'digits_between:1,8',
+                Rule::unique('materia', 'cupof')
+                    ->where('id_plan_estudio', $materia->id_plan_estudio)
+                    ->ignore($materia->id_materia, 'id_materia'),
+            ],
             'es_taller' => ['nullable', 'boolean'],
         ], [
             'horas_catedra.required' => 'Cargá las horas cátedra semanales de la materia.',
             'horas_catedra.max' => 'Una materia no puede tener más de 30 horas cátedra semanales.',
+            'cupof.required' => 'Cargá el CUPOF de la materia.',
             'cupof.digits_between' => 'El CUPOF tiene que tener solo números (hasta 8).',
+            'cupof.unique' => 'Ese CUPOF ya está usado por otra materia de este plan.',
         ]);
 
         // Editar los datos de una materia se puede siempre, aunque el plan tenga alumnos.
