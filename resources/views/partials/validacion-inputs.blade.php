@@ -9,7 +9,14 @@
     document.addEventListener('DOMContentLoaded', function () {
         flatpickr.localize(flatpickr.l10ns.es);
         document.querySelectorAll('input[type="date"]').forEach(function (el) {
-            flatpickr(el, { altInput: true, altFormat: 'd/m/Y', dateFormat: 'Y-m-d' });
+            // Flatpickr no respeta los atributos nativos min/max del <input>: hay que
+            // pasárselos como minDate/maxDate, si no, el calendario (y el selector de
+            // año, que si no tiene límite deja escribir cualquier cantidad de dígitos)
+            // deja elegir cualquier fecha sin importar lo que diga el HTML.
+            var opciones = { altInput: true, altFormat: 'd/m/Y', dateFormat: 'Y-m-d' };
+            if (el.min) opciones.minDate = el.min;
+            if (el.max) opciones.maxDate = el.max;
+            flatpickr(el, opciones);
         });
     });
 </script>
