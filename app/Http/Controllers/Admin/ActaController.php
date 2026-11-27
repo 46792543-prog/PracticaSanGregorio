@@ -57,12 +57,12 @@ class ActaController extends Controller
 
     public function show(MesaExamen $mesa): View
     {
-        return view('admin.actas.show', $this->cargarDatosMesa($mesa));
-    }
+        return view('admin.actas.show', $this->cargarDatosMesa($mesa));// muestra el detalle del acta, con los campos para cargar notas y resultados
+        }
 
     public function pdf(MesaExamen $mesa): Response
     {
-        $pdf = Pdf::loadView('admin.actas.pdf', $this->cargarDatosMesa($mesa))->setPaper('a4');
+        $pdf = Pdf::loadView('admin.actas.pdf', $this->cargarDatosMesa($mesa))->setPaper('a4');// genera el pdf del acta, con los campos cargados
 
         return $pdf->stream("acta-{$mesa->id_mesa}.pdf");
     }
