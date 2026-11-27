@@ -49,4 +49,21 @@ class ConfiguracionInstitucion extends Model
 
         return asset('storage/'.$this->logo_path);
     }
+
+    /**
+     * El logo como data URI (base64), para incrustar en PDFs generados con
+     * DomPDF: a diferencia de logo_url, no depende de que el motor de PDF
+     * pueda ir a buscar una URL externa.
+     */
+    public function getLogoBase64Attribute(): ?string
+    {
+        if (! $this->logo_path || ! Storage::disk('public')->exists($this->logo_path)) {
+            return null;
+        }
+
+        $mime = Storage::disk('public')->mimeType($this->logo_path) ?: 'image/png';
+        $contenido = Storage::disk('public')->get($this->logo_path);
+
+        return 'data:'.$mime.';base64,'.base64_encode($contenido);
+    }
 }
