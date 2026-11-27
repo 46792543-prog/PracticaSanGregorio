@@ -81,7 +81,7 @@ class ProfesorController extends Controller
             'materiasSinAsignar' => $materiasSinAsignar,
             'materiasOcupadas' => $materiasOcupadas,
             'sinAsignar' => $sinAsignar,
-            'especialidades' => EspecialidadProfesor::orderBy('nombre_especialidad')->get(),
+            'especialidades' => EspecialidadProfesor::withCount('profesores')->orderBy('nombre_especialidad')->get(),
             'titulosCatalogo' => Titulo::orderBy('nombre')->get(),
             'provincias' => Provincia::with('localidades')->orderBy('nombre')->get(),
             'filtros' => $request->only('profesor', 'dia', 'materia'),
@@ -97,7 +97,6 @@ class ProfesorController extends Controller
             'email' => ['nullable', 'email', 'max:25', 'unique:profesor,email'],
             'id_especialidad' => ['required', 'array', 'min:1'],
             'id_especialidad.*' => ['exists:especialidad_profesor,id_especialidad'],
-            'condicion' => ['required', Rule::in(Profesor::CONDICIONES)],
         ] + $this->reglasFicha(null), $this->mensajesFicha());
         $this->validarCuil($data);
 
@@ -110,7 +109,6 @@ class ProfesorController extends Controller
         $profesor = Profesor::create([
             'id_persona' => $persona->id_persona,
             'email' => $data['email'] ?? null,
-            'condicion' => $data['condicion'],
         ] + $this->datosFicha($data));
 
         $profesor->especialidades()->sync($data['id_especialidad']);
@@ -128,7 +126,6 @@ class ProfesorController extends Controller
             'email' => ['nullable', 'email', 'max:100', 'unique:profesor,email,' . $profesor->id_profesor . ',id_profesor'],
             'id_especialidad' => ['required', 'array', 'min:1'],
             'id_especialidad.*' => ['exists:especialidad_profesor,id_especialidad'],
-            'condicion' => ['required', Rule::in(Profesor::CONDICIONES)],
         ] + $this->reglasFicha($profesor ?? null), $this->mensajesFicha());
         $this->validarCuil($data);
 
@@ -138,9 +135,7 @@ class ProfesorController extends Controller
             'apellido' => $data['apellido'],
         ] + $this->datosPersona($data));
 
-        $profesor->update([
-            'condicion' => $data['condicion'],
-        ] + $this->datosFicha($data));
+        $profesor->update($this->datosFicha($data));
 
         $profesor->especialidades()->sync($data['id_especialidad']);
         $this->guardarTitulos($profesor, $data);
@@ -154,9 +149,9 @@ class ProfesorController extends Controller
     {
         return [
             'cuil' => ['nullable', 'digits:11', Rule::unique('profesor', 'cuil')->ignore($profesor?->id_profesor, 'id_profesor')],
-            'sexo' => ['nullable', Rule::in(array_keys(Profesor::SEXOS))],
+            'sexo' => ['required', Rule::in(array_keys(Profesor::SEXOS))],
             'fecha_ingreso' => ['nullable', 'date', 'after_or_equal:1950-01-01', 'before_or_equal:today'],
-            'fecha_nacimiento' => ['nullable', 'date', 'before:-16 years', 'after:1920-01-01'],
+            'fecha_nacimiento' => ['required', 'date', 'before:-20 years', 'after:-75 years'],
             'telefono' => ['nullable', 'regex:/^\d{7,15}$/'],
             'direccion' => ['nullable', 'string', 'max:40', 'regex:/^[\pL0-9\s]+$/u'],
             'id_localidad' => ['required', 'exists:localidad,id_localidad'],
@@ -170,8 +165,11 @@ class ProfesorController extends Controller
         return [
             'cuil.digits' => 'El CUIL tiene que tener 11 números, sin guiones.',
             'cuil.unique' => 'Ese CUIL ya está cargado en otro docente.',
+            'sexo.required' => 'Elegí el sexo.',
             'fecha_ingreso.before_or_equal' => 'La fecha de ingreso no puede ser futura.',
-            'fecha_nacimiento.before' => 'Revisá la fecha de nacimiento: tiene que tener al menos 16 años.',
+            'fecha_nacimiento.required' => 'Cargá la fecha de nacimiento.',
+            'fecha_nacimiento.before' => 'Revisá la fecha de nacimiento: tiene que tener al menos 20 años.',
+            'fecha_nacimiento.after' => 'Revisá la fecha de nacimiento: no puede tener más de 75 años.',
             'direccion.max' => 'El domicilio puede tener hasta 40 caracteres.',
             'direccion.regex' => 'El domicilio solo puede tener letras, números y espacios.',
             'telefono.regex' => 'El teléfono tiene que tener entre 7 y 15 números, sin espacios ni guiones.',
@@ -221,10 +219,31 @@ class ProfesorController extends Controller
     {
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:150', 'unique:titulo,nombre'],
-            'nivel' => ['required', Rule::in(Titulo::NIVELES)],
         ], ['nombre.unique' => 'Ese título ya existe: elegilo de la lista.']);
 
-        return response()->json(['titulo' => Titulo::create(['nombre' => trim($data['nombre']), 'nivel' => $data['nivel']])]);
+        return response()->json(['titulo' => Titulo::create(['nombre' => trim($data['nombre'])])]);
+    }
+
+    public function updateTitulo(Request $request, Titulo $titulo): JsonResponse
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:150', Rule::unique('titulo', 'nombre')->ignore($titulo->id_titulo, 'id_titulo')],
+        ], ['nombre.unique' => 'Ese título ya existe: elegilo de la lista.']);
+
+        $titulo->update(['nombre' => trim($data['nombre'])]);
+
+        return response()->json(['titulo' => $titulo]);
+    }
+
+    public function destroyTitulo(Titulo $titulo): JsonResponse
+    {
+        if ($titulo->profesores()->exists()) {
+            return response()->json(['message' => 'No se puede eliminar: hay profesores con este título cargado. Sacáselo primero a esos profesores.'], 422);
+        }
+
+        $titulo->delete();
+
+        return response()->json(['status' => 'Título eliminado.']);
     }
 
     public function storeProvincia(Request $request): JsonResponse
@@ -233,6 +252,17 @@ class ProfesorController extends Controller
             ['nombre.unique' => 'Esa provincia ya existe.']);
 
         return response()->json(['provincia' => Provincia::create(['nombre' => trim($data['nombre'])])]);
+    }
+
+    public function updateProvincia(Request $request, Provincia $provincia): JsonResponse
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:60', Rule::unique('provincia', 'nombre')->ignore($provincia->id_provincia, 'id_provincia')],
+        ], ['nombre.unique' => 'Esa provincia ya existe.']);
+
+        $provincia->update(['nombre' => trim($data['nombre'])]);
+
+        return response()->json(['provincia' => $provincia]);
     }
 
     public function storeLocalidad(Request $request): JsonResponse
@@ -244,6 +274,18 @@ class ProfesorController extends Controller
         ], ['nombre.unique' => 'Esa localidad ya existe en la provincia.']);
 
         return response()->json(['localidad' => Localidad::create(['id_provincia' => $data['id_provincia'], 'nombre' => trim($data['nombre'])])]);
+    }
+
+    public function updateLocalidad(Request $request, Localidad $localidad): JsonResponse
+    {
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:80',
+                Rule::unique('localidad', 'nombre')->where('id_provincia', $localidad->id_provincia)->ignore($localidad->id_localidad, 'id_localidad')],
+        ], ['nombre.unique' => 'Esa localidad ya existe en la provincia.']);
+
+        $localidad->update(['nombre' => trim($data['nombre'])]);
+
+        return response()->json(['localidad' => $localidad]);
     }
 
     public function baja(Profesor $profesor): RedirectResponse
@@ -285,6 +327,16 @@ class ProfesorController extends Controller
 
     public function updateEspecialidad(Request $request, EspecialidadProfesor $especialidad): RedirectResponse|JsonResponse
     {
+        if ($especialidad->profesores()->exists()) {
+            $mensaje = 'No se puede editar: hay profesores cargados con esta especialidad. Cambiales la especialidad primero.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $mensaje], 422);
+            }
+
+            return back()->withErrors(['nombre_especialidad' => $mensaje]);
+        }
+
         $data = $request->validate([
             'nombre_especialidad' => ['required', 'string', 'max:120', 'unique:especialidad_profesor,nombre_especialidad,' . $especialidad->id_especialidad . ',id_especialidad'],
         ]);
