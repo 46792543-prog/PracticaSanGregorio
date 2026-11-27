@@ -134,7 +134,7 @@ class CuotaController extends Controller
             'configuracionesCuotaPorAnio' => $configuracionesCuotaPorAnio,
             'matricula' => $matricula,
             'anioMatricula' => AnioLectivo::find($anioMatricula),
-            'hayConfiguracionMatricula' => $anioMatricula && ConfiguracionMatricula::where('id_anio_lectivo', $anioMatricula)->exists(),
+            'hayConfiguracionMatricula' => $anioMatricula && ConfiguracionMatricula::de($anioMatricula, $idCarrera) !== null,
             'condicionAlumno' => $condicionAlumno,
         ]);
     }
@@ -355,7 +355,7 @@ class CuotaController extends Controller
             'alumno_usuario_id' => ['required', 'exists:usuario,id_usuario'],
         ]);
 
-        $configuracion = ConfiguracionMatricula::where('id_anio_lectivo', $data['id_anio_lectivo'])->first();
+        $configuracion = ConfiguracionMatricula::de($data['id_anio_lectivo'], $data['id_carrera']);
 
         if (! $configuracion) {
             return back()->withErrors(['matricula' => 'Primero cargá el monto de la matrícula de ese año en Configuración de Matrícula.']);

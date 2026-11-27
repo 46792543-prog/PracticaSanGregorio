@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Director;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnioLectivo;
+use App\Models\Carrera;
 use App\Models\CondicionAlumno;
 use App\Models\ConfiguracionMatricula;
 use App\Models\InscripcionCarrera;
@@ -29,7 +30,9 @@ class ConfiguracionMatriculaController extends Controller
         return view('director.configuracion-matricula.index', [
             'anios' => AnioLectivo::orderByDesc('anio')->get(),
             'anioActivoId' => $anioActivo?->id_anio_lectivo,
-            'configuraciones' => ConfiguracionMatricula::with('anioLectivo')->get()->keyBy('id_anio_lectivo'),
+            // Clave "año-carrera" ('todas' si es la general).
+            'configuraciones' => ConfiguracionMatricula::with('anioLectivo', 'carrera')->get()->keyBy(fn ($c) => "{$c->id_anio_lectivo}-" . ($c->id_carrera ?? 'todas')),
+            'carreras' => Carrera::orderBy('nombre_carrera')->get(),
             'meses' => Mes::orderBy('id_mes')->get(),
         ]);
     }
@@ -38,6 +41,7 @@ class ConfiguracionMatriculaController extends Controller
     {
         $data = $request->validate([
             'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'id_carrera' => ['nullable', 'exists:carrera,id_carrera'],
             'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'mes_habilitacion' => ['required', 'integer', 'min:1', 'max:12'],
             'dia_limite' => ['required', 'integer', 'min:1', 'max:28'],
@@ -50,8 +54,10 @@ class ConfiguracionMatriculaController extends Controller
             'concepto.regex' => 'El concepto solo puede tener letras.',
         ]);
 
+        $idCarrera = $data['id_carrera'] ?: null;
+
         $configuracion = ConfiguracionMatricula::updateOrCreate(
-            ['id_anio_lectivo' => $data['id_anio_lectivo']],
+            ['id_anio_lectivo' => $data['id_anio_lectivo'], 'id_carrera' => $idCarrera],
             [
                 'monto' => round((float) $data['monto'], 2),
                 'mes_habilitacion' => $data['mes_habilitacion'],
@@ -60,9 +66,12 @@ class ConfiguracionMatriculaController extends Controller
             ]
         );
 
+        $configuracion->load('anioLectivo', 'carrera');
+
         $creadas = $this->generarMatriculasAutomaticas($configuracion);
 
-        $mensaje = "Se guardó la configuración de matrícula para el año {$configuracion->anioLectivo->anio}.";
+        $alcance = $configuracion->carrera ? $configuracion->carrera->nombre_carrera : 'todas las carreras';
+        $mensaje = "Se guardó la configuración de matrícula de {$alcance} para el año {$configuracion->anioLectivo->anio}.";
         $mensaje .= $creadas > 0
             ? " Se generó la matrícula para {$creadas} alumno(s) con inscripción activa."
             : ' No se generaron matrículas nuevas: ya estaban todas generadas.';
@@ -73,17 +82,28 @@ class ConfiguracionMatriculaController extends Controller
     /**
      * Una matrícula por carrera para cada alumno con inscripción activa en
      * ese año (si cursa dos carreras, paga dos matrículas). No duplica las
-     * que ya existan.
+     * que ya existan. Si la configuración es general (sin carrera), no se
+     * aplica a las carreras que ya tengan su propia configuración para ese
+     * año: la específica manda sobre la general.
      */
     private function generarMatriculasAutomaticas(ConfiguracionMatricula $configuracion): int
     {
         $idAnio = $configuracion->id_anio_lectivo;
+
+        $carrerasConConfiguracionPropia = ConfiguracionMatricula::where('id_anio_lectivo', $idAnio)
+            ->whereNotNull('id_carrera')
+            ->pluck('id_carrera');
 
         // Los de "Cursada completa" no se incluyen: pagan la matrícula solo
         // del año en que vuelven a rendir, y se les genera a mano desde Cuotas.
         $alumnos = InscripcionCarrera::where('id_anio_lectivo', $idAnio)
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
             ->whereDoesntHave('condicion', fn ($q) => $q->where('nombre_condicion', CondicionAlumno::CURSADA_COMPLETA))
+            ->when(
+                $configuracion->id_carrera,
+                fn ($q) => $q->where('id_carrera', $configuracion->id_carrera),
+                fn ($q) => $q->whereNotIn('id_carrera', $carrerasConConfiguracionPropia)
+            )
             ->get(['id_persona_alumno', 'id_carrera']);
 
         $creadas = 0;

@@ -44,7 +44,7 @@ class MatriculaAlumno extends Model
 
     public function configuracion(): ?ConfiguracionMatricula
     {
-        return ConfiguracionMatricula::where('id_anio_lectivo', $this->id_anio_lectivo)->first();
+        return ConfiguracionMatricula::de($this->id_anio_lectivo, $this->id_carrera);
     }
 
     /**

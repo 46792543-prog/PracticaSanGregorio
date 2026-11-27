@@ -15,12 +15,21 @@
         <div class="p-6">
             <form method="POST" action="{{ route('director.configuracion-matricula.store') }}" id="form-configuracion-matricula">
                 @csrf
-                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                <div class="grid sm:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label class="sg-label">PERÍODO LECTIVO *</label>
                         <select name="id_anio_lectivo" id="select-anio-config-matricula" required class="sg-input w-full">
                             @foreach ($anios as $anio)
                                 <option value="{{ $anio->id_anio_lectivo }}" @selected($anio->id_anio_lectivo === old('id_anio_lectivo', $anioActivoId))>{{ $anio->anio }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="sg-label">CARRERA *</label>
+                        <select name="id_carrera" id="select-carrera-config-matricula" required class="sg-input w-full">
+                            <option value="" @selected(old('id_carrera') === null)>Aplica a todas las carreras</option>
+                            @foreach ($carreras as $carrera)
+                                <option value="{{ $carrera->id_carrera }}" @selected((int) $carrera->id_carrera === (int) old('id_carrera'))>{{ $carrera->nombre_carrera }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -54,7 +63,7 @@
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">
-                    Al guardar, se genera automáticamente la matrícula (una sola por alumno, no una por mes) para todos los alumnos con inscripción activa en el período elegido. No se duplican las que ya existan. Hasta que la paguen, el sistema no les va a dejar pagar cuotas de ese año.
+                    Al guardar, se genera automáticamente la matrícula (una sola por alumno, no una por mes) para los alumnos con inscripción activa en el período y la carrera elegidos (o en todas, si se eligió "Aplica a todas las carreras"). Si una carrera tiene su propia configuración, esa manda sobre la general. No se duplican las que ya existan. Hasta que la paguen, el sistema no les va a dejar pagar cuotas de ese año.
                 </p>
 
                 <div class="flex justify-end">
@@ -68,7 +77,7 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--verde"><x-sg.icono nombre="chart" /></span>
-                <div><h3>Configuraciones guardadas</h3><p>Una por período lectivo</p></div>
+                <div><h3>Configuraciones guardadas</h3><p>Una por período lectivo y carrera (o general)</p></div>
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -76,6 +85,7 @@
                 <thead>
                     <tr>
                         <th>Año lectivo</th>
+                        <th>Carrera</th>
                         <th>Monto</th>
                         <th>Habilitada desde</th>
                         <th>Día límite</th>
@@ -83,16 +93,17 @@
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
-                    @forelse ($configuraciones as $configuracion)
+                    @forelse ($configuraciones->sortBy(fn ($c) => [-$c->anioLectivo->anio, $c->carrera?->nombre_carrera ?? '']) as $configuracion)
                         <tr>
                             <td class="font-semibold text-slate-700">{{ $configuracion->anioLectivo->anio }}</td>
+                            <td class="text-slate-500">{{ $configuracion->carrera?->nombre_carrera ?? 'Todas las carreras' }}</td>
                             <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($configuracion->monto, 0, ',', '.') }}</td>
                             <td class="text-slate-500">{{ $meses->firstWhere('id_mes', $configuracion->mes_habilitacion)?->nombre_mes }}</td>
                             <td class="text-slate-500">Día {{ $configuracion->dia_limite }}</td>
                             <td class="text-slate-500">{{ $configuracion->concepto ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5"><x-sg.vacio icono="settings">Todavía no se configuró ninguna matrícula.</x-sg.vacio></td></tr>
+                        <tr><td colspan="6"><x-sg.vacio icono="settings">Todavía no se configuró ninguna matrícula.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -100,10 +111,11 @@
     </div>
 
     @php
-        $configuracionesJs = $configuraciones->mapWithKeys(fn ($c) => [$c->id_anio_lectivo => [
+        $configuracionesJs = $configuraciones->mapWithKeys(fn ($c, $clave) => [$clave => [
             'monto' => (float) $c->monto,
             'mes_habilitacion' => $c->mes_habilitacion,
             'dia_limite' => $c->dia_limite,
+            'concepto' => $c->concepto,
         ]]);
     @endphp
 
@@ -111,19 +123,26 @@
         (function () {
             const configuraciones = @json($configuracionesJs);
             const selectAnio = document.getElementById('select-anio-config-matricula');
+            const selectCarrera = document.getElementById('select-carrera-config-matricula');
             const montoInput = document.getElementById('input-monto-matricula');
             const mesInput = document.getElementById('input-mes-habilitacion');
             const diaInput = document.getElementById('input-dia-limite');
+            const conceptoInput = document.querySelector('input[name="concepto"]');
 
             function precargarConfiguracion() {
-                const config = configuraciones[selectAnio.value];
+                // Clave "año-carrera" ('todas' si es la general): cada carrera
+                // puede tener su propia configuración, o una general.
+                const clave = selectAnio.value + '-' + (selectCarrera.value || 'todas');
+                const config = configuraciones[clave];
                 if (! config) return;
                 montoInput.value = config.monto;
                 mesInput.value = config.mes_habilitacion;
                 diaInput.value = config.dia_limite;
+                conceptoInput.value = config.concepto || '';
             }
 
             selectAnio.addEventListener('change', precargarConfiguracion);
+            selectCarrera.addEventListener('change', precargarConfiguracion);
             precargarConfiguracion();
         })();
     </script>
