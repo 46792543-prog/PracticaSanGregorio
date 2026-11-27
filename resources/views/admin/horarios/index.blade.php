@@ -404,7 +404,7 @@
             const materias = new Set(desigs.map(d => d.id_materia)).size, dias = new Set(franjas.map(f => f.dia)).size;
             const dato = (t, v) => `<div class="rounded-xl bg-white/10 px-4 py-2 text-center"><p class="text-[10px] font-bold uppercase tracking-wider text-blue-100">${t}</p><p class="font-display text-xl font-bold text-[#FFD54F]">${v}</p></div>`;
             porId('hc-resumen').innerHTML = `<div class="mb-4 flex flex-wrap items-center gap-4 rounded-2xl bg-gradient-to-r from-[#0B3D91] to-[#2563EB] px-5 py-4 text-white">
-                <span class="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-[#FFC107] to-[#FFE082] text-center text-sm font-bold text-[#5B3A00]">${hcEsc(c.anio_cursada)}</span>
+                <span class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#FFC107] to-[#FFE082] p-1 text-center text-[11px] font-bold leading-tight text-[#5B3A00]">${hcEsc(c.anio_cursada)}</span>
                 <div class="mr-auto"><p class="font-display text-lg font-bold">${hcEsc(c.carrera)}</p><p class="text-sm text-blue-100">${hcEsc(c.anio_cursada)} · Turno ${hcEsc(c.turno)}</p></div>
                 ${dato('Materias', materias)}${dato('Clases / semana', franjas.length)}${dato('Días con clase', dias)}
                 <button type="button" onclick="hcLimpiar()" class="rounded-xl border border-white/30 px-3 py-2 text-sm font-semibold hover:bg-white/10">Limpiar búsqueda ✕</button></div>`;
