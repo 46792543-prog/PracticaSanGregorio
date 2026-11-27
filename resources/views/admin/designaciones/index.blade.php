@@ -138,15 +138,12 @@
                     </div>
                     <div>
                         <label class="sg-label">Resolución</label>
-                        {{-- Se escribe solo el número; el año se agrega solo --}}
+                        {{-- Bloqueada: se completa sola con la resolución del plan vigente de la carrera elegida --}}
                         <div class="flex items-stretch">
-                            <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="6" maxlength="6" name="resolucion_numero" id="input-designacion-resolucion" value="{{ old('resolucion_numero') }}" placeholder="Nº" class="sg-input min-w-0 flex-1 !rounded-r-none">
+                            <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="6" maxlength="6" readonly tabindex="-1" name="resolucion_numero" id="input-designacion-resolucion" value="{{ old('resolucion_numero') }}" placeholder="Sin resolución" class="sg-input min-w-0 flex-1 !rounded-r-none bg-slate-50 text-slate-600 cursor-not-allowed">
                             <span id="sufijo-resolucion" class="grid place-items-center rounded-r-xl border border-l-0 border-slate-200 bg-slate-50 px-3 font-semibold text-slate-500">/{{ $anio?->anio }}</span>
                         </div>
-                    </div>
-                    <div>
-                        <label class="sg-label">Aula</label>
-                        <input type="text" maxlength="20" name="aula" id="input-designacion-aula" value="{{ old('aula') }}" placeholder="Opcional" class="sg-input w-full">
+                        <p class="text-xs text-slate-400 mt-1">Se completa sola con la resolución del plan vigente de la carrera.</p>
                     </div>
                 </div>
             </fieldset>
@@ -229,7 +226,7 @@
                                 $payload = [
                                     'id' => $d->id_asignacion, 'id_profesor' => $d->id_profesor, 'id_materia' => $d->id_materia, 'id_anio_lectivo' => $d->id_anio_lectivo,
                                     'tipo' => $d->tipo, 'horas_catedra' => $d->horas_catedra, 'fecha_alta' => $d->fecha_alta?->toDateString(),
-                                    'fecha_baja' => $d->fecha_baja?->toDateString(), 'aula' => $d->aula,
+                                    'fecha_baja' => $d->fecha_baja?->toDateString(),
                                     'id_carrera' => $d->materia->id_carrera, 'id_turno' => $d->id_turno_cursada, 'activa' => $d->activa,
                                     'resolucion_numero' => $d->resolucion ? explode('/', $d->resolucion)[0] : '',
                                     'docente' => $d->profesor->apellido . ', ' . $d->profesor->nombre,
@@ -281,6 +278,14 @@
         $docentesJs = $profesores->map(fn ($p) => ['id' => $p->id_profesor, 'nombre' => $p->apellido . ', ' . $p->nombre, 'dni' => $p->dni])->values();
         $nombresCarreraJs = $carreras->pluck('nombre_carrera', 'id_carrera');
         $turnosPorCarreraJs = $carreras->mapWithKeys(fn ($c) => [$c->id_carrera => $c->turnos->pluck('id_turno_cursada')->map(fn ($t) => (string) $t)]);
+        // Resolución del plan vigente de cada carrera (solo la parte numérica: el campo
+        // de la designación es solo números, p. ej. de "3576e/s" se toma "3576").
+        $resolucionesPorCarreraJs = $carreras->mapWithKeys(function ($c) {
+            $vigente = $c->planes->first(fn ($p) => $p->estado() === 'Vigente');
+            $numero = $vigente ? preg_replace('/[^0-9].*$/', '', (string) $vigente->resolucion_ministerial) : '';
+
+            return [$c->id_carrera => $numero !== '' ? $numero : null];
+        });
     @endphp
     <script>
         const datosMaterias = @json($datosMaterias);
@@ -288,6 +293,7 @@
         const docentes = @json($docentesJs);
         const nombresCarrera = @json($nombresCarreraJs);
         const turnosPorCarrera = @json($turnosPorCarreraJs);
+        const resolucionesPorCarrera = @json($resolucionesPorCarreraJs);
         const rutaBaseDesignaciones = @json(url('/admin/designaciones'));
         const rutaGuardarDesignacion = @json(route('admin.designaciones.store'));
         let designacionEditando = null; // al editar, sus horas no cuentan como ocupadas
@@ -306,6 +312,17 @@
             [...select.options].slice(1).forEach(o => o.hidden = o.dataset.carrera !== carrera);
             select.value = materiaElegida;
             actualizarMateria();
+            autocompletarResolucion();
+        }
+
+        // Al elegir la carrera, trae sola la resolución del plan vigente de esa carrera
+        // (solo para designaciones nuevas, y sin pisar un número ya escrito a mano).
+        // Siempre la resolución del plan vigente de la carrera elegida: tanto al crear
+        // una designación nueva como al editar una existente (está bloqueada, así que
+        // no tiene sentido dejar un número viejo si no coincide con la carrera actual).
+        function autocompletarResolucion() {
+            const resolucion = resolucionesPorCarrera[porId('input-designacion-carrera').value];
+            porId('input-designacion-resolucion').value = resolucion || '';
         }
 
         // Recuadro de la materia + carga horaria bloqueada.
@@ -369,8 +386,6 @@
             document.querySelector(`[name="tipo"][value="${d.tipo}"]`).checked = true;
             document.querySelector(`[name="activa"][value="${d.activa ? 1 : 0}"]`).checked = true;
             porId('input-designacion-anio').value = d.id_anio_lectivo; actualizarAnioResolucion();
-            porId('input-designacion-resolucion').value = d.resolucion_numero ?? '';
-            porId('input-designacion-aula').value = d.aula ?? '';
             ponerFecha('input-designacion-alta', d.fecha_alta);
             ponerFecha('input-designacion-baja', d.fecha_baja);
             actualizarMateria();
