@@ -17,6 +17,7 @@ use App\Models\Persona;
 use App\Models\TarifaRecursante;
 use App\Models\TipoMovimiento;
 use App\Models\Usuario;
+use App\Support\GeneradorCuotas;
 use App\Support\RecalculadorCuotas;
 use App\Support\CorteActivo;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,8 @@ class CuotaController extends Controller
     {
         // Pone las cuotas impagas al precio y la mora de hoy (no depende de
         // la tarea diaria, que en Laragon / el hosting no corre sin cron).
+        // Si el alumno elegido se inscribió después de guardar la configuración, se le generan las cuotas que le falten.
+        GeneradorCuotas::paraAlumno(Usuario::find($request->query('alumno'))?->id_persona);
         RecalculadorCuotas::aplicarATodos();
 
         $busqueda = trim((string) $request->query('q'));
@@ -121,7 +124,11 @@ class CuotaController extends Controller
             'busqueda' => $busqueda,
             'resultados' => $resultados,
             'alumnoSeleccionado' => $alumnoSeleccionado,
-            'estadoMensual' => $persona ? $persona->estadoMensualCuotas(null, $idCarrera) : collect(),
+            // Todo el ciclo (hasta diciembre): así se ven también los meses pagados por adelantado.
+            // Los que todavía no vencieron se marcan como "futuro" (no son deuda).
+            'estadoMensual' => $persona
+                ? $persona->estadoMensualCuotas(12, $idCarrera)->map(fn ($item) => $item + ['futuro' => $item['mes']->id_mes > now()->month])
+                : collect(),
             'primerMesSinGenerar' => $persona ? $persona->mesesSinCuotaGenerada($idCarrera)->first() : null,
             'carrerasAlumno' => $carrerasAlumno,
             'idCarrera' => $idCarrera,

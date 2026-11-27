@@ -9,7 +9,7 @@ use App\Models\TarifaRecursante;
 
 /**
  * Recalcula desde cero cada cuota IMPAGA con la configuración de hoy:
- *   monto   = precio vigente según los aumentos (ConfiguracionCuota::montoACobrar)
+ *   monto   = precio de ese mes según los aumentos (ConfiguracionCuota::montoACobrar)
  *   recargo = si ya venció, monto x % de mora (una sola vez); si no, 0
  * Así, si sube la cuota o cambia el % de mora, se actualizan todas las
  * impagas. Las pagadas no se tocan. Se llama al guardar la configuración o un

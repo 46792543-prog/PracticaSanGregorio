@@ -140,7 +140,7 @@
             </form>
 
             <p class="sg-aviso sg-aviso--info text-xs mt-4">
-                Las cuotas que se deben no quedan al precio viejo: si un alumno debe marzo y la cuota subió en julio, marzo se cobra al valor de julio, y la mora se calcula sobre ese monto. Las cuotas ya pagadas no se tocan. Si el aumento es de un mes que todavía no llegó, las cuotas adeudadas suben solas cuando llegue ese mes.
+                El aumento rige desde el mes elegido en adelante: si la cuota subió en agosto, de marzo a julio se cobran al precio anterior (aunque se paguen después) y de agosto en adelante al precio nuevo. La mora se calcula sobre el monto de cada mes. Las cuotas ya pagadas no se tocan.
             </p>
 
             <div class="overflow-x-auto mt-4">

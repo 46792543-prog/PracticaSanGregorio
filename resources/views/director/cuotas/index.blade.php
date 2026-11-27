@@ -57,7 +57,7 @@
             @if ($alumnoSeleccionado)
                 @php
                     $cuotasPendientes = $alumnoSeleccionado->persona->cuotas->where('pagado', false);
-                    $mesesAdeudados = $estadoMensual->reject(fn ($item) => $item['pagado'])->pluck('mes');
+                    $mesesAdeudados = $estadoMensual->reject(fn ($item) => $item['pagado'] || $item['futuro'])->pluck('mes'); // lo que todavía no vence no es deuda
                 @endphp
                 <div class="mt-6 rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/80 to-white p-5 sm:p-6 sg-revelar">
                     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -149,12 +149,15 @@
                             <p class="sg-label mb-2">Estado mes a mes (ciclo {{ now()->year }})</p>
                             <div class="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-12 gap-2">
                                 @foreach ($estadoMensual as $item)
-                                    <span @class([
+                                    {{-- Verde: pagado (también adelantado) · Rojo: vencido sin pagar · Gris: todavía no vence --}}
+                                    <span title="{{ $item['mes']->nombre_mes }}: {{ $item['pagado'] ? ($item['futuro'] ? 'pagado por adelantado' : 'pagado') : ($item['futuro'] ? 'todavía no vence' : 'adeudado') }}"
+                                        @class([
                                             'flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-bold ring-1',
                                             'bg-emerald-50 text-emerald-700 ring-emerald-100' => $item['pagado'],
-                                            'bg-rose-50 text-rose-600 ring-rose-100' => ! $item['pagado'],
+                                            'bg-rose-50 text-rose-600 ring-rose-100' => ! $item['pagado'] && ! $item['futuro'],
+                                            'bg-slate-50 text-slate-400 ring-slate-200' => ! $item['pagado'] && $item['futuro'],
                                         ])>
-                                        <x-sg.icono :nombre="$item['pagado'] ? 'check-circle' : 'x-circle'" class="h-4 w-4" />
+                                        <x-sg.icono :nombre="$item['pagado'] ? 'check-circle' : ($item['futuro'] ? 'clock' : 'x-circle')" class="h-4 w-4" />
                                         {{ \Illuminate\Support\Str::limit($item['mes']->nombre_mes, 3, '') }}
                                     </span>
                                 @endforeach

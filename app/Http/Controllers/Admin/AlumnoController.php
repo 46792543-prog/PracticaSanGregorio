@@ -23,6 +23,7 @@ use App\Models\Usuario;
 use App\Support\Auditor;
 use App\Support\CambioDePlan;
 use App\Support\CorteActivo;
+use App\Support\GeneradorCuotas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -249,6 +250,7 @@ class AlumnoController extends Controller
             'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
             'id_secretario_registra' => Auth::user()->id_persona,
         ]);
+        GeneradorCuotas::paraAlumno($persona->id_persona); // sus cuotas del año, si ya hay configuración cargada
 
         return redirect()->route('admin.alumnos.show', [$persona, 'carrera' => $data['carrera_id']])
             ->with('status', 'Se inscribió al alumno en ' . Carrera::find($data['carrera_id'])->nombre_carrera
@@ -409,6 +411,7 @@ class AlumnoController extends Controller
             'id_estado_inscripcion' => EstadoInscripcion::where('nombre_estado', 'Activo')->value('id_estado_inscripcion'),
             'id_secretario_registra' => Auth::user()->id_persona,
         ]);
+        GeneradorCuotas::paraAlumno($persona->id_persona); // sus cuotas del año, si ya hay configuración cargada
 
         session()->forget(self::SESSION_KEY);
 

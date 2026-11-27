@@ -62,16 +62,12 @@ class ConfiguracionCuota extends Model
         return round((float) ($aumento->monto ?? $this->monto_mensual), 2);
     }
 
-    // Lo que se cobra HOY por la cuota de un mes. Si es un mes que ya pasó,
-    // se cobra al precio de hoy (si marzo se debe y en julio subió, marzo
-    // se paga a precio de julio). Si es un mes futuro, al precio de ese mes.
-    // Para años ya terminados cuenta como diciembre; para años futuros, enero.
+    // Lo que se cobra por la cuota de un mes: el precio de ESE mes. Un aumento
+    // rige desde su mes en adelante (si subió en agosto, marzo a julio siguen
+    // al precio anterior aunque se paguen después).
     public function montoACobrar(int $mes): float
     {
-        $anio = (int) $this->anioLectivo?->anio;
-        $mesHoy = $anio === now()->year ? now()->month : ($anio < now()->year ? 12 : 1);
-
-        return $this->montoParaMes(max($mes, $mesHoy));
+        return $this->montoParaMes($mes);
     }
 
     // Fecha de vencimiento de un mes. Si el mes tiene menos días que el
@@ -83,9 +79,11 @@ class ConfiguracionCuota extends Model
         return $primero->day(min($dia, $primero->daysInMonth))->toDateString();
     }
 
-    // Precio que rige hoy (el de un mes "pasado" cualquiera).
+    // Precio que rige hoy (el del mes actual). Para años ya terminados cuenta como diciembre; para años futuros, enero.
     public function montoVigente(): float
     {
-        return $this->montoACobrar(1);
+        $anio = (int) $this->anioLectivo?->anio;
+
+        return $this->montoParaMes($anio === now()->year ? now()->month : ($anio < now()->year ? 12 : 1));
     }
 }

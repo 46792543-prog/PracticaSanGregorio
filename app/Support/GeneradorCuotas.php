@@ -18,10 +18,25 @@ use Illuminate\Support\Facades\DB;
  *  - Recursante: precio de su tabla, según cuántas materias cursa. Si no hay
  *    precio cargado para esa cantidad, no se le genera.
  *  - Cursada completa: no se le genera (paga solo el mes en que rinde, a mano).
+ * También se usa para un alumno solo (paraAlumno), así el que se inscribe
+ * después de guardada la configuración igual tiene sus cuotas.
  */
 class GeneradorCuotas
 {
-    public static function generar(ConfiguracionCuota $configuracion): int
+    // Las cuotas que le falten a un alumno en sus carreras activas (con configuración cargada). Nunca duplica.
+    public static function paraAlumno(?int $idPersona): int
+    {
+        if (! $idPersona) {
+            return 0;
+        }
+
+        return InscripcionCarrera::where('id_persona_alumno', $idPersona)
+            ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->get()
+            ->sum(fn ($i) => ($config = ConfiguracionCuota::de($i->id_anio_lectivo, $i->id_carrera)) ? self::generar($config, $idPersona) : 0);
+    }
+
+    public static function generar(ConfiguracionCuota $configuracion, ?int $idPersona = null): int
     {
         $configuracion->loadMissing('anioLectivo', 'aumentos');
         $anio = $configuracion->anioLectivo;
@@ -31,6 +46,7 @@ class GeneradorCuotas
             ->where('id_anio_lectivo', $anio->id_anio_lectivo)
             ->where('id_carrera', $configuracion->id_carrera)
             ->whereHas('estadoInscripcion', fn ($q) => $q->where('nombre_estado', 'Activo'))
+            ->when($idPersona, fn ($q) => $q->where('id_persona_alumno', $idPersona))
             ->get();
 
         DB::transaction(function () use ($inscripciones, $anio, $configuracion, &$creadas) {
