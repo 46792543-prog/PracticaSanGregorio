@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MovimientoCaja extends Model
 {
+    // Las categorías de egreso son conceptos de caja de tipo Egreso (se agregan y editan en el Libro de Caja).
+    // Los honorarios se asientan solos desde Pago de Docentes (no se cargan a mano: evita duplicados).
+    public const HONORARIOS_DOCENTES = 'Pago de honorarios docentes';
+
     protected $table = 'movimiento_caja';
     protected $primaryKey = 'id_movimiento';
 
@@ -16,6 +20,7 @@ class MovimientoCaja extends Model
         'monto',
         'fecha_movimiento',
         'descripcion_detalle',
+        'beneficiario',
         'id_secretario_registra',
         'id_medio_pago',
     ];

@@ -19,7 +19,7 @@
         table.resumen td { border: 1px solid #cbd5e1; padding: 6px 10px; }
         table.resumen td.label { color: #64748b; text-transform: uppercase; font-size: 9px; }
         table.resumen td.ingresos { color: #059669; font-weight: bold; }
-        table.resumen td.gastos { color: #e11d48; font-weight: bold; }
+        table.resumen td.egresos { color: #e11d48; font-weight: bold; }
         table.resumen td.saldo { color: #0B3D91; font-weight: bold; }
 
         table.movimientos { width: 100%; border-collapse: collapse; font-size: 9.5px; }
@@ -40,12 +40,12 @@
         </div>
     </div>
 
-    <h1>Planilla de Control de Gastos — {{ \App\Support\FechaEsp::mesAnio($mes) }}</h1>
+    <h1>Libro de Caja — Movimientos — {{ \App\Support\FechaEsp::mesAnio($mes) }}</h1>
 
     <table class="resumen">
         <tr>
             <td class="label">Ingresos del mes<br><span class="ingresos">$ {{ number_format($resumenMes['ingresos'], 0, ',', '.') }}</span></td>
-            <td class="label">Gastos del mes<br><span class="gastos">$ {{ number_format($resumenMes['gastos'], 0, ',', '.') }}</span></td>
+            <td class="label">Egresos del mes<br><span class="egresos">$ {{ number_format($resumenMes['egresos'], 0, ',', '.') }}</span></td>
             <td class="label">Saldo<br><span class="saldo">$ {{ number_format($resumenMes['saldo'], 0, ',', '.') }}</span></td>
             <td class="label">Movimientos<br>{{ $resumenMes['cantidad'] }}</td>
         </tr>
@@ -60,7 +60,7 @@
                 <th>Tipo</th>
                 <th>Registrado por</th>
                 <th class="derecha">Ingreso</th>
-                <th class="derecha">Gastos</th>
+                <th class="derecha">Egresos</th>
             </tr>
         </thead>
         <tbody>
@@ -69,7 +69,7 @@
                 <tr>
                     <td>{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</td>
                     <td>{{ $mov->fecha_movimiento->format('d/m/Y H:i') }}</td>
-                    <td>{{ $mov->concepto->nombre_concepto }}</td>
+                    <td>{{ $mov->concepto->nombre_concepto }}@if ($mov->descripcion_detalle)<br><small>{{ $mov->descripcion_detalle }}</small>@endif @if ($mov->beneficiario)<br><small>Beneficiario: {{ $mov->beneficiario }}</small>@endif</td>
                     <td>{{ $mov->tipo }}</td>
                     <td>{{ $mov->secretarioRegistra->nombre }} {{ $mov->secretarioRegistra->apellido }}</td>
                     <td class="derecha">{{ $esIngreso ? '$ ' . number_format($mov->monto, 0, ',', '.') : '—' }}</td>
@@ -84,7 +84,7 @@
                 <tr>
                     <td colspan="5" class="derecha">TOTALES DEL MES:</td>
                     <td class="derecha">$ {{ number_format($resumenMes['ingresos'], 0, ',', '.') }}</td>
-                    <td class="derecha">$ {{ number_format($resumenMes['gastos'], 0, ',', '.') }}</td>
+                    <td class="derecha">$ {{ number_format($resumenMes['egresos'], 0, ',', '.') }}</td>
                 </tr>
             </tfoot>
         @endif

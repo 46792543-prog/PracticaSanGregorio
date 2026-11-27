@@ -293,7 +293,9 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
     Route::get('/caja/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
     Route::get('/caja/excel', [CajaController::class, 'excel'])->name('caja.excel');
-    Route::post('/caja/gastos', [CajaController::class, 'storeGasto'])->name('caja.gastos.store');
+    Route::post('/caja/egresos', [CajaController::class, 'storeEgreso'])->name('caja.egresos.store');
+    Route::post('/caja/categorias', [CajaController::class, 'storeCategoria'])->name('caja.categorias.store');
+    Route::put('/caja/categorias/{concepto}', [CajaController::class, 'updateCategoria'])->name('caja.categorias.update');
 
     Route::get('/reportes/ingresos', [ReporteIngresosController::class, 'index'])->name('reportes.ingresos.index');
     Route::get('/reportes/ingresos/pdf', [ReporteIngresosController::class, 'pdf'])->name('reportes.ingresos.pdf');

@@ -161,20 +161,22 @@ class PagoDocenteController extends Controller
 
         $tipoEgreso = TipoMovimiento::where('nombre_tipo', 'Egreso')->firstOrFail();
         $concepto = ConceptoCaja::firstOrCreate(
-            ['nombre_concepto' => 'Pago a docente'],
+            ['nombre_concepto' => MovimientoCaja::HONORARIOS_DOCENTES],
             ['id_tipo_movimiento' => $tipoEgreso->id_tipo_movimiento]
         );
 
         $medioPago = MedioPago::whereRaw('LOWER(nombre_medio) = ?', [mb_strtolower($pago->metodoPago->nombre_metodo)])->first()
             ?? MedioPago::where('nombre_medio', 'Efectivo')->firstOrFail();
 
-        $descripcion = "Pago a {$pago->profesor->apellido}, {$pago->profesor->nombre} — período " . FechaEsp::mesAnio($pago->periodo);
+        $docente = "{$pago->profesor->apellido}, {$pago->profesor->nombre}";
+        $descripcion = "Honorarios de {$docente} — período " . FechaEsp::mesAnio($pago->periodo);
 
         $movimiento = MovimientoCaja::create([
             'id_concepto' => $concepto->id_concepto,
             'monto' => $pago->monto,
             'fecha_movimiento' => now()->setDateFrom($pago->fecha_pago), 
             'descripcion_detalle' => $descripcion,
+            'beneficiario' => $docente,
             'id_secretario_registra' => Auth::user()->id_persona,
             'id_medio_pago' => $medioPago->id_medio_pago,
         ]);

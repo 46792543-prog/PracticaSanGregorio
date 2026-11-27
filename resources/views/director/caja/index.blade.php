@@ -1,7 +1,7 @@
 @extends('layouts.director')
 
 @section('titulo', 'Libro de Caja')
-@section('subtitulo', 'Los cobros de cuotas se asientan automáticamente · ' . \App\Support\FechaEsp::mesAnio($mes))
+@section('subtitulo', 'Ingresos y egresos de la institución · ' . \App\Support\FechaEsp::mesAnio($mes))
 
 @section('contenido')
     @php
@@ -12,7 +12,7 @@
         ];
     @endphp
 
-    <x-sg.encabezado titulo="Libro de Caja" :subtitulo="'Los cobros de cuotas se asientan automáticamente · ' . \App\Support\FechaEsp::mesAnio($mes)" eyebrow="Finanzas" icono="book" />
+    <x-sg.encabezado titulo="Libro de Caja" :subtitulo="'Todos los movimientos de dinero: cuotas, matrículas y honorarios docentes se asientan solos · ' . \App\Support\FechaEsp::mesAnio($mes)" eyebrow="Finanzas" icono="book" />
 
     <div class="grid md:grid-cols-3 gap-5 mb-8" data-sg-escalonar>
         @foreach ($tarjetas as $tarjeta)
@@ -31,8 +31,8 @@
                         <span class="font-bold text-emerald-600">$ {{ number_format($tarjeta['datos']['ingresos'], 0, ',', '.') }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-500 flex items-center gap-1.5"><x-sg.icono nombre="trending-down" class="h-4 w-4 text-rose-500" /> Gastos</span>
-                        <span class="font-bold text-rose-500">$ {{ number_format($tarjeta['datos']['gastos'], 0, ',', '.') }}</span>
+                        <span class="text-slate-500 flex items-center gap-1.5"><x-sg.icono nombre="trending-down" class="h-4 w-4 text-rose-500" /> Egresos</span>
+                        <span class="font-bold text-rose-500">$ {{ number_format($tarjeta['datos']['egresos'], 0, ',', '.') }}</span>
                     </div>
                 </div>
                 <div class="relative flex justify-between items-end mt-4 pt-4 border-t border-slate-100">
@@ -51,47 +51,86 @@
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--rojo"><x-sg.icono nombre="trending-down" /></span>
-                <div><h3>Registrar gasto</h3><p>Se asienta como egreso en el libro del mes</p></div>
+                <div><h3>Registrar egreso</h3><p>Toda salida de dinero de la institución. Los honorarios docentes se asientan solos al registrar el pago en Pago de Docentes.</p></div>
             </div>
         </div>
-        <form method="POST" action="{{ route('director.caja.gastos.store') }}" class="p-6 grid sm:grid-cols-4 gap-4 items-end">
+        <form method="POST" action="{{ route('director.caja.egresos.store') }}" class="p-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
+              data-confirm="¿Registrar este egreso en el Libro de Caja?" data-confirm-tipo="guardar">
             @csrf
-            <div class="sm:col-span-2">
+            <div>
+                <label class="sg-label">Categoría *</label>
+                <div class="flex gap-2 min-w-0">
+                    <select name="id_concepto" id="input-categoria" required onchange="actualizarBotonEditarCategoria()" class="sg-input min-w-0 flex-1">
+                        <option value="">Elegí la categoría...</option>
+                        @foreach ($categoriasManuales as $categoria)
+                            <option value="{{ $categoria->id_concepto }}" @selected((int) old('id_concepto') === $categoria->id_concepto)>{{ $categoria->nombre_concepto }}</option>
+                        @endforeach
+                    </select>
+                    <button type="button" onclick="abrirCategoria(false)" title="Agregar categoría nueva" class="sg-btn sg-btn--borde sg-btn--icono shrink-0"><x-sg.icono nombre="plus" /></button>
+                    <button type="button" id="boton-editar-categoria" onclick="abrirCategoria(true)" disabled title="Editar el nombre de la categoría elegida" class="sg-btn sg-btn--borde sg-btn--icono shrink-0 disabled:opacity-40"><x-sg.icono nombre="pencil" /></button>
+                </div>
+            </div>
+            <div class="lg:col-span-1">
                 <label class="sg-label">Concepto *</label>
-                <input type="text" maxlength="30" name="concepto" required placeholder="Ej: Compra material de librería"
-                       class="sg-input w-full">
+                <input type="text" maxlength="150" name="concepto" value="{{ old('concepto') }}" required placeholder="Ej: Resmas de hojas A4 y lapiceras" class="sg-input w-full">
+            </div>
+            <div>
+                <label class="sg-label">Beneficiario / proveedor</label>
+                <input type="text" maxlength="100" name="beneficiario" value="{{ old('beneficiario') }}" placeholder="Ej: Librería Central" class="sg-input w-full">
             </div>
             <div>
                 <label class="sg-label">Monto *</label>
                 <div class="sg-campo-icono">
                     <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">$</span>
-                    <input type="number" step="0.01" min="0.01" name="monto" required placeholder="0,00"
-                           onkeydown="if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();"
-                           oninput="this.value = this.value.replace(/[eE+-]/g, ''); if (this.value.replace(/[^0-9]/g, '').length > 10) { this.value = this.value.slice(0, -1); }"
-                           class="sg-input w-full !pl-8">
+                    <input data-miles data-max-valor="9999999.99" name="monto" value="{{ old('monto') }}" required placeholder="0" class="sg-input w-full !pl-8">
                 </div>
             </div>
             <div>
                 <label class="sg-label">Fecha *</label>
-                <input type="date" name="fecha_movimiento" value="{{ now()->toDateString() }}" required
-                       class="sg-input w-full">
+                <input type="date" name="fecha_movimiento" value="{{ old('fecha_movimiento', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required class="sg-input w-full">
             </div>
-            <div class="sm:col-span-4 flex justify-end">
+            <div class="lg:col-span-2 flex justify-end">
                 <button type="submit" class="sg-btn sg-btn--peligro-lleno">
-                    <x-sg.icono nombre="trending-down" /> Registrar gasto
+                    <x-sg.icono nombre="trending-down" /> Registrar egreso
                 </button>
             </div>
         </form>
+
+        @if ($egresosPorCategoria->isNotEmpty())
+            {{-- En qué se usó el dinero este mes --}}
+            <div class="px-6 pb-6">
+                <p class="sg-label mb-2">Egresos del mes por categoría</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($egresosPorCategoria as $item)
+                        <a href="{{ route('director.caja.index', ['mes' => $mes->format('Y-m'), 'filtro' => $item['id']]) }}"
+                           class="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs text-rose-700 hover:border-rose-300">
+                            {{ $item['nombre'] }}: <strong>$ {{ number_format($item['total'], 0, ',', '.') }}</strong>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 
     <div class="sg-card sg-revelar overflow-hidden">
         <div class="sg-card__head">
             <div class="sg-card__titulo">
                 <span class="sg-chip sg-chip--chico sg-chip--azul"><x-sg.icono nombre="book" /></span>
-                <div><h3>Planilla de control de gastos</h3><p>{{ \App\Support\FechaEsp::mesAnio($mes) }}</p></div>
+                <div><h3>Planilla de movimientos de caja</h3><p>{{ \App\Support\FechaEsp::mesAnio($mes) }}{{ $filtroNombre ? ' · ' . $filtroNombre : '' }}</p></div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <form method="GET" class="flex items-center gap-2">
+                    {{-- Ver todo, solo ingresos, solo egresos, o una categoría de egreso --}}
+                    <select name="filtro" onchange="this.form.submit()" class="sg-input sg-input--chico w-auto">
+                        <option value="">Todos los movimientos</option>
+                        <option value="Ingreso" @selected($filtro === 'Ingreso')>Solo ingresos</option>
+                        <option value="Egreso" @selected($filtro === 'Egreso')>Solo egresos</option>
+                        <optgroup label="Egresos por categoría">
+                            @foreach ($categorias as $categoria)
+                                <option value="{{ $categoria->id_concepto }}" @selected((string) $filtro === (string) $categoria->id_concepto)>{{ $categoria->nombre_concepto }}</option>
+                            @endforeach
+                        </optgroup>
+                    </select>
                     <input type="month" name="mes" value="{{ $mes->format('Y-m') }}" onchange="this.form.submit()" class="sg-input sg-input--chico w-auto">
                 </form>
                 <a href="{{ route('director.caja.pdf', ['mes' => $mes->format('Y-m')]) }}" target="_blank"
@@ -115,7 +154,7 @@
                         <th>Tipo</th>
                         <th>Registrado por</th>
                         <th class="text-right">Ingreso</th>
-                        <th class="text-right">Gastos</th>
+                        <th class="text-right">Egresos</th>
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
@@ -128,6 +167,9 @@
                                 <span class="font-medium text-slate-800">{{ $mov->concepto->nombre_concepto }}</span>
                                 @if ($mov->descripcion_detalle)
                                     <p class="text-xs text-slate-400">{{ $mov->descripcion_detalle }}</p>
+                                @endif
+                                @if ($mov->beneficiario)
+                                    <p class="text-xs text-slate-500">Beneficiario: <strong>{{ $mov->beneficiario }}</strong></p>
                                 @endif
                             </td>
                             <td>
@@ -156,7 +198,7 @@
                         <tr class="bg-blue-50 font-bold text-slate-700">
                             <td colspan="5" class="px-6 py-4 text-right text-xs uppercase tracking-wider text-[#0B3D91]">Totales del mes</td>
                             <td class="px-6 py-4 text-right font-display text-emerald-600 whitespace-nowrap">$ {{ number_format($resumenMes['ingresos'], 0, ',', '.') }}</td>
-                            <td class="px-6 py-4 text-right font-display text-rose-500 whitespace-nowrap">$ {{ number_format($resumenMes['gastos'], 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 text-right font-display text-rose-500 whitespace-nowrap">$ {{ number_format($resumenMes['egresos'], 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>
                 @endif
@@ -173,4 +215,75 @@
             <p class="border-t-2 border-dashed border-slate-200 pt-2">Directora — Directora General</p>
         </div>
     </div>
+    {{-- Mini ventana: agregar o editar una categoría de egreso --}}
+    <div id="modal-categoria" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[80] items-center justify-center p-4" onclick="if (event.target === this) cerrarCategoria()">
+        <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-sm p-6">
+            <div class="flex items-start justify-between mb-4">
+                <h3 id="titulo-categoria" class="font-display font-extrabold text-lg text-[#0B3D91]">Nueva categoría de egreso</h3>
+                <button type="button" onclick="cerrarCategoria()" class="text-slate-400 hover:text-slate-700 text-xl" title="Cerrar">✕</button>
+            </div>
+            <label class="sg-label">Nombre *</label>
+            <input type="text" id="input-nombre-categoria" maxlength="60" placeholder="Ej: Fotocopias" class="sg-input w-full"
+                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); guardarCategoria(); }">
+            <p id="ayuda-categoria" class="text-xs text-slate-400 mt-1"></p>
+            <p id="error-categoria" class="hidden text-xs text-red-600 mt-2"></p>
+            <div class="flex justify-end gap-3 mt-5">
+                <button type="button" onclick="cerrarCategoria()" class="sg-btn sg-btn--borde">Cancelar</button>
+                <button type="button" onclick="guardarCategoria()" class="sg-btn sg-btn--azul"><x-sg.icono nombre="check" /> Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    @php
+        $rutasCategoriaJs = ['store' => route('director.caja.categorias.store'), 'base' => url('/director/caja/categorias')];
+    @endphp
+    <script>
+        const rutasCategoria = @json($rutasCategoriaJs);
+        const selectCategoria = document.getElementById('input-categoria');
+        let editandoCategoria = false;
+
+        // El lápiz solo se habilita con una categoría elegida.
+        function actualizarBotonEditarCategoria() {
+            document.getElementById('boton-editar-categoria').disabled = !selectCategoria.value;
+        }
+        function abrirCategoria(editar) {
+            editandoCategoria = editar;
+            const elegida = selectCategoria.selectedOptions[0];
+            document.getElementById('titulo-categoria').textContent = editar ? 'Editar categoría' : 'Nueva categoría de egreso';
+            document.getElementById('input-nombre-categoria').value = editar ? elegida.textContent.trim() : '';
+            document.getElementById('ayuda-categoria').textContent = editar
+                ? 'Los egresos ya cargados en esta categoría pasan al nombre nuevo.'
+                : 'Queda disponible para todos los egresos.';
+            document.getElementById('error-categoria').classList.add('hidden');
+            const modal = document.getElementById('modal-categoria');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            document.getElementById('input-nombre-categoria').focus();
+        }
+        function cerrarCategoria() {
+            const modal = document.getElementById('modal-categoria');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+        }
+        async function guardarCategoria() {
+            const error = document.getElementById('error-categoria');
+            const nombre = document.getElementById('input-nombre-categoria').value.trim();
+            if (nombre.length < 3) { error.textContent = 'Escribí un nombre de al menos 3 letras.'; return error.classList.remove('hidden'); }
+            const r = await fetch(editandoCategoria ? `${rutasCategoria.base}/${selectCategoria.value}` : rutasCategoria.store, {
+                method: editandoCategoria ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('[name=_token]').value },
+                body: JSON.stringify({ nombre }),
+            });
+            const res = await r.json();
+            if (!r.ok) { error.textContent = Object.values(res.errors || {})[0]?.[0] || 'No se pudo guardar.'; return error.classList.remove('hidden'); }
+            if (editandoCategoria) {
+                selectCategoria.selectedOptions[0].textContent = res.nombre;
+                // También en el filtro de la planilla.
+                document.querySelectorAll(`select[name="filtro"] option[value="${res.id}"]`).forEach(o => o.textContent = res.nombre);
+            } else {
+                selectCategoria.add(new Option(res.nombre, res.id, true, true));
+            }
+            actualizarBotonEditarCategoria();
+            cerrarCategoria();
+        }
+        actualizarBotonEditarCategoria();
+    </script>
 @endsection

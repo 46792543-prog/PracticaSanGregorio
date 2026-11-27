@@ -21,7 +21,7 @@ class CajaExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
 
     public function headings(): array
     {
-        return ['Fecha', 'Concepto', 'Tipo', 'Registrado por', 'Ingreso', 'Gasto'];
+        return ['Fecha', 'Concepto / categoría', 'Detalle', 'Beneficiario', 'Tipo', 'Registrado por', 'Ingreso', 'Egreso'];
     }
 
     public function map($movimiento): array
@@ -31,6 +31,8 @@ class CajaExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
         return [
             $movimiento->fecha_movimiento->format('d/m/Y H:i'),
             $movimiento->concepto->nombre_concepto,
+            $movimiento->descripcion_detalle,
+            $movimiento->beneficiario,
             $movimiento->tipo,
             "{$movimiento->secretarioRegistra->nombre} {$movimiento->secretarioRegistra->apellido}",
             $esIngreso ? (float) $movimiento->monto : 0,
