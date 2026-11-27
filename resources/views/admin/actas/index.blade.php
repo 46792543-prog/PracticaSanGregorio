@@ -3,6 +3,7 @@
 @section('titulo', 'Acta de Exámenes')
 
 @section('contenido')
+    @php $configuracionInstitucion = \App\Models\ConfiguracionInstitucion::first(); @endphp
     <x-sg.encabezado titulo="Acta de Exámenes" subtitulo="Generación automática con alumnos inscriptos en la mesa" eyebrow="Gestión académica" icono="document-check" />
 
     <div class="sg-aviso sg-aviso--info mb-6 sg-revelar">
@@ -49,7 +50,13 @@
             <div class="relative bg-white rounded-xl shadow-lg ring-1 ring-slate-200 p-6 sm:p-10 max-w-4xl mx-auto overflow-hidden">
                 <span class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#0B3D91] via-[#4FC3F7] to-[#FFC107]"></span>
                 <div class="flex items-center gap-3 border-b-2 border-[#0B3D91] pb-4 mb-4">
-                    <span class="h-11 w-11 rounded-xl bg-gradient-to-br from-[#4FC3F7] to-[#0B3D91] ring-2 ring-[#FFC107] text-white grid place-items-center font-display font-bold text-xs">ISG</span>
+                    <span class="h-11 w-11 rounded-xl bg-gradient-to-br from-[#4FC3F7] to-[#0B3D91] ring-2 ring-[#FFC107] text-white grid place-items-center font-display font-bold text-xs overflow-hidden">
+                        @if ($configuracionInstitucion?->logo_url)
+                            <img src="{{ $configuracionInstitucion->logo_url }}" alt="Logo institucional" class="h-full w-full object-cover">
+                        @else
+                            ISG
+                        @endif
+                    </span>
                     <div>
                         <p class="font-bold text-slate-800">Instituto Superior San Gregorio</p>
                         <p class="text-xs text-slate-400">San Pedro de Jujuy — Pedro Goyena 33 — Tel. 03888-480686</p>
