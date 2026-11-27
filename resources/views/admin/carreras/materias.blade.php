@@ -147,8 +147,8 @@
                 <p id="texto-horas-reloj" class="text-xs text-slate-400 mt-1">Semanales · 1 h cátedra = 40 min</p>
             </div>
             <div>
-                <label class="sg-label">CUPOF</label>
-                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="cupof" id="input-materia-cupof" placeholder="Opcional" class="sg-input w-full">
+                <label class="sg-label">CUPOF *</label>
+                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="cupof" id="input-materia-cupof" required placeholder="Ej: 2" class="sg-input w-full">
             </div>
             <div class="sm:col-span-2">
                 <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm cursor-pointer has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50">
