@@ -33,13 +33,13 @@
             </div>
             <div>
                 <label class="sg-label">Número de Resolución / Decreto</label>
-                <input type="text" inputmode="numeric" maxlength="4" name="resolucion_ministerial" value="{{ old('resolucion_ministerial') }}" placeholder="Ej. 1022"
-                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                <input type="text" maxlength="25" name="resolucion_ministerial" value="{{ old('resolucion_ministerial') }}" placeholder="Ej. 1022 o Res. 1022/26"
                        class="sg-input w-full">
             </div>
             <div>
                 <label class="sg-label">Duración de la Carrera *</label>
-                <input type="number" name="duracion_anos" min="1" max="10" value="{{ old('duracion_anos', 3) }}" required placeholder="Ej: 3"
+                <input type="number" name="duracion_anos" min="1" max="7" value="{{ old('duracion_anos', 3) }}" required placeholder="Ej: 3"
+                       oninput="if (this.value !== '' && +this.value > 7) this.value = 7;"
                        class="sg-input w-full">
             </div>
             <div>

@@ -128,15 +128,14 @@ class DesignacionController extends Controller
             'horas_catedra' => ['nullable', 'integer', 'min:1', 'max:30'],
             'fecha_alta' => ['required', 'date'],
             'fecha_baja' => ['nullable', 'date', 'after:fecha_alta'],
-            // Solo el número: el año lectivo se agrega solo (123 → "123/2026").
-            'resolucion_numero' => ['nullable', 'digits_between:1,6'],
+            // El año lectivo se agrega solo (1022e/s → "1022e/s/2026").
+            'resolucion_numero' => ['nullable', 'string', 'max:25'],
         ], [
             'id_profesor.exists' => 'El profesor no existe o está dado de baja.',
             'fecha_baja.after' => 'La fecha de baja tiene que ser posterior a la de alta.',
             'id_turno_cursada.required' => 'Elegí el turno.',
             'horas_catedra.min' => 'Elegí al menos 1 hora cátedra.',
             'horas_catedra.max' => 'No puede tener más de 30 horas cátedra.',
-            'resolucion_numero.digits_between' => 'El número de resolución tiene que tener solo números (hasta 6).',
         ]);
 
         $materia = Materia::with('nombreMateria', 'carrera')->find($data['id_materia']);

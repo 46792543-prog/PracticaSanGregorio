@@ -19,7 +19,7 @@
         <p class="text-[11px] font-bold uppercase tracking-[.14em] text-amber-500">Acto administrativo · Designación docente</p>
         <h2 id="titulo-form-designacion" class="font-display font-extrabold text-2xl text-[#0B3D91] mb-5">Nueva designación</h2>
 
-        <form id="form-designacion" method="POST" action="{{ route('admin.designaciones.store') }}">
+        <form id="form-designacion" method="POST" action="{{ route('admin.designaciones.store') }}" data-confirm-tipo="guardar">
             @csrf
             <input type="hidden" name="_method" id="input-designacion-method" value="">
 
@@ -121,21 +121,18 @@
                     </div>
                     <div>
                         <label class="sg-label">Estado</label>
-                        <div class="inline-flex rounded-xl bg-slate-100 p-1">
-                            <label class="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 has-[:checked]:bg-emerald-600 has-[:checked]:text-white">
-                                <input type="radio" name="activa" value="1" class="sr-only" @checked(old('activa', '1') === '1')> Activa
-                            </label>
-                            <label class="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 has-[:checked]:bg-slate-600 has-[:checked]:text-white">
-                                <input type="radio" name="activa" value="0" class="sr-only" @checked(old('activa') === '0')> Inactiva
-                            </label>
+                        {{-- Bloqueado: se toma del estado del profesor elegido (ver en Profesores). --}}
+                        <div id="estado-docente" class="flex h-12 items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-3">
+                            <span id="estado-docente-badge" class="sg-badge sg-badge--verde">Activo</span>
                         </div>
+                        <input type="hidden" name="activa" id="input-designacion-activa" value="{{ old('activa', '1') }}">
                     </div>
                 </div>
 
                 <div class="grid sm:grid-cols-3 gap-4">
                     <div>
                         <label class="sg-label">Año lectivo <span class="text-red-500">*</span></label>
-                        <select name="id_anio_lectivo" id="input-designacion-anio" required onchange="actualizarAnioResolucion(); actualizarMateria()" class="sg-input w-full">
+                        <select name="id_anio_lectivo" id="input-designacion-anio" required onchange="actualizarAnioResolucion(); actualizarMateria()" class="sg-input w-full h-12">
                             @foreach ($anios as $a)
                                 <option value="{{ $a->id_anio_lectivo }}" data-anio="{{ $a->anio }}" @selected($a->id_anio_lectivo === (int) old('id_anio_lectivo', $anio?->id_anio_lectivo))>{{ $a->anio }}</option>
                             @endforeach
@@ -145,8 +142,8 @@
                         <label class="sg-label">Resolución</label>
                         {{-- Bloqueada: se completa sola con la resolución del plan vigente de la carrera elegida --}}
                         <div class="flex items-stretch">
-                            <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="6" maxlength="6" readonly tabindex="-1" name="resolucion_numero" id="input-designacion-resolucion" value="{{ old('resolucion_numero') }}" placeholder="Sin resolución" class="sg-input min-w-0 flex-1 !rounded-r-none bg-slate-50 text-slate-600 cursor-not-allowed">
-                            <span id="sufijo-resolucion" class="grid place-items-center rounded-r-xl border border-l-0 border-slate-200 bg-slate-50 px-3 font-semibold text-slate-500">/{{ $anio?->anio }}</span>
+                            <input type="text" maxlength="25" readonly tabindex="-1" name="resolucion_numero" id="input-designacion-resolucion" value="{{ old('resolucion_numero') }}" placeholder="Sin resolución" class="sg-input h-12 min-w-0 flex-1 !rounded-r-none bg-slate-50 text-slate-600 cursor-not-allowed">
+                            <span id="sufijo-resolucion" class="grid h-12 place-items-center rounded-r-xl border border-l-0 border-slate-200 bg-slate-50 px-3 font-semibold text-slate-500">/{{ $anio?->anio }}</span>
                         </div>
                         <p class="text-xs text-slate-400 mt-1">Se completa sola con la resolución del plan vigente de la carrera.</p>
                     </div>
@@ -233,7 +230,7 @@
                                     'tipo' => $d->tipo, 'horas_catedra' => $d->horas_catedra, 'fecha_alta' => $d->fecha_alta?->toDateString(),
                                     'fecha_baja' => $d->fecha_baja?->toDateString(),
                                     'id_carrera' => $d->materia->id_carrera, 'id_turno' => $d->id_turno_cursada, 'activa' => $d->activa,
-                                    'resolucion_numero' => $d->resolucion ? explode('/', $d->resolucion)[0] : '',
+                                    'resolucion_numero' => $d->resolucion ? \Illuminate\Support\Str::beforeLast($d->resolucion, '/') : '',
                                     'docente' => $d->profesor->apellido . ', ' . $d->profesor->nombre,
                                 ];
                             @endphp
@@ -280,16 +277,15 @@
 
     @php
         // (@json separa por comas: los datos con comas se arman acá antes)
-        $docentesJs = $profesores->map(fn ($p) => ['id' => $p->id_profesor, 'nombre' => $p->apellido . ', ' . $p->nombre, 'dni' => $p->dni])->values();
+        $docentesJs = $profesores->map(fn ($p) => ['id' => $p->id_profesor, 'nombre' => $p->apellido . ', ' . $p->nombre, 'dni' => $p->dni, 'activo' => $p->activo])->values();
         $nombresCarreraJs = $carreras->pluck('nombre_carrera', 'id_carrera');
         $turnosPorCarreraJs = $carreras->mapWithKeys(fn ($c) => [$c->id_carrera => $c->turnos->pluck('id_turno_cursada')->map(fn ($t) => (string) $t)]);
-        // Resolución del plan vigente de cada carrera (solo la parte numérica: el campo
-        // de la designación es solo números, p. ej. de "3576e/s" se toma "3576").
+        // Resolución del plan vigente de cada carrera, completa (p. ej. "3576e/s").
         $resolucionesPorCarreraJs = $carreras->mapWithKeys(function ($c) {
             $vigente = $c->planes->first(fn ($p) => $p->estado() === 'Vigente');
-            $numero = $vigente ? preg_replace('/[^0-9].*$/', '', (string) $vigente->resolucion_ministerial) : '';
+            $resolucion = $vigente ? trim((string) $vigente->resolucion_ministerial) : '';
 
-            return [$c->id_carrera => $numero !== '' ? $numero : null];
+            return [$c->id_carrera => $resolucion !== '' ? $resolucion : null];
         });
     @endphp
     <script>
@@ -382,6 +378,12 @@
             porId('input-designacion-buscar').value = nombre;
             porId('lista-docentes').classList.add('hidden');
             porId('campos-designacion').disabled = !id; // con el docente elegido se habilita todo
+
+            // Estado: se toma directo del profesor (si no figura entre los activos, está dado de baja).
+            const activo = !!docentes.find(d => String(d.id) === String(id))?.activo;
+            porId('input-designacion-activa').value = activo ? '1' : '0';
+            porId('estado-docente-badge').textContent = activo ? 'Activo' : 'Dado de baja';
+            porId('estado-docente-badge').className = 'sg-badge ' + (activo ? 'sg-badge--verde' : 'sg-badge--rojo');
         }
         document.addEventListener('click', e => { if (!e.target.closest('#lista-docentes, #input-designacion-buscar')) porId('lista-docentes').classList.add('hidden'); });
 
@@ -401,7 +403,6 @@
             filtrarMaterias(String(d.id_materia));
             elegirDocente(d.id_profesor, d.docente);
             document.querySelector(`[name="tipo"][value="${d.tipo}"]`).checked = true;
-            document.querySelector(`[name="activa"][value="${d.activa ? 1 : 0}"]`).checked = true;
             porId('input-designacion-anio').value = d.id_anio_lectivo; actualizarAnioResolucion();
             ponerFecha('input-designacion-alta', d.fecha_alta);
             ponerFecha('input-designacion-baja', d.fecha_baja);
@@ -421,6 +422,9 @@
             porId('input-designacion-method').value = '';
             porId('input-designacion-profesor').value = '';
             porId('input-designacion-horas').value = '';
+            porId('input-designacion-activa').value = '1';
+            porId('estado-docente-badge').textContent = 'Activo';
+            porId('estado-docente-badge').className = 'sg-badge sg-badge--verde';
             porId('campos-designacion').disabled = true;
             ponerFecha('input-designacion-alta', @json(now()->toDateString()));
             ponerFecha('input-designacion-baja', null);
@@ -441,6 +445,26 @@
             porId('tarjeta-designacion').scrollIntoView({ behavior: 'smooth', block: 'start' });
             porId('input-designacion-buscar').focus();
         }
+
+        // Antes de guardar: ventanita "¿Estás seguro?" con el docente, la materia y el año elegidos.
+        porId('form-designacion').addEventListener('submit', function () {
+            const form = porId('form-designacion');
+            const docente = porId('input-designacion-buscar').value.trim() || '(sin elegir)';
+            const materia = porId('input-designacion-materia').selectedOptions[0]?.textContent.split('·')[0].trim() || '(sin elegir)';
+            const carrera = porId('input-designacion-carrera').selectedOptions[0]?.textContent.trim() || '(sin elegir)';
+            const turno = porId('input-designacion-turno').selectedOptions[0]?.textContent.trim() || '(sin elegir)';
+            const tipo = form.querySelector('[name="tipo"]:checked')?.closest('label').querySelector('span.font-semibold')?.textContent.trim() || '(sin elegir)';
+            const horas = porId('input-designacion-horas').value;
+            const anio = porId('input-designacion-anio').selectedOptions[0]?.textContent.trim() || '';
+
+            form.dataset.confirm = `¿Guardar la designación de ${docente}?\n\n`
+                + `Carrera: ${carrera}\n`
+                + `Materia: ${materia}\n`
+                + `Turno: ${turno}\n`
+                + `Tipo: ${tipo}\n`
+                + `Carga horaria: ${horas ? horas + ' h cátedra' : '—'}\n`
+                + `Año lectivo: ${anio}`;
+        });
 
         // Al volver con un error: se recupera lo cargado.
         document.addEventListener('DOMContentLoaded', function () {
