@@ -50,6 +50,8 @@ class CentralAlertas
 
                 return [
                     'tipo' => 'cuota_vencida',
+                    'id_persona' => $alumno->id_persona, // para preparar el correo manual
+                    'dni' => (string) $alumno->dni,       // para buscar por DNI
                     'severidad' => 'alta',
                     'titulo' => "Cuotas vencidas — {$alumno->apellido}, {$alumno->nombre}",
                     'descripcion' => $cuotas->count() . ' cuota(s) vencida(s), $' . number_format($monto, 0, ',', '.') . ' adeudado — vencida desde el ' . FechaEsp::corta($masAntigua),
@@ -72,6 +74,7 @@ class CentralAlertas
                 'tipo' => 'baja_alumno',
                 'severidad' => 'media',
                 'titulo' => "Baja de alumno — {$i->personaAlumno->apellido}, {$i->personaAlumno->nombre}",
+                'dni' => (string) $i->personaAlumno->dni,
                 'descripcion' => "Dado de baja de {$i->carrera->nombre_carrera} el " . FechaEsp::corta($i->fecha_baja),
                 'fecha' => $i->fecha_baja,
                 'ruta' => $paraDirector
@@ -90,6 +93,7 @@ class CentralAlertas
                 'tipo' => 'baja_profesor',
                 'severidad' => 'media',
                 'titulo' => "Baja de profesor — {$p->persona->apellido}, {$p->persona->nombre}",
+                'dni' => (string) $p->persona->dni,
                 'descripcion' => 'Dado de baja el ' . FechaEsp::corta($p->fecha_baja),
                 'fecha' => $p->fecha_baja,
                 'ruta' => $paraDirector

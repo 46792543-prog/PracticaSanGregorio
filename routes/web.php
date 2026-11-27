@@ -114,6 +114,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/panel', [AdminPanelController::class, 'index'])->name('panel.index');
 
     Route::get('/alertas', [AdminAlertaController::class, 'index'])->name('alertas.index');
+    // Correos manuales a alumnos desde la Central de Alertas (nunca automáticos)
+    Route::get('/comunicaciones/{persona}/preparar', [\App\Http\Controllers\Admin\ComunicacionController::class, 'preparar'])->name('comunicaciones.preparar');
+    Route::post('/comunicaciones/vista-previa', [\App\Http\Controllers\Admin\ComunicacionController::class, 'vistaPrevia'])->name('comunicaciones.vista-previa');
+    Route::post('/comunicaciones/{persona}/enviar', [\App\Http\Controllers\Admin\ComunicacionController::class, 'enviar'])->name('comunicaciones.enviar');
 
     Route::get('/alumnos', [AlumnoController::class, 'index'])->name('alumnos.index');
     Route::get('/alumnos/nuevo', [AlumnoController::class, 'create'])->name('alumnos.create');
