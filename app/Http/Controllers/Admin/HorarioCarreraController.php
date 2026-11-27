@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnioCursada;
+use App\Models\AnioLectivo;
 use App\Models\AsignacionProfesorMateria;
+use App\Models\HorarioAsignacion;
+use App\Models\Materia;
 use App\Models\Carrera;
-use App\Models\HorarioCelda;
 use App\Models\HorarioModulo;
 use App\Models\TurnoCursada;
 use App\Support\CorteActivo;
@@ -21,142 +24,230 @@ use Illuminate\View\View;
 
 class HorarioCarreraController extends Controller
 {
+    // Se cursa de lunes a viernes.
     private const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
+    /**
+     * Horarios: arriba el formulario "Franja horaria" para cargar clases, y
+     * abajo el "Horario de cursada" para verlas por docente o por curso
+     * (carrera · año · turno), en grilla semanal o en tabla.
+     */
     public function index(Request $request): View
     {
-        $carreras = Carrera::orderBy('nombre_carrera')->get();
-        $turnos = TurnoCursada::orderBy('id_turno_cursada')->get();
-
-        $idCarrera = (int) ($request->query('id_carrera') ?: $carreras->first()?->id_carrera);
-        $idTurno = (int) ($request->query('id_turno_cursada') ?: $turnos->first()?->id_turno_cursada);
-
-        $modulos = $this->modulosDelCuadro($idCarrera, $idTurno);
-
-        return view('admin.horarios.index', [
-            'carreras' => $carreras,
-            'turnos' => $turnos,
-            'idCarrera' => $idCarrera,
-            'idTurno' => $idTurno,
-            'modulos' => $modulos,
-            'dias' => self::DIAS,
-            'asignaciones' => $this->asignacionesDisponibles($idCarrera),
-        ]);
+        return view('admin.horarios.index', $this->datosHorario($request));
     }
 
+    // PDF de la semana de un docente (?profesor=) o de un curso (?carrera=&anio=&turno=).
     public function pdf(Request $request): Response
     {
-        $carrera = Carrera::findOrFail($request->query('id_carrera'));
-        $turno = TurnoCursada::findOrFail($request->query('id_turno_cursada'));
+        $datos = $this->datosHorario($request);
+        $franjas = collect($datos['franjas'])->filter(fn ($f) => $request->filled('profesor')
+            ? $f['id_profesor'] === $request->integer('profesor')
+            : $f['id_carrera'] === $request->integer('carrera') && $f['id_anio_cursada'] === $request->integer('anio') && $f['id_turno'] === $request->integer('turno'))
+            ->values();
+        abort_if($franjas->isEmpty(), 404, 'No hay franjas para descargar.');
 
-        $pdf = Pdf::loadView('admin.horarios.pdf', [
-            'carrera' => $carrera,
-            'turno' => $turno,
-            'modulos' => $this->modulosDelCuadro($carrera->id_carrera, $turno->id_turno_cursada),
-            'dias' => self::DIAS,
-        ])->setPaper('a4', 'landscape');
+        $titulo = $request->filled('profesor')
+            ? 'Horario de ' . $franjas->first()['docente']
+            : 'Horario de ' . $franjas->first()['carrera'] . ' · ' . $franjas->first()['anio_cursada'] . ' · Turno ' . $franjas->first()['turno'];
 
-        $archivo = Str::slug("horario {$carrera->nombre_carrera} {$turno->nombre_turno}");
+        // Filas: cada rango horario distinto; columnas: los días con clases (lunes a viernes siempre).
+        $rangos = $franjas->map(fn ($f) => "{$f['desde']}-{$f['hasta']}")->unique()->sort()->values();
+        $dias = collect(self::DIAS)->filter(fn ($d, $i) => $i < 5 || $franjas->contains('dia', $d))->values();
 
-        return $pdf->download("{$archivo}.pdf");
+        $pdf = Pdf::loadView('admin.horarios.pdf', compact('franjas', 'titulo', 'rangos', 'dias') + ['anioLectivo' => $datos['anioLectivoActual']])
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download(Str::slug($titulo) . '.pdf');
     }
 
-    public function storeModulo(Request $request): RedirectResponse
-    {
-        $cuadro = $request->validate([
-            'id_carrera' => ['required', 'exists:carrera,id_carrera'],
-            'id_turno_cursada' => ['required', 'exists:turno_cursada,id_turno_cursada'],
-        ], [
-            'id_carrera.required' => 'Seleccioná una carrera.',
-            'id_carrera.exists' => 'La carrera seleccionada no existe.',
-            'id_turno_cursada.required' => 'Seleccioná un turno.',
-            'id_turno_cursada.exists' => 'El turno seleccionado no existe.',
-        ]);
-
-        $data = $this->validarModulo($request, (int) $cuadro['id_carrera'], (int) $cuadro['id_turno_cursada']);
-
-        HorarioModulo::create($cuadro + $data);
-
-        return redirect()->route('admin.horarios.index', $cuadro)
-            ->with('status', 'Se agregó el módulo correctamente.');
-    }
-
-    public function updateModulo(Request $request, HorarioModulo $horarioModulo): RedirectResponse
-    {
-        $data = $this->validarModulo($request, $horarioModulo->id_carrera, $horarioModulo->id_turno_cursada, $horarioModulo);
-
-        $horarioModulo->update($data);
-
-        return redirect()->route('admin.horarios.index', ['id_carrera' => $horarioModulo->id_carrera, 'id_turno_cursada' => $horarioModulo->id_turno_cursada])
-            ->with('status', 'Se actualizó el módulo correctamente.');
-    }
-
-    public function destroyModulo(HorarioModulo $horarioModulo): RedirectResponse
-    {
-        $idCarrera = $horarioModulo->id_carrera;
-        $idTurno = $horarioModulo->id_turno_cursada;
-
-        $horarioModulo->delete();
-
-        return redirect()->route('admin.horarios.index', ['id_carrera' => $idCarrera, 'id_turno_cursada' => $idTurno])
-            ->with('status', 'Se eliminó el módulo correctamente.');
-    }
-
-    public function storeCelda(Request $request, HorarioModulo $horarioModulo): RedirectResponse
+    // Celda de la grilla: una designación en un módulo y día.
+    public function storeClase(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'id_asignacion' => ['required', 'exists:asignacion_profesor_materia,id_asignacion'],
+            'id_horario_modulo' => ['required', 'exists:horario_modulo,id_horario_modulo'],
             'dia_semana' => ['required', Rule::in(self::DIAS)],
-            'contenido' => ['nullable', 'string', 'max:150'],
+        ], ['id_asignacion.required' => 'Elegí la materia y el docente.']);
+
+        $designacion = AsignacionProfesorMateria::with('materia.nombreMateria', 'profesor.persona')->find($data['id_asignacion']);
+        $modulo = HorarioModulo::find($data['id_horario_modulo']);
+
+        if ($designacion->materia->id_carrera !== $modulo->id_carrera || (int) $designacion->id_turno_cursada !== (int) $modulo->id_turno_cursada) {
+            throw ValidationException::withMessages(['id_asignacion' => 'Esa designación no es de esta carrera y turno.']);
+        }
+
+        return $this->guardarClase($designacion, $data['dia_semana'], $modulo->hora_inicio->format('H:i'), $modulo->hora_fin->format('H:i'), $modulo->id_horario_modulo);
+    }
+
+    // Formulario "Franja horaria": docente + materia + turno + día + desde/hasta.
+    public function storeFranja(Request $request): RedirectResponse
+    {
+        return $this->procesarFranja($request, null);
+    }
+
+    // Editar una franja ya cargada (lápiz en el Horario de cursada).
+    public function updateFranja(Request $request, HorarioAsignacion $horario): RedirectResponse
+    {
+        return $this->procesarFranja($request, $horario);
+    }
+
+    private function procesarFranja(Request $request, ?HorarioAsignacion $actual): RedirectResponse
+    {
+        $data = $request->validate([
+            'id_profesor' => ['required', 'exists:profesor,id_profesor'],
+            'id_materia' => ['required', 'exists:materia,id_materia'],
+            'id_turno_cursada' => ['required', 'exists:turno_cursada,id_turno_cursada'],
+            'id_anio_lectivo' => ['required', 'exists:anio_lectivo,id_anio_lectivo'],
+            'dia_semana' => ['required', Rule::in(self::DIAS)],
+            'hora_desde' => ['required', 'date_format:H:i'],
+            'hora_hasta' => ['required', 'date_format:H:i', 'after:hora_desde'],
         ], [
-            'dia_semana.required' => 'Seleccioná un día de la semana.',
-            'dia_semana.in' => 'El día seleccionado no es válido.',
-            'contenido.max' => 'El contenido no puede superar los 150 caracteres.',
+            'id_profesor.required' => 'Elegí el docente.',
+            'id_materia.required' => 'Elegí la materia.',
+            'id_turno_cursada.required' => 'Elegí el turno.',
+            'dia_semana.required' => 'Elegí el día.',
+            'dia_semana.in' => 'Elegí un día de lunes a viernes.',
+            'hora_hasta.after' => 'La hora "hasta" tiene que ser después de "desde".',
         ]);
 
-        HorarioCelda::updateOrCreate(
-            ['id_horario_modulo' => $horarioModulo->id_horario_modulo, 'dia_semana' => $data['dia_semana']],
-            ['contenido' => $data['contenido'] ?: null]
-        );
+        // El docente tiene que tener una designación vigente en esa materia y turno.
+        $designacion = AsignacionProfesorMateria::vigentes()->with('materia.nombreMateria', 'profesor.persona')
+            ->where('id_profesor', $data['id_profesor'])->where('id_materia', $data['id_materia'])
+            ->where('id_turno_cursada', $data['id_turno_cursada'])->where('id_anio_lectivo', $data['id_anio_lectivo'])
+            ->first();
 
-        return redirect()->route('admin.horarios.index', ['id_carrera' => $horarioModulo->id_carrera, 'id_turno_cursada' => $horarioModulo->id_turno_cursada])
-            ->with('status', 'Se guardó el contenido correctamente.');
+        if (! $designacion) {
+            throw ValidationException::withMessages(['id_materia' => 'Ese docente no tiene una designación vigente en esa materia y turno (cargala en Designaciones).']);
+        }
+
+        // Si coincide justo con un módulo de la grilla, queda enganchada a él.
+        $modulo = HorarioModulo::where('id_carrera', $designacion->materia->id_carrera)->where('id_turno_cursada', $designacion->id_turno_cursada)
+            ->where('hora_inicio', $data['hora_desde'])->where('hora_fin', $data['hora_hasta'])->first();
+
+        $this->guardarClase($designacion, $data['dia_semana'], $data['hora_desde'], $data['hora_hasta'], $modulo?->id_horario_modulo, $actual);
+
+        // Vuelve a la grilla de esa carrera, turno y año para ver la franja cargada.
+        return redirect()->route('admin.horarios.index', [
+            'id_carrera' => $designacion->materia->id_carrera, 'id_turno_cursada' => $designacion->id_turno_cursada,
+            'id_anio_cursada' => $designacion->materia->id_anio_cursada, 'id_anio_lectivo' => $designacion->id_anio_lectivo,
+        ])->with('status', ($actual ? 'Se actualizó la franja: ' : 'Se cargó ') . "{$designacion->materia->nombre} el {$data['dia_semana']} de {$data['hora_desde']} a {$data['hora_hasta']}.");
     }
 
     /**
-     * "Materia — Apellido, Nombre" de cada profesor ya asignado a una materia
-     * de esta carrera en el año lectivo activo, para elegir en el modal de
-     * carga en vez de escribirlo a mano (evita typos/inconsistencias con lo
-     * ya cargado en "Asignación de Materias y Horarios"). No se filtra por
-     * turno: esa pantalla hoy no pide el turno al asignar un profesor, así
-     * que la mayoría de las asignaciones existentes no lo tienen guardado.
+     * Valida y guarda una clase. Reglas:
+     *  1. La designación tiene que estar vigente.
+     *  2. La duración tiene que ser múltiplo de 40 min (horas cátedra enteras).
+     *  3. El docente no puede tener otra clase a esa hora (en cualquier carrera).
+     *  4. Ese año y turno de la carrera no puede tener otra materia a esa hora
+     *     (en una práctica sí pueden estar varios docentes a la vez).
+     *  5. Sin pasarse de las horas cátedra de la designación.
+     * Las clases pegadas (una termina 19:20 y otra empieza 19:20) no chocan.
      */
-    private function asignacionesDisponibles(int $idCarrera): Collection
+    private function guardarClase(AsignacionProfesorMateria $designacion, string $dia, string $desde, string $hasta, ?int $idModulo, ?HorarioAsignacion $actual = null): RedirectResponse
     {
-        $anioLectivo = CorteActivo::actual();
+        $fallar = fn (string $m) => throw ValidationException::withMessages(['id_asignacion' => $m]);
+        $aMinutos = fn (string $h) => (int) substr($h, 0, 2) * 60 + (int) substr($h, 3, 2);
+        $minutos = $aMinutos($hasta) - $aMinutos($desde);
+        $hc = Materia::MINUTOS_HORA_CATEDRA;
 
-        return AsignacionProfesorMateria::with(['materia.nombreMateria', 'profesor.persona'])
-            ->whereHas('materia', fn ($q) => $q->where('id_carrera', $idCarrera))
-            ->when($anioLectivo, fn ($q) => $q->where('id_anio_lectivo', $anioLectivo->id_anio_lectivo))
+        if (! in_array($designacion->estado, ['Activa', 'Por vencer'], true)) {
+            $fallar('Esa designación no está vigente.');
+        }
+        if ($minutos <= 0 || $minutos % $hc !== 0) {
+            $fallar("La franja dura {$minutos} min: tiene que ser múltiplo de {$hc} min (horas cátedra enteras: 40, 80, 120…).");
+        }
+
+        $seSuperponen = fn ($q) => $q->where('dia_semana', $dia)->where('hora_desde', '<', $hasta)->where('hora_fin', '>', $desde)
+            ->when($actual, fn ($w) => $w->whereKeyNot($actual->id_horario));
+
+        $choqueDocente = HorarioAsignacion::with('asignacion.materia.nombreMateria')->tap($seSuperponen)
+            ->whereHas('asignacion', fn ($q) => $q->vigentes()->where('id_profesor', $designacion->id_profesor)
+                ->where('id_anio_lectivo', $designacion->id_anio_lectivo))
+            ->first();
+        if ($choqueDocente) {
+            $fallar("{$designacion->profesor->apellido}, {$designacion->profesor->nombre} ya da «{$choqueDocente->asignacion->materia->nombre}» el {$dia} de "
+                . substr($choqueDocente->hora_desde, 0, 5) . ' a ' . substr($choqueDocente->hora_fin, 0, 5) . '.');
+        }
+
+        $choqueCurso = HorarioAsignacion::with('asignacion.materia.nombreMateria')->tap($seSuperponen)
+            ->whereHas('asignacion', fn ($q) => $q->vigentes()
+                ->where('id_anio_lectivo', $designacion->id_anio_lectivo)
+                ->where('id_turno_cursada', $designacion->id_turno_cursada)
+                ->whereKeyNot($designacion->id_asignacion)
+                ->whereHas('materia', fn ($m) => $m->where('id_carrera', $designacion->materia->id_carrera)
+                    ->where('id_anio_cursada', $designacion->materia->id_anio_cursada)))
             ->get()
-            ->map(fn (AsignacionProfesorMateria $a) => mb_strtoupper("{$a->materia->nombre} — {$a->profesor->apellido}, {$a->profesor->nombre}"))
-            ->unique()
-            ->sort()
-            ->values();
+            ->first(fn ($h) => ! ($designacion->materia->es_taller && $h->asignacion->id_materia === $designacion->id_materia));
+        if ($choqueCurso) {
+            $fallar("El {$dia} de " . substr($choqueCurso->hora_desde, 0, 5) . ' a ' . substr($choqueCurso->hora_fin, 0, 5)
+                . " ese año ya tiene «{$choqueCurso->asignacion->materia->nombre}».");
+        }
+
+        $cargados = $designacion->horarios()->when($actual, fn ($q) => $q->whereKeyNot($actual->id_horario))->get()->sum('minutos');
+        $tope = (int) $designacion->horas_catedra * $hc;
+        if ($cargados + $minutos > $tope) {
+            $fallar("«{$designacion->materia->nombre}» tiene {$designacion->horas_catedra} h cátedra ({$tope} min por semana) y ya tiene {$cargados} min cargados: "
+                . ($tope - $cargados > 0 ? 'le quedan ' . ($tope - $cargados) . ' min.' : 'ya está completa.'));
+        }
+
+        ($actual ?? new HorarioAsignacion())->fill([
+            'id_asignacion' => $designacion->id_asignacion,
+            'id_horario_modulo' => $idModulo,
+            'dia_semana' => $dia,
+            'hora_desde' => $desde,
+            'hora_fin' => $hasta,
+        ])->save();
+
+        return back()->with('status', "Se cargó {$designacion->materia->nombre} el {$dia} de {$desde} a {$hasta}.");
     }
 
-    private function modulosDelCuadro(int $idCarrera, int $idTurno): Collection
+    public function destroyClase(HorarioAsignacion $horario): RedirectResponse
     {
-        return HorarioModulo::with('celdas')
-            ->where('id_carrera', $idCarrera)
-            ->where('id_turno_cursada', $idTurno)
-            ->orderBy('hora_inicio')
-            ->orderBy('modulo')
-            ->get()
-            ->map(function (HorarioModulo $modulo) {
-                $modulo->celdasPorDia = $modulo->celdas->keyBy('dia_semana');
+        $horario->delete();
 
-                return $modulo;
-            });
+        return back()->with('status', 'Se quitó la clase del horario.');
+    }
+
+    // Todo lo que necesitan la pantalla y el PDF: datos del formulario y todas las franjas del año.
+    private function datosHorario(Request $request): array
+    {
+        $aniosLectivos = AnioLectivo::orderByDesc('anio')->get();
+        $anioLectivo = $aniosLectivos->firstWhere('id_anio_lectivo', $request->integer('id_anio_lectivo')) ?? CorteActivo::actual() ?? $aniosLectivos->first();
+
+        $vigentes = AsignacionProfesorMateria::vigentes()
+            ->with('materia.nombreMateria', 'materia.carrera', 'materia.anioCursada', 'profesor.persona', 'horarios', 'turnoCursada')
+            ->where('id_anio_lectivo', $anioLectivo?->id_anio_lectivo)->get();
+
+        // Formulario "Franja horaria": designaciones y clases para elegir y revisar superposiciones en vivo.
+        $franjaDesignaciones = $vigentes->map(fn ($d) => [
+            'id' => $d->id_asignacion, 'id_profesor' => $d->id_profesor, 'docente' => "{$d->profesor->apellido}, {$d->profesor->nombre}",
+            'id_materia' => $d->id_materia, 'materia' => $d->materia->nombre, 'id_carrera' => $d->materia->id_carrera,
+            'carrera' => $d->materia->carrera->nombre_carrera, 'id_anio_cursada' => $d->materia->id_anio_cursada,
+            'anio_cursada' => $d->materia->anioCursada?->nombre_anio, 'id_turno' => $d->id_turno_cursada, 'turno' => $d->turnoCursada?->nombre_turno,
+            'practica' => (bool) $d->materia->es_taller, 'horas' => (int) $d->horas_catedra,
+            'tope' => (int) $d->horas_catedra * Materia::MINUTOS_HORA_CATEDRA, 'cargados' => $d->horarios->sum('minutos'),
+        ])->values();
+
+        // Todas las franjas del año, con todo lo que necesita el "Horario de cursada".
+        $franjas = $vigentes->flatMap(fn ($d) => $d->horarios->map(fn ($h) => [
+            'id' => $h->id_horario, 'id_asignacion' => $d->id_asignacion, 'dia' => $h->dia_semana,
+            'desde' => substr($h->hora_desde, 0, 5), 'hasta' => substr($h->hora_fin, 0, 5),
+            'id_profesor' => $d->id_profesor, 'docente' => "{$d->profesor->apellido}, {$d->profesor->nombre}", 'apellido' => $d->profesor->apellido,
+            'id_materia' => $d->id_materia, 'materia' => $d->materia->nombre, 'id_carrera' => $d->materia->id_carrera,
+            'carrera' => $d->materia->carrera->nombre_carrera, 'id_anio_cursada' => $d->materia->id_anio_cursada,
+            'anio_cursada' => $d->materia->anioCursada?->nombre_anio, 'id_turno' => $d->id_turno_cursada, 'turno' => $d->turnoCursada?->nombre_turno,
+        ]))->sortBy(fn ($f) => array_search($f['dia'], self::DIAS) . $f['desde'])->values();
+
+        return [
+            'aniosLectivos' => $aniosLectivos, 'anioLectivoActual' => $anioLectivo,
+            'carreras' => Carrera::orderBy('nombre_carrera')->get(),
+            'turnosTodos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
+            'todosLosDias' => self::DIAS,
+            'franjaDesignaciones' => $franjaDesignaciones,
+            'franjaClases' => $franjas->map(fn ($f) => ['id' => $f['id'], 'id_asignacion' => $f['id_asignacion'], 'dia' => $f['dia'], 'desde' => $f['desde'], 'hasta' => $f['hasta']])->values(),
+            'franjas' => $franjas,
+        ];
     }
 
     /**

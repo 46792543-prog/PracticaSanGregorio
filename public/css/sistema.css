@@ -254,6 +254,9 @@ a.sg-fila:hover .sg-fila__flecha { color: #0B3D91; transform: translateX(4px); }
 
 /* Capas: el contenido va por encima del fondo ambiental */
 .sg-contenido { position: relative; z-index: 1; }
+/* Con una ventana (modal) abierta, el contenido pasa por encima de la barra superior y del menú:
+   así la ventana queda centrada y no choca ni se corta con la barra de arriba. */
+.sg-contenido:has(.fixed.inset-0:not(.hidden)) { z-index: 70; }
 @media (min-width: 1024px) { .sg-sidebar { z-index: 45; } }
 
 /* Fondo ambiental: manchas de color fijas (degradé radial, sin filter: blur ni animación) */

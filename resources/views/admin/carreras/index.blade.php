@@ -41,6 +41,7 @@
                     <h3 class="font-display font-bold text-[17px] text-slate-900 leading-snug">{{ $carrera->nombre_carrera }}</h3>
                     @php $planVigente = $carrera->planes->first(fn ($p) => $p->estado() === 'Vigente'); @endphp
                     <p class="text-xs text-slate-500 mt-1">{{ $planVigente ? $planVigente->nombre . ' (vigente)' : 'Sin plan vigente' }}{{ $carrera->planes->count() > 1 ? ' · ' . $carrera->planes->count() . ' planes' : '' }}</p>
+                    <p class="text-xs text-slate-500">Turnos: {{ $carrera->turnos->pluck('nombre_turno')->join(', ') ?: 'sin turnos' }}</p>
                     @if ($carrera->familia_profesional)
                         <p class="text-xs text-slate-500 mt-1">Familia Profesional: {{ $carrera->familia_profesional }}</p>
                     @endif

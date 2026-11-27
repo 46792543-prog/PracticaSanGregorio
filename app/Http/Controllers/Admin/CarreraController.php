@@ -12,6 +12,7 @@ use App\Models\NombreMateria;
 use App\Models\PlanEstudio;
 use App\Models\PeriodoDictado;
 use App\Models\RegimenAprobacion;
+use App\Models\TurnoCursada;
 use App\Support\CambioDePlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class CarreraController extends Controller
     {
         // La tarjeta muestra las materias del plan vigente de cada carrera.
         $idsVigentes = PlanEstudio::all()->filter(fn ($p) => $p->estado() === 'Vigente')->pluck('id_plan_estudio');
-        $carreras = Carrera::withCount(['materias' => fn ($q) => $q->whereIn('id_plan_estudio', $idsVigentes)])->with('estadoCarrera', 'planes')
+        $carreras = Carrera::withCount(['materias' => fn ($q) => $q->whereIn('id_plan_estudio', $idsVigentes)])->with('estadoCarrera', 'planes', 'turnos')
             ->when($request->query('q'), fn ($q, $busqueda) => $q->where('nombre_carrera', 'like', "%{$busqueda}%"))
             ->orderBy('nombre_carrera')
             ->get();
@@ -42,6 +43,7 @@ class CarreraController extends Controller
         $this->asegurarEstadosCarrera();
 
         return view('admin.carreras.create', [
+            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
             'estados' => EstadoCarrera::orderBy('id_estado_carrera')->get(),
         ]);
     }
@@ -56,9 +58,12 @@ class CarreraController extends Controller
             'resolucion_ministerial' => ['nullable', 'digits_between:1,4'],
             'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
-        ]);
+            'turnos' => ['required', 'array', 'min:1'],
+            'turnos.*' => ['exists:turno_cursada,id_turno_cursada'],
+        ], ['turnos.required' => 'Elegí al menos un turno en que se dicta la carrera.']);
 
-        $carrera = Carrera::create($data);
+        $carrera = Carrera::create(collect($data)->except('turnos')->all());
+        $carrera->turnos()->sync($data['turnos']);
         $carrera->planes()->create([
             'nombre' => 'Plan ' . now()->year,
             'resolucion_ministerial' => $carrera->resolucion_ministerial,
@@ -75,6 +80,7 @@ class CarreraController extends Controller
         $this->asegurarEstadosCarrera();
 
         return view('admin.carreras.edit', [
+            'turnos' => TurnoCursada::orderBy('id_turno_cursada')->get(),
             'carrera' => $carrera,
             'estados' => EstadoCarrera::orderBy('id_estado_carrera')->get(),
         ]);
@@ -90,9 +96,12 @@ class CarreraController extends Controller
             'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
             'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
-        ]);
+            'turnos' => ['required', 'array', 'min:1'],
+            'turnos.*' => ['exists:turno_cursada,id_turno_cursada'],
+        ], ['turnos.required' => 'Elegí al menos un turno en que se dicta la carrera.']);
 
-        $carrera->update($data);
+        $carrera->update(collect($data)->except('turnos')->all());
+        $carrera->turnos()->sync($data['turnos']);
 
         return redirect()->route('admin.carreras.index')->with('status', 'Carrera actualizada correctamente.');
     }
@@ -144,6 +153,14 @@ class CarreraController extends Controller
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
+            // Horas cátedra semanales (1 h cátedra = 40 min), CUPOF y si es práctica.
+            'horas_catedra' => ['required', 'integer', 'min:1', 'max:30'],
+            'cupof' => ['nullable', 'digits_between:1,8'],
+            'es_taller' => ['nullable', 'boolean'],
+        ], [
+            'horas_catedra.required' => 'Cargá las horas cátedra semanales de la materia.',
+            'horas_catedra.max' => 'Una materia no puede tener más de 30 horas cátedra semanales.',
+            'cupof.digits_between' => 'El CUPOF tiene que tener solo números (hasta 8).',
         ]);
 
         $plan = $this->planElegido($request, $carrera);
@@ -157,6 +174,9 @@ class CarreraController extends Controller
             'id_anio_cursada' => $data['id_anio_cursada'],
             'id_periodo' => $data['id_periodo'],
             'id_regimen' => $data['id_regimen'],
+            'horas_catedra' => $data['horas_catedra'],
+            'cupof' => $data['cupof'] ?? null,
+            'es_taller' => $request->boolean('es_taller'),
             'version_plan' => (string) $plan->anio_desde,
         ]);
 
@@ -173,9 +193,17 @@ class CarreraController extends Controller
             'id_anio_cursada' => ['required', 'exists:anio_cursada,id_anio_cursada'],
             'id_periodo' => ['required', 'exists:periodo_dictado,id_periodo'],
             'id_regimen' => ['required', 'exists:regimen_aprobacion,id_regimen'],
+            // Horas cátedra semanales (1 h cátedra = 40 min), CUPOF y si es práctica.
+            'horas_catedra' => ['required', 'integer', 'min:1', 'max:30'],
+            'cupof' => ['nullable', 'digits_between:1,8'],
+            'es_taller' => ['nullable', 'boolean'],
+        ], [
+            'horas_catedra.required' => 'Cargá las horas cátedra semanales de la materia.',
+            'horas_catedra.max' => 'Una materia no puede tener más de 30 horas cátedra semanales.',
+            'cupof.digits_between' => 'El CUPOF tiene que tener solo números (hasta 8).',
         ]);
 
-        $this->exigirPlanEditable($materia->plan);
+        // Editar los datos de una materia se puede siempre, aunque el plan tenga alumnos.
         $nombreMateria = NombreMateria::firstOrCreate(['nombre' => $data['nombre']]);
 
         $materia->update([
@@ -184,6 +212,9 @@ class CarreraController extends Controller
             'id_anio_cursada' => $data['id_anio_cursada'],
             'id_periodo' => $data['id_periodo'],
             'id_regimen' => $data['id_regimen'],
+            'horas_catedra' => $data['horas_catedra'],
+            'cupof' => $data['cupof'] ?? null,
+            'es_taller' => $request->boolean('es_taller'),
         ]);
 
         return back()->with('status', 'Materia actualizada correctamente.');

@@ -83,7 +83,7 @@
                     @php $destinos = $vigentes->where('id_plan_estudio', '!=', $origen->id_plan_estudio); @endphp
                     @if ($destinos->isNotEmpty())
                         <form method="POST" action="{{ route('admin.carreras.planes.pasar-alumnos', [$carrera, $origen]) }}" class="flex flex-wrap items-center gap-3"
-                              onsubmit="return confirm('¿Pasar a los {{ $origen->inscripciones_count }} alumno(s) del {{ $origen->nombre }} al plan elegido?');">
+                              data-confirm="¿Pasar a los {{ $origen->inscripciones_count }} alumno(s) del {{ $origen->nombre }} al plan elegido?">
                             @csrf
                             <span class="text-sm text-slate-700"><strong>{{ $origen->nombre }}</strong> ({{ $origen->inscripciones_count }} alumnos) → </span>
                             <select name="id_plan_destino" class="sg-input">
@@ -138,7 +138,7 @@
                                 <button type="button" onclick="document.getElementById('editar-plan-{{ $p->id_plan_estudio }}').classList.toggle('hidden')"
                                         class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar datos y vigencia"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                 @if ($p->inscripciones_count === 0 && $planes->count() > 1)
-                                    <form method="POST" action="{{ route('admin.carreras.planes.destroy', [$carrera, $p]) }}" onsubmit="return confirm('¿Eliminar el {{ $p->nombre }} con sus materias y correlativas?');">
+                                    <form method="POST" action="{{ route('admin.carreras.planes.destroy', [$carrera, $p]) }}" data-confirm="¿Eliminar el {{ $p->nombre }} con sus materias y correlativas?">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar plan"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
                                     </form>

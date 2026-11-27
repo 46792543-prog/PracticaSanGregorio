@@ -177,7 +177,7 @@ class AlumnoController extends Controller
             'carrerasAlumno' => $carrerasAlumno,
             'idCarrera' => $idCarrera,
             // Para "Inscribir en otra carrera": solo las carreras activas en las que todavía no está.
-            'carrerasDisponibles' => Carrera::whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))
+            'carrerasDisponibles' => Carrera::with('turnos')->whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))
                 ->whereNotIn('id_carrera', $carrerasAlumno->pluck('id_carrera'))->orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
@@ -236,6 +236,7 @@ class AlumnoController extends Controller
         ], ['carrera_id.unique' => 'El alumno ya está inscripto en esa carrera.']);
 
         $plan = $this->planParaInscribir($data['carrera_id'], $data['anio_lectivo_id']);
+        $this->validarTurnoDeCarrera($data['carrera_id'], $data['turno_cursada_id']);
 
         InscripcionCarrera::create([
             'id_persona_alumno' => $persona->id_persona,
@@ -252,6 +253,14 @@ class AlumnoController extends Controller
         return redirect()->route('admin.alumnos.show', [$persona, 'carrera' => $data['carrera_id']])
             ->with('status', 'Se inscribió al alumno en ' . Carrera::find($data['carrera_id'])->nombre_carrera
                 . '. Generale la matrícula y las cuotas de esta carrera desde Registrar Cuotas.');
+    }
+
+    // El turno elegido tiene que ser uno de los que ofrece la carrera.
+    private function validarTurnoDeCarrera(int|string $idCarrera, int|string $idTurno): void
+    {
+        if (! Carrera::find($idCarrera)?->ofreceTurno($idTurno)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['turno_cursada_id' => 'La carrera no se dicta en ese turno. Elegí uno de sus turnos (se configuran en Carreras → Editar).']);
+        }
     }
 
     // Plan al que entra un alumno nuevo en esa carrera y año lectivo. Si ninguno
@@ -314,7 +323,7 @@ class AlumnoController extends Controller
         return view('admin.alumnos.academico', [
             'personales' => session(self::SESSION_KEY . '.personales'),
             'academicos' => session(self::SESSION_KEY . '.academicos', []),
-            'carreras' => Carrera::whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))->orderBy('nombre_carrera')->get(),
+            'carreras' => Carrera::with('turnos')->whereHas('estadoCarrera', fn ($q) => $q->where('nombre_estado', 'Activa'))->orderBy('nombre_carrera')->get(),
             'aniosLectivos' => AnioLectivo::orderByDesc('anio')->get(),
             'corteActivoId' => CorteActivo::id(),
             'aniosCursada' => AnioCursada::orderBy('id_anio_cursada')->get(),
@@ -334,6 +343,7 @@ class AlumnoController extends Controller
         ]);
 
         $this->planParaInscribir($datos['carrera_id'], $datos['anio_lectivo_id']); // que haya un plan abierto ese año
+        $this->validarTurnoDeCarrera($datos['carrera_id'], $datos['turno_cursada_id']);
         session([self::SESSION_KEY . '.academicos' => $datos]);
 
         return redirect()->route('admin.alumnos.acceso');

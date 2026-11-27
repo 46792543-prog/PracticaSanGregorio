@@ -54,7 +54,7 @@
                 @endif
                 @if ($progresoPromocion)
                     <form method="POST" action="{{ route('admin.alumnos.promover', $alumno) }}"
-                          onsubmit="return confirm('¿Promover a {{ $alumno->nombre }} {{ $alumno->apellido }} a {{ $progresoPromocion['proximoAnio']->nombre_anio }}?');">
+                          data-confirm="¿Promover a {{ $alumno->nombre }} {{ $alumno->apellido }} a {{ $progresoPromocion['proximoAnio']->nombre_anio }}?">
                         @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" @disabled(! $progresoPromocion['puede'])
                                 title="{{ $progresoPromocion['aprobadas'] }} de {{ $progresoPromocion['total'] }} materias de su año aprobadas{{ $progresoPromocion['puede'] ? '' : ' — hace falta la mayoría para promover' }}"
@@ -66,12 +66,12 @@
                     </form>
                 @endif
                 @if ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Activo')
-                    <form method="POST" action="{{ route('admin.alumnos.baja', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de baja a este alumno?');">
+                    <form method="POST" action="{{ route('admin.alumnos.baja', $alumno) }}" data-confirm="¿Confirmás dar de baja a este alumno?">
                         @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" class="sg-btn sg-btn--peligro sg-btn--chico"><x-sg.icono nombre="user-minus" /> Dar de baja</button>
                     </form>
                 @elseif ($inscripcion && $inscripcion->estadoInscripcion->nombre_estado === 'Baja')
-                    <form method="POST" action="{{ route('admin.alumnos.alta', $alumno) }}" onsubmit="return confirm('¿Confirmás dar de alta nuevamente a este alumno?');">
+                    <form method="POST" action="{{ route('admin.alumnos.alta', $alumno) }}" data-confirm="¿Confirmás dar de alta nuevamente a este alumno?">
                         @csrf @method('PUT') <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                         <button type="submit" class="sg-btn sg-btn--verde sg-btn--chico"><x-sg.icono nombre="user-plus" /> Dar de alta</button>
                     </form>
@@ -103,7 +103,7 @@
                 <label class="sg-label">Carrera *</label>
                 <select name="carrera_id" required class="sg-input w-full">
                     @foreach ($carrerasDisponibles as $carrera)
-                        <option value="{{ $carrera->id_carrera }}">{{ $carrera->nombre_carrera }}</option>
+                        <option value="{{ $carrera->id_carrera }}" data-turnos="{{ $carrera->turnos->pluck('id_turno_cursada')->join(',') }}">{{ $carrera->nombre_carrera }}</option>
                     @endforeach
                 </select>
             </div>
@@ -207,7 +207,7 @@
                         <p class="sg-aviso sg-aviso--alerta text-xs"><span>{{ $impedimentoPlan }}</span></p>
                     @else
                         <form method="POST" action="{{ route('admin.alumnos.cambiar-plan', $alumno) }}" class="flex justify-end"
-                              onsubmit="return confirm('¿Pasar a {{ $alumno->nombre }} {{ $alumno->apellido }} del {{ $planActual->nombre }} al {{ $planDestino->nombre }}?');">
+                              data-confirm="¿Pasar a {{ $alumno->nombre }} {{ $alumno->apellido }} del {{ $planActual->nombre }} al {{ $planDestino->nombre }}?">
                             @csrf
                             <input type="hidden" name="id_carrera" value="{{ $idCarrera }}">
                             <input type="hidden" name="id_plan_destino" value="{{ $planDestino->id_plan_estudio }}">
@@ -562,4 +562,18 @@
             </div>
         @endif
     </x-sg.tarjeta>
+    <script>
+        // El turno solo ofrece los turnos en que se dicta la carrera elegida.
+        (function () {
+            const carrera = document.querySelector('[name="carrera_id"]'), turno = document.querySelector('[name="turno_cursada_id"]');
+            if (!carrera || !turno) return;
+            function filtrar() {
+                const turnos = (carrera.selectedOptions[0]?.dataset.turnos || '').split(',').filter(Boolean);
+                [...turno.options].forEach(o => { if (o.value) { o.hidden = turnos.length && !turnos.includes(o.value); o.disabled = o.hidden; } });
+                if (turno.selectedOptions[0]?.hidden) turno.value = '';
+            }
+            carrera.addEventListener('change', filtrar);
+            filtrar();
+        })();
+    </script>
 @endsection

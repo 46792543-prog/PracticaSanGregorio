@@ -102,7 +102,7 @@
                                 </a>
                                 @if ($estadoMesa === 'Programada')
                                     <a href="{{ route('admin.mesas.edit', $mesa) }}" class="sg-btn sg-btn--borde sg-btn--icono" title="Editar"><x-sg.icono nombre="pencil" class="!h-4 !w-4" /></a>
-                                    <form method="POST" action="{{ route('admin.mesas.destroy', $mesa) }}" onsubmit="return confirm('¿Cancelar esta mesa?');">
+                                    <form method="POST" action="{{ route('admin.mesas.destroy', $mesa) }}" data-confirm="¿Cancelar esta mesa?">
                                         @csrf @method('DELETE')
                                         <button class="sg-btn sg-btn--peligro sg-btn--icono" title="Cancelar mesa"><x-sg.icono nombre="x" class="!h-4 !w-4" /></button>
                                     </form>

@@ -53,7 +53,7 @@
                             </td>
                             <td>{{ $requisito->carrera?->nombre ?? 'Todas las carreras' }}</td>
                             <td class="text-right">
-                                <form method="POST" action="{{ route('admin.documentacion.requisitos.destroy', $requisito) }}" onsubmit="return confirm('¿Eliminar este requisito?');">
+                                <form method="POST" action="{{ route('admin.documentacion.requisitos.destroy', $requisito) }}" data-confirm="¿Eliminar este requisito?">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="sg-btn sg-btn--peligro sg-btn--icono" title="Eliminar"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
                                 </form>

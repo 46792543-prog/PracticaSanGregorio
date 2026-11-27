@@ -13,7 +13,7 @@
         </div>
 
         <div class="p-6">
-            <form method="POST" action="{{ route('director.configuracion-cuotas.store') }}" id="form-configuracion-cuota">
+            <form method="POST" action="{{ route('director.configuracion-cuotas.store') }}" id="form-configuracion-cuota" data-confirm="¿Guardar esta configuración?" data-confirm-tipo="guardar">
                 @csrf
                 <div class="grid sm:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -63,7 +63,7 @@
                         <label class="sg-label">MONTO DE LA CUOTA MENSUAL *</label>
                         <div class="flex items-center gap-1">
                             <span class="text-slate-400 text-sm">$</span>
-                            <input type="number" step="0.01" min="0.01" max="1000000" data-max-digitos="7" data-max-valor="1000000" name="monto_mensual" id="input-monto-mensual" required class="sg-input w-full">
+                            <input data-miles data-max-valor="1000000" name="monto_mensual" id="input-monto-mensual" required placeholder="Ej: 100.000" class="sg-input w-full">
                         </div>
                         <p class="text-xs text-slate-400 mt-1">Valor desde el primer mes del período. Los aumentos se cargan más abajo.</p>
                     </div>
@@ -131,7 +131,7 @@
                     <label class="sg-label">MONTO NUEVO *</label>
                     <div class="flex items-center gap-1">
                         <span class="text-slate-400 text-sm">$</span>
-                        <input type="number" step="0.01" min="0.01" max="1000000" data-max-digitos="7" data-max-valor="1000000" name="aumento_monto" value="{{ old('aumento_monto') }}" required class="sg-input w-full">
+                        <input data-miles data-max-valor="1000000" name="aumento_monto" value="{{ old('aumento_monto') }}" required placeholder="Ej: 120.000" class="sg-input w-full">
                     </div>
                 </div>
                 <div class="flex sm:justify-end">
@@ -169,7 +169,7 @@
                                         <button type="button" onclick="document.getElementById('editar-aumento-{{ $aumento->id_aumento_cuota }}').classList.toggle('hidden')"
                                                 class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar aumento"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                         <form method="POST" action="{{ route('director.configuracion-cuotas.aumentos.destroy', $aumento) }}" class="inline"
-                                              onsubmit="return confirm('¿Eliminar el aumento desde {{ $nombreMesAumento }}? Las cuotas impagas vuelven al precio anterior.');">
+                                              data-confirm="¿Eliminar el aumento desde {{ $nombreMesAumento }}? Las cuotas impagas vuelven al precio anterior.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar aumento"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
@@ -192,7 +192,7 @@
                                             </div>
                                             <div>
                                                 <label class="sg-label">MONTO</label>
-                                                <input type="number" step="0.01" min="0.01" max="1000000" data-max-digitos="7" data-max-valor="1000000" name="aumento_monto" value="{{ (float) $aumento->monto }}" required class="sg-input">
+                                                <input data-miles data-max-valor="1000000" name="aumento_monto" value="{{ (float) $aumento->monto }}" required class="sg-input">
                                             </div>
                                             <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="check" /> Guardar</button>
                                         </form>
@@ -276,12 +276,29 @@
                 // Clave "año-carrera": cada carrera tiene su propia configuración.
                 const config = configuraciones[selectAnio.value + '-' + selectCarrera.value];
                 if (! config) return;
-                montoInput.value = config.monto_mensual;
+                sgMiles(montoInput, config.monto_mensual);
                 document.getElementById('input-mes-desde').value = config.mes_desde;
                 document.getElementById('input-mes-hasta').value = config.mes_hasta;
                 diaInput.value = config.dia_vencimiento;
                 interesInput.value = config.porcentaje_interes_mora;
             }
+
+            // Antes de guardar: ventanita "¿Estás seguro?" con todos los datos que se van a guardar.
+            const form = document.getElementById('form-configuracion-cuota');
+            const texto = id => document.getElementById(id).selectedOptions[0]?.textContent.trim() ?? '';
+            form.addEventListener('submit', function () {
+                const monto = Number(montoInput._sgOculto.value || 0).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+                const concepto = form.elements.concepto.value.trim() || 'Cuota mensual';
+                form.dataset.confirm = '¿Guardar esta configuración de cuotas con estos datos?\n\n'
+                    + `Período lectivo: ${texto('select-anio-config')}\n`
+                    + `Carrera: ${texto('select-carrera-config')}\n`
+                    + `Cuotas: de ${texto('input-mes-desde')} a ${texto('input-mes-hasta')}\n`
+                    + `Vencimiento: día ${diaInput.value} de cada mes\n`
+                    + `Monto de la cuota mensual: $ ${monto}\n`
+                    + `Interés por mora: ${interesInput.value || 0} %\n`
+                    + `Concepto: ${concepto}\n\n`
+                    + 'Se generan las cuotas de los alumnos activos y las impagas pasan a este monto.';
+            });
 
             selectAnio.addEventListener('change', precargarConfiguracion);
             selectCarrera.addEventListener('change', precargarConfiguracion);

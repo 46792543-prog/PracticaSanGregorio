@@ -33,7 +33,7 @@
                             <button class="h-7 w-7 rounded-lg hover:bg-slate-200 text-slate-500" title="Mover abajo">↓</button>
                         </form>
                         <button type="button" onclick="editarSeccion({{ \Illuminate\Support\Js::from($payloadSeccion) }})" class="text-[#1E4D8C] hover:underline px-2">Editar</button>
-                        <form method="POST" action="{{ route('admin.ficha-inscripcion.secciones.destroy', $seccion) }}" onsubmit="return confirm('¿Eliminar esta sección? Solo se puede si no tiene campos.');">
+                        <form method="POST" action="{{ route('admin.ficha-inscripcion.secciones.destroy', $seccion) }}" data-confirm="¿Eliminar esta sección? Solo se puede si no tiene campos.">
                             @csrf @method('DELETE')
                             <button class="text-red-500 hover:underline px-2">Eliminar</button>
                         </form>
@@ -78,7 +78,7 @@
                                     @csrf @method('PUT')
                                     <button class="text-slate-500 hover:underline px-1.5">{{ $campo->activo ? 'Ocultar' : 'Mostrar' }}</button>
                                 </form>
-                                <form method="POST" action="{{ route('admin.ficha-inscripcion.campos.destroy', $campo) }}" onsubmit="return confirm('¿Eliminar este campo definitivamente? Se van a perder las respuestas que los alumnos ya cargaron.');">
+                                <form method="POST" action="{{ route('admin.ficha-inscripcion.campos.destroy', $campo) }}" data-confirm="¿Eliminar este campo definitivamente? Se van a perder las respuestas que los alumnos ya cargaron.">
                                     @csrf @method('DELETE')
                                     <button class="text-red-500 hover:underline px-1.5">Eliminar</button>
                                 </form>

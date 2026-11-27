@@ -51,6 +51,19 @@
                 </select>
             </div>
 
+            <div>
+                <label class="sg-label">Turnos en que se dicta <span class="text-red-500">*</span></label>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($turnos as $turno)
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm cursor-pointer has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50">
+                            <input type="checkbox" name="turnos[]" value="{{ $turno->id_turno_cursada }}" class="h-4 w-4 rounded" @checked(in_array($turno->id_turno_cursada, old('turnos', [])))>
+                            {{ $turno->nombre_turno }}
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Es la misma carrera, con las mismas materias, en cada turno.</p>
+            </div>
+
             <div class="flex justify-end gap-3 pt-5 border-t border-slate-100">
                 <a href="{{ route('admin.carreras.index') }}" class="sg-btn sg-btn--borde">Volver</a>
                 <button type="submit" class="sg-btn sg-btn--primario">Siguiente <x-sg.icono nombre="arrow-right" class="sg-flecha" /></button>

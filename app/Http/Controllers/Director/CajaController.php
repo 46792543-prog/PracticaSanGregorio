@@ -29,7 +29,8 @@ class CajaController extends Controller
 
         $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
             ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
-            ->orderByDesc('fecha_movimiento')
+            // Lo último que se registró va primero (N° 01), aunque la fecha del pago sea de otro día.
+            ->orderByDesc('id_movimiento')
             ->paginate(20)
             ->withQueryString();
 
@@ -50,7 +51,7 @@ class CajaController extends Controller
 
         $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
             ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
-            ->orderBy('fecha_movimiento')
+            ->orderBy('fecha_movimiento')->orderBy('id_movimiento') // cronológico; mismo momento: en el orden en que se registró
             ->get();
 
         $pdf = Pdf::loadView('director.caja.pdf', [
@@ -68,7 +69,7 @@ class CajaController extends Controller
 
         $movimientos = MovimientoCaja::with(['secretarioRegistra.usuario', 'concepto.tipoMovimiento'])
             ->whereBetween('fecha_movimiento', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()])
-            ->orderBy('fecha_movimiento')
+            ->orderBy('fecha_movimiento')->orderBy('id_movimiento') // cronológico; mismo momento: en el orden en que se registró
             ->get();
 
         return Excel::download(new CajaExport($movimientos), "libro-caja-{$mes->format('Y-m')}.xlsx");
@@ -93,7 +94,7 @@ class CajaController extends Controller
         MovimientoCaja::create([
             'id_concepto' => $concepto->id_concepto,
             'monto' => $data['monto'],
-            'fecha_movimiento' => $data['fecha_movimiento'],
+            'fecha_movimiento' => now()->setDateFrom($data['fecha_movimiento']), // fecha elegida + hora en que se registra
             'id_secretario_registra' => Auth::user()->id_persona,
             'id_medio_pago' => $medioPago->id_medio_pago,
         ]);

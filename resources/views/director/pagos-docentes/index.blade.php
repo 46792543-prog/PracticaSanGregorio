@@ -94,7 +94,7 @@
                                         data-pago="{{ json_encode(['id' => $pago->id_pago_docente, 'id_profesor' => $pago->id_profesor, 'periodo' => $pago->periodo->format('Y-m'), 'fecha_pago' => $pago->fecha_pago->toDateString(), 'monto' => (float) $pago->monto, 'id_metodo_pago_docente' => $pago->id_metodo_pago_docente, 'id_estado_pago_docente' => $pago->id_estado_pago_docente, 'observaciones' => $pago->observaciones]) }}"
                                         class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                 <form method="POST" action="{{ route('director.pagos-docentes.destroy', $pago) }}"
-                                      onsubmit="return confirm('¿Eliminar el pago a {{ $pago->profesor->apellido }}, {{ $pago->profesor->nombre }}? Si estaba pagado, también se borra su egreso en caja.');">
+                                      data-confirm="¿Eliminar el pago a {{ $pago->profesor->apellido }}, {{ $pago->profesor->nombre }}? Si estaba pagado, también se borra su egreso en caja.">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" title="Eliminar pago" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
@@ -127,7 +127,7 @@
                 <div class="grid sm:grid-cols-2 gap-4 mb-5">
                     <div class="sm:col-span-2">
                         <label class="sg-label">Docente *</label>
-                        <select name="id_profesor" id="input-pago-profesor" required onchange="actualizarDniDocente()" class="sg-input w-full">
+                        <select name="id_profesor" id="input-pago-profesor" required onchange="actualizarDniDocente(); calcularMonto()" class="sg-input w-full">
                             <option value="">Seleccioná docente...</option>
                             @foreach ($profesores as $profesor)
                                 <option value="{{ $profesor->id_profesor }}" data-nombre-base="{{ $profesor->apellido }}, {{ $profesor->nombre }}" @selected(old('id_profesor') == $profesor->id_profesor)>{{ $profesor->apellido }}, {{ $profesor->nombre }}</option>
@@ -148,13 +148,17 @@
                         <input type="date" name="fecha_pago" id="input-pago-fecha" required value="{{ old('fecha_pago', now()->toDateString()) }}" class="sg-input w-full">
                     </div>
                     <div>
-                        <label class="sg-label">Monto pagado *</label>
+                        <label class="sg-label flex items-center gap-1.5">Monto a pagar (calculado) <x-sg.icono nombre="lock" class="inline h-3 w-3" />
+                            {{-- Ojito: abre el detalle de por qué cobra ese monto (horas, valores e inasistencias) --}}
+                            <button type="button" id="boton-detalle-monto" onclick="abrirModal('modal-detalle-monto')" disabled title="Ver el detalle del monto"
+                                    class="ml-auto grid h-6 w-6 place-items-center rounded-full text-[#0B3D91] hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed"><x-sg.icono nombre="eye" class="h-4 w-4" /></button>
+                        </label>
                         <div class="sg-campo-icono">
                             <x-sg.icono nombre="cash" />
-                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" id="input-pago-monto" required placeholder="0,00" value="{{ old('monto') }}"
-                                   onkeydown="if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();"
-                                   class="sg-input w-full">
+                            {{-- Bloqueado: lo calcula el sistema con las horas cátedra designadas (no se envía, el servidor lo vuelve a calcular) --}}
+                            <input type="text" id="input-pago-monto" readonly tabindex="-1" placeholder="Elegí docente y período" class="sg-input w-full !bg-slate-50 font-semibold text-slate-700 cursor-not-allowed">
                         </div>
+                        <p id="detalle-pago-monto" class="text-xs text-slate-400 mt-1">Horas semanales × 4 × valor de la hora cátedra, menos inasistencias injustificadas.</p>
                     </div>
                     <div>
                         <label class="sg-label">Método de pago *</label>
@@ -192,6 +196,22 @@
     </div>
 
     {{-- Modal: confirmar antes de guardar el pago --}}
+    {{-- Ventana del ojito: detalle del monto calculado --}}
+    <div id="modal-detalle-monto" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[95] items-center justify-center p-4" onclick="if (event.target === this) cerrarModal(this.id)">
+        <div class="sg-modal bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="font-display font-extrabold text-xl text-[#0B3D91]">¿Por qué cobra este monto?</h3>
+                    <p id="detalle-monto-titulo" class="text-sm text-slate-500 capitalize"></p>
+                </div>
+                <button type="button" onclick="cerrarModal('modal-detalle-monto')" class="text-slate-400 hover:text-slate-700 text-xl" title="Cerrar">✕</button>
+            </div>
+            <div id="detalle-monto-cuerpo" class="space-y-3"></div>
+            <div id="detalle-monto-totales" class="mt-4 rounded-2xl bg-slate-50 p-4 space-y-1.5 text-sm"></div>
+            <p class="mt-3 text-xs text-slate-400">Horas cátedra designadas × 4 semanas × valor de la hora según la carrera y el tipo de designación, menos las horas de licencias sin goce o con documentación pendiente.</p>
+        </div>
+    </div>
+
     <div id="modal-confirmar-pago" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[90] items-center justify-center p-4">
         <div class="sg-modal bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200/60 w-full max-w-sm p-6 text-center">
             <span class="sg-chip sg-chip--amarillo mx-auto mb-3"><x-sg.icono nombre="alert" /></span>
@@ -201,7 +221,7 @@
             <div id="bloque-motivo-pago" class="hidden text-left mb-5">
                 <label class="sg-label">¿Por qué se edita este pago? *</label>
                 <textarea form="form-pago-docente" name="motivo" id="input-motivo-pago" rows="2" maxlength="500"
-                          placeholder="Ej: error de tipeo en el monto" class="sg-input w-full"></textarea>
+                          placeholder="Ej: se cargó mal el período o el método de pago" class="sg-input w-full"></textarea>
                 <p id="error-motivo-pago" class="hidden text-xs text-red-500 mt-1">Escribí el motivo (al menos 5 letras).</p>
             </div>
             <div class="flex gap-3">
@@ -297,8 +317,79 @@
             }
         }
 
-        document.getElementById('input-pago-periodo').addEventListener('change', actualizarProfesoresDisponibles);
+        document.getElementById('input-pago-periodo').addEventListener('change', () => { actualizarProfesoresDisponibles(); calcularMonto(); });
+
+        // Monto bloqueado: lo pide al servidor según las horas cátedra del docente en ese mes.
+        let montoCalculado = null;
+        async function calcularMonto() {
+            const profesor = document.getElementById('input-pago-profesor').value;
+            const periodo = document.getElementById('input-pago-periodo').value;
+            const input = document.getElementById('input-pago-monto');
+            const detalle = document.getElementById('detalle-pago-monto');
+            const pesos = n => '$ ' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+            montoCalculado = null;
+            input.value = '';
+            document.getElementById('boton-detalle-monto').disabled = true;
+            detalle.className = 'text-xs text-slate-400 mt-1';
+            if (!profesor || !periodo) { detalle.textContent = 'Horas semanales × 4 × valor de la hora cátedra, menos inasistencias injustificadas.'; return; }
+
+            detalle.textContent = 'Calculando...';
+            try {
+                const r = await fetch(`{{ route('director.liquidacion-horas.calcular') }}?profesor=${profesor}&periodo=${periodo}`, { headers: { Accept: 'application/json' } });
+                const liq = await r.json();
+                if (!r.ok) throw new Error();
+                if (!liq.detalle.length) {
+                    detalle.textContent = 'Este docente no tiene horas cátedra designadas en ese mes.';
+                } else if (liq.tipos_sin_valor.length) {
+                    detalle.textContent = 'Falta cargar el valor de la hora cátedra para: ' + liq.tipos_sin_valor.join(', ') + ' (en Liquidación de horas).';
+                } else if (liq.total <= 0) {
+                    detalle.textContent = 'Las inasistencias injustificadas cubren todas sus horas del mes: no hay monto para pagar.';
+                } else {
+                    montoCalculado = liq.total;
+                    input.value = pesos(liq.total);
+                    detalle.textContent = liq.horas_falta
+                        ? `Incluye descuento de ${liq.horas_falta} h por inasistencias. Tocá el ojito para ver el detalle.`
+                        : 'Sin descuentos por inasistencias en este período. Tocá el ojito para ver el detalle.';
+                    detalle.className = 'text-xs text-emerald-600 mt-1';
+                    armarDetalleMonto(liq, pesos);
+                    document.getElementById('boton-detalle-monto').disabled = false;
+                    return;
+                }
+                detalle.className = 'text-xs text-amber-600 mt-1';
+            } catch (e) {
+                detalle.textContent = 'No se pudo calcular el monto. Probá de nuevo.';
+                detalle.className = 'text-xs text-red-600 mt-1';
+            }
+        }
         actualizarProfesoresDisponibles();
+
+        // Detalle del monto (ventana del ojito): por materia horas, valor, inasistencias y descuento.
+        function armarDetalleMonto(liq, pesos) {
+            const docente = document.getElementById('input-pago-profesor').selectedOptions[0]?.dataset.nombreBase ?? '';
+            const [anio, mes] = document.getElementById('input-pago-periodo').value.split('-');
+            const periodo = new Date(anio, mes - 1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+            document.getElementById('detalle-monto-titulo').textContent = `${docente} · ${periodo}`;
+            document.getElementById('detalle-monto-cuerpo').innerHTML = liq.detalle.map(d => `
+                <div class="rounded-2xl border border-slate-200 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div><p class="font-semibold text-slate-800">${d.materia}</p><p class="text-xs text-slate-400">${d.carrera ?? ''} · ${d.tipo}</p></div>
+                        <p class="font-display font-bold text-[#0B3D91] whitespace-nowrap">${pesos(d.subtotal)}</p>
+                    </div>
+                    <div class="mt-2 text-sm text-slate-600 space-y-0.5">
+                        <p>${d.horas_semanales} h semanales × 4 = <strong>${d.horas_mes} h</strong> en el mes</p>
+                        <p>${d.horas_mes} h × ${pesos(d.valor_hora)} (hora cátedra ${d.tipo} · ${d.carrera ?? ''}) = <strong>${pesos(d.bruto)}</strong></p>
+                        ${d.horas_falta ? `<p class="text-red-600">− ${d.horas_falta} h de inasistencias × ${pesos(d.valor_hora)} = <strong>− ${pesos(d.descuento)}</strong></p>` : ''}
+                    </div>
+                    ${d.faltas.length ? `<div class="mt-2 border-t border-slate-100 pt-2 text-xs space-y-0.5">
+                        <p class="font-bold uppercase tracking-wider text-slate-400">Inasistencias</p>
+                        ${d.faltas.map(f => `<p class="${f.justificada ? 'text-slate-400' : 'text-red-600'}">${f.fecha} · ${f.horas} h · ${f.tipo} — ${f.justificada ? 'no descuenta' : 'descuenta'}</p>`).join('')}
+                    </div>` : ''}
+                </div>`).join('');
+            document.getElementById('detalle-monto-totales').innerHTML = `
+                <div class="flex justify-between text-slate-600"><span>Total horas cátedra (${liq.horas_mes} h)</span><span>${pesos(liq.bruto)}</span></div>
+                <div class="flex justify-between ${liq.descuento ? 'text-red-600' : 'text-slate-400'}"><span>Descuento por inasistencias (${liq.horas_falta} h)</span><span>− ${pesos(liq.descuento)}</span></div>
+                <div class="flex justify-between border-t border-slate-200 pt-2 font-display font-extrabold text-lg text-[#0B3D91]"><span>Monto a pagar</span><span>${pesos(liq.total)}</span></div>`;
+        }
 
         // Abre el modal para registrar (sin datos) o para editar (con los datos
         // del pago). "rellenar" en false deja los valores que volvieron con error.
@@ -323,7 +414,6 @@
                 document.getElementById('input-pago-profesor').value = pago.id_profesor;
                 document.getElementById('input-pago-periodo').value = pago.periodo;
                 document.getElementById('input-pago-fecha')._flatpickr?.setDate(pago.fecha_pago);
-                document.getElementById('input-pago-monto').value = pago.monto;
                 document.getElementById('input-pago-metodo').value = pago.id_metodo_pago_docente;
                 document.getElementById('input-pago-estado').value = pago.id_estado_pago_docente;
                 document.getElementById('input-pago-observaciones').value = pago.observaciones ?? '';
@@ -331,6 +421,7 @@
 
             abrirModal('modal-pago-docente');
             actualizarDniDocente();
+            calcularMonto();
         }
 
         // Al tocar "Guardar pago": en vez de enviar directo, pregunta
@@ -338,8 +429,12 @@
         // envía el formulario (form.submit() no vuelve a pasar por acá).
         formPago.addEventListener('submit', function (evento) {
             evento.preventDefault();
+            if (montoCalculado === null) {
+                document.getElementById('detalle-pago-monto').classList.add('font-bold');
+                return; // sin horas designadas o sin valor cargado no hay nada que pagar
+            }
             const docente = document.getElementById('input-pago-profesor').selectedOptions[0].dataset.nombreBase;
-            const monto = parseFloat(document.getElementById('input-pago-monto').value).toLocaleString('es-AR');
+            const monto = montoCalculado.toLocaleString('es-AR');
             document.getElementById('texto-confirmar-pago').textContent = pagoEditando
                 ? `¿Está seguro de actualizar el pago a ${docente} por $ ${monto}?`
                 : `¿Está seguro de abonar $ ${monto} a ${docente}?`;
@@ -359,6 +454,16 @@
             if (!pagoEditando) motivo.value = ''; // al registrar no se manda motivo
             formPago.submit();
         }
+
+        @if (! $errors->any() && request('nuevo'))
+            // Viene de "Registrar pago" en Liquidación de horas: abre el modal con el docente y el mes.
+            abrirPago();
+            document.getElementById('input-pago-periodo').value = @json(request('periodo_nuevo'));
+            actualizarProfesoresDisponibles();
+            document.getElementById('input-pago-profesor').value = @json(request('nuevo'));
+            actualizarDniDocente();
+            calcularMonto();
+        @endif
 
         @if ($errors->any())
             // Si volvió con error, reabre el modal (en modo edición si se estaba editando).

@@ -158,7 +158,7 @@
                                 <td>
                                     <div class="flex flex-nowrap items-center gap-2">
                                         <a href="{{ route('admin.carreras.correlativas.grupo.edit', [$carrera, $idPrincipal]) }}" data-editar="{{ $idPrincipal }}" class="sg-btn sg-btn--borde sg-btn--chico"><x-sg.icono nombre="pencil" /> Editar</a>
-                                        <form method="POST" action="{{ route('admin.carreras.correlativas.grupo.destroy', [$carrera, $idPrincipal]) }}" onsubmit="return confirm('¿Eliminar todas las correlativas de {{ addslashes($correlativaPrincipal->nombre) }}?');">
+                                        <form method="POST" action="{{ route('admin.carreras.correlativas.grupo.destroy', [$carrera, $idPrincipal]) }}" data-confirm="¿Eliminar todas las correlativas de {{ addslashes($correlativaPrincipal->nombre) }}?">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="sg-btn sg-btn--peligro sg-btn--chico sg-btn--icono" title="Eliminar" aria-label="Eliminar correlativas de {{ $correlativaPrincipal->nombre }}"><x-sg.icono nombre="trash" /></button>
                                         </form>

@@ -28,7 +28,7 @@
                         <select name="carrera_id" required class="sg-input w-full">
                             <option value="">Seleccioná carrera...</option>
                             @foreach ($carreras as $carrera)
-                                <option value="{{ $carrera->id_carrera }}" @selected(($academicos['carrera_id'] ?? null) == $carrera->id_carrera)>{{ $carrera->nombre_carrera }}</option>
+                                <option value="{{ $carrera->id_carrera }}" data-turnos="{{ $carrera->turnos->pluck('id_turno_cursada')->join(',') }}" @selected(($academicos['carrera_id'] ?? null) == $carrera->id_carrera)>{{ $carrera->nombre_carrera }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -69,4 +69,18 @@
             </div>
         </div>
     </div>
+    <script>
+        // El turno solo ofrece los turnos en que se dicta la carrera elegida.
+        (function () {
+            const carrera = document.querySelector('[name="carrera_id"]'), turno = document.querySelector('[name="turno_cursada_id"]');
+            if (!carrera || !turno) return;
+            function filtrar() {
+                const turnos = (carrera.selectedOptions[0]?.dataset.turnos || '').split(',').filter(Boolean);
+                [...turno.options].forEach(o => { if (o.value) { o.hidden = turnos.length && !turnos.includes(o.value); o.disabled = o.hidden; } });
+                if (turno.selectedOptions[0]?.hidden) turno.value = '';
+            }
+            carrera.addEventListener('change', filtrar);
+            filtrar();
+        })();
+    </script>
 @endsection

@@ -12,6 +12,7 @@
         ['ruta' => 'director.configuracion-matricula.index', 'texto' => 'Configuración de Matrícula', 'icono' => 'settings'],
         ['ruta' => 'director.pagos.index', 'texto' => 'Estado de Pagos', 'icono' => 'chart'],
         ['ruta' => 'director.caja.index', 'texto' => 'Libro de caja', 'icono' => 'book'],
+        ['ruta' => 'director.liquidacion-horas.index', 'texto' => 'Liquidación de horas', 'icono' => 'report'],
         ['ruta' => 'director.pagos-docentes.index', 'texto' => 'Pago de Docentes', 'icono' => 'card'],
         ['ruta' => 'director.reportes.ingresos.index', 'texto' => 'Reporte de Ingresos', 'icono' => 'report'],
         ['ruta' => 'director.auditoria.index', 'texto' => 'Auditoría', 'icono' => 'audit'],

@@ -19,10 +19,12 @@
                     <th class="border border-slate-100 px-2 py-2">Nº Orden</th>
                     <th class="border border-slate-100 px-3 py-2 text-left">Espacio curricular</th>
                     <th class="border border-slate-100 px-2 py-2">Período</th>
+                    <th class="border border-slate-100 px-2 py-2">Hs. cátedra</th>
                     <th class="border border-slate-100 px-2 py-2" colspan="2">Correlatividades</th>
                     <th class="border border-slate-100 px-3 py-2">Régimen de aprobación</th>
                 </tr>
                 <tr class="bg-blue-50 text-[#0B3D91]">
+                    <th class="border border-slate-100"></th>
                     <th class="border border-slate-100"></th>
                     <th class="border border-slate-100"></th>
                     <th class="border border-slate-100"></th>
@@ -42,6 +44,7 @@
                             <td class="border border-slate-100 text-center py-2"><span class="inline-grid h-7 w-7 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">{{ $materia->numero_orden }}</span></td>
                             <td class="border border-slate-100 px-4 py-3 font-medium text-slate-800">{{ $materia->nombre }}</td>
                             <td class="border border-slate-100 text-center text-slate-500">{{ $materia->periodo->nombre_periodo }}</td>
+                            <td class="border border-slate-100 text-center font-semibold text-[#0B3D91]">{{ $materia->horas_catedra ?? '—' }}{{ $materia->es_taller ? ' (práctica)' : '' }}</td>
                             <td class="border border-slate-100 text-center text-slate-500">
                                 {{ $materia->requisitos->where('pivot.requiere_regularizada', true)->pluck('numero_orden')->sort()->implode('-') ?: '—' }}
                             </td>
@@ -53,6 +56,13 @@
                             </td>
                         </tr>
                     @endforeach
+                    {{-- Total de horas cátedra del año (1 h cátedra = 40 min) --}}
+                    @php $totalAnio = $materias->sum('horas_catedra'); $minAnio = $totalAnio * \App\Models\Materia::MINUTOS_HORA_CATEDRA; @endphp
+                    <tr class="bg-slate-50">
+                        <td colspan="4" class="border border-slate-100 px-4 py-2 text-right text-xs font-semibold text-slate-500">Total {{ $anio }}</td>
+                        <td class="border border-slate-100 text-center text-sm font-bold text-[#0B3D91]">{{ $totalAnio }} h</td>
+                        <td colspan="3" class="border border-slate-100 px-3 text-xs text-slate-500">= {{ intdiv($minAnio, 60) }} h{{ $minAnio % 60 ? ' ' . ($minAnio % 60) . ' min' : '' }} reloj por semana</td>
+                    </tr>
                 @endforeach
             </tbody>
         </table>

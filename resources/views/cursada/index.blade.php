@@ -41,7 +41,7 @@
                             </button>
                             <p class="text-xs text-red-500 mt-2">✕ {{ $bloqueo }}</p>
                         @else
-                            <form method="POST" action="{{ route('cursada.inscribir', $materia) }}" onsubmit="return confirm('¿Confirmás la inscripción a cursar {{ $materia->nombre }}?');">
+                            <form method="POST" action="{{ route('cursada.inscribir', $materia) }}" data-confirm="¿Confirmás la inscripción a cursar {{ $materia->nombre }}?">
                                 @csrf
                                 <button type="submit" class="w-full rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold py-2 transition">
                                     Inscribirme a cursar

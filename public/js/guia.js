@@ -290,7 +290,60 @@
         input.focus();
     }
 
-    boton.addEventListener('click', function () { abrir(true); });
+    // ---------- Arrastrar a Goyo ----------
+    // El botón se puede llevar a cualquier lugar (mouse o dedo). Si se arrastró,
+    // no se abre; si solo se tocó, se abre. La posición queda guardada.
+    var CLAVE_POSICION = 'sg-goyo-posicion';
+    var arrastre = null;
+    var seArrastro = false;
+
+    function ubicar(x, y) {
+        var maxX = window.innerWidth - boton.offsetWidth - 8;
+        var maxY = window.innerHeight - boton.offsetHeight - 8;
+        boton.style.left = Math.min(Math.max(8, x), Math.max(8, maxX)) + 'px';
+        boton.style.top = Math.min(Math.max(8, y), Math.max(8, maxY)) + 'px';
+        boton.style.right = 'auto';
+        boton.style.bottom = 'auto';
+    }
+
+    try {
+        var guardada = JSON.parse(localStorage.getItem(CLAVE_POSICION));
+        if (guardada) ubicar(guardada.x, guardada.y);
+    } catch (e) { /* sin posición guardada */ }
+
+    boton.addEventListener('pointerdown', function (evento) {
+        var r = boton.getBoundingClientRect();
+        arrastre = { dx: evento.clientX - r.left, dy: evento.clientY - r.top, inicioX: evento.clientX, inicioY: evento.clientY };
+        seArrastro = false;
+        boton.setPointerCapture(evento.pointerId);
+    });
+
+    boton.addEventListener('pointermove', function (evento) {
+        if (!arrastre) return;
+        if (!seArrastro && Math.hypot(evento.clientX - arrastre.inicioX, evento.clientY - arrastre.inicioY) < 6) return;
+        seArrastro = true;
+        boton.classList.add('sg-guia-boton--arrastrando');
+        ubicar(evento.clientX - arrastre.dx, evento.clientY - arrastre.dy);
+    });
+
+    boton.addEventListener('pointerup', function () {
+        if (seArrastro) {
+            var r = boton.getBoundingClientRect();
+            try { localStorage.setItem(CLAVE_POSICION, JSON.stringify({ x: r.left, y: r.top })); } catch (e) { /* sin guardar */ }
+        }
+        boton.classList.remove('sg-guia-boton--arrastrando');
+        arrastre = null;
+    });
+
+    // Si la ventana se achica, que no quede afuera.
+    window.addEventListener('resize', function () {
+        if (boton.style.left) ubicar(parseFloat(boton.style.left), parseFloat(boton.style.top));
+    });
+
+    boton.addEventListener('click', function (evento) {
+        if (seArrastro) { evento.preventDefault(); seArrastro = false; return; }
+        abrir(true);
+    });
     document.getElementById('sg-guia-cerrar').addEventListener('click', cerrar);
     document.getElementById('sg-guia-reiniciar').addEventListener('click', reiniciar);
 

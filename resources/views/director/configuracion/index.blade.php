@@ -153,7 +153,7 @@
 
             @if ($configuracion)
                 <form method="POST" action="{{ route('director.configuracion.destroy') }}"
-                      onsubmit="return confirm('¿Eliminar los datos institucionales cargados? Esta acción no se puede deshacer.');"
+                      data-confirm="¿Eliminar los datos institucionales cargados? Esta acción no se puede deshacer."
                       class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                     @csrf
                     @method('DELETE')
@@ -202,7 +202,7 @@
                         <div class="relative group rounded-2xl overflow-hidden ring-1 ring-slate-200 aspect-video shadow-sm hover:shadow-lg transition-shadow">
                             <img src="{{ $imagen->url }}" alt="" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
                             <form method="POST" action="{{ route('director.configuracion.imagenes.destroy', $imagen) }}"
-                                  onsubmit="return confirm('¿Eliminar esta imagen de la portada?');"
+                                  data-confirm="¿Eliminar esta imagen de la portada?"
                                   class="absolute top-1.5 right-1.5">
                                 @csrf
                                 @method('DELETE')
@@ -260,7 +260,7 @@
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('director.configuracion.cortes.destroy', $anio) }}"
-                                  onsubmit="return confirm('¿Eliminar el año lectivo {{ $anio->anio }}? Sólo se puede eliminar si no tiene datos cargados.');">
+                                  data-confirm="¿Eliminar el año lectivo {{ $anio->anio }}? Sólo se puede eliminar si no tiene datos cargados.">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar año lectivo"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>

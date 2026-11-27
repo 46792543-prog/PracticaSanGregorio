@@ -120,7 +120,7 @@
                                 @endif
 
                                 <form method="POST" action="{{ route('admin.inscripciones.destroy', $inscripcion) }}"
-                                      onsubmit="return confirm('¿Eliminar esta inscripción? Esta acción no se puede deshacer.');">
+                                      data-confirm="¿Eliminar esta inscripción? Esta acción no se puede deshacer.">
                                     @csrf @method('DELETE')
                                     <button class="sg-btn sg-btn--peligro sg-btn--icono" title="Eliminar"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
                                 </form>

@@ -18,12 +18,18 @@ class Persona extends Model
     protected $primaryKey = 'id_persona';
 
     protected $fillable = [
-        'dni', 'fecha_nacimiento', 'nombre', 'apellido', 'telefono', 'direccion', 'localidad',
+        'dni', 'fecha_nacimiento', 'nombre', 'apellido', 'telefono', 'direccion', 'localidad', 'id_localidad',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
     ];
+
+    // Localidad del domicilio (catálogo, con su provincia).
+    public function localidadDomicilio()
+    {
+        return $this->belongsTo(Localidad::class, 'id_localidad', 'id_localidad');
+    }
 
     public function usuario()
     {

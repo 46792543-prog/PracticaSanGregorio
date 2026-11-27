@@ -131,21 +131,6 @@ class GuiaAsistente
 
             // ---------- Profesores ----------
             [
-                'id' => 'profesor-horario',
-                'titulo' => 'Cargar el horario de un docente',
-                'panel' => self::SECRETARIA,
-                'ruta' => 'admin.profesores.index',
-                'destacada' => true,
-                'claves' => ['horario docente', 'horario profesor', 'horarios docentes', 'asignar materia', 'asignar profesor', 'asignacion', 'materia profesor', 'materia docente', 'aula'],
-                'pasos' => [
-                    'En Asignar materia y horario a profesor, elegí el profesor, la materia y el año lectivo.',
-                    'Cargá la hora de inicio, la hora de fin y, si querés, el aula.',
-                    'Tildá los días de cursada.',
-                    'Tocá Guardar asignación.',
-                ],
-                'nota' => 'Para corregir un horario, buscalo en Asignaciones ya cargadas y tocá Editar.',
-            ],
-            [
                 'id' => 'profesor-nuevo',
                 'titulo' => 'Registrar un profesor nuevo',
                 'panel' => self::SECRETARIA,
@@ -153,8 +138,8 @@ class GuiaAsistente
                 'destacada' => true,
                 'claves' => ['profesor', 'profesora', 'docente', 'nuevo profesor', 'nuevo docente', 'alta docente', 'alta profesor', 'maestro'],
                 'pasos' => [
-                    'Abrí Agregar nuevo profesor al padrón, debajo del formulario de asignación.',
-                    'Completá DNI, apellido, nombre, especialidad y condición. El email es opcional.',
+                    'Arriba de todo, en Agregar nuevo profesor, completá DNI, apellido, nombre, condición y especialidades.',
+                    'Si querés, cargá sexo, CUIL (el botón Calcular lo completa con el DNI y el sexo), fecha de ingreso, email y sus títulos.',
                     'Tocá Guardar docente.',
                 ],
                 'nota' => 'Si la especialidad no aparece, agregala con el botón que está al lado de la lista.',
@@ -211,21 +196,21 @@ class GuiaAsistente
                 ],
             ],
 
-            // ---------- Horarios de carrera ----------
+            // ---------- Horarios ----------
             [
                 'id' => 'horario-carrera',
-                'titulo' => 'Armar el horario de una carrera',
+                'titulo' => 'Armar el horario (grilla de clases)',
                 'panel' => self::SECRETARIA,
                 'ruta' => 'admin.horarios.index',
                 'destacada' => true,
                 'claves' => ['horario carrera', 'horarios carrera', 'horario', 'horarios', 'cuadro horario', 'modulo', 'modulos', 'grilla', 'cronograma'],
                 'pasos' => [
-                    'Elegí la carrera y el turno.',
-                    'Tocá + Agregar módulo, cargá número, hora de inicio y hora de fin, y tocá Guardar módulo.',
-                    'Hacé clic en la celda del día que quieras y escribí la materia y el docente.',
-                    'Tocá Guardar.',
+                    'En Horarios, en Franja horaria, elegí el docente y la materia (podés filtrar por carrera).',
+                    'Elegí el día, el horario desde y hasta (o tocá un botón rápido: +40, +80…) y el turno.',
+                    'Mirá el recuadro Superposición: si está en verde, tocá Guardar franja.',
+                    'Abajo, en Horario de cursada, mirá la semana de un docente o de un curso (en grilla o en tabla).',
                 ],
-                'nota' => 'Los módulos de una misma carrera y turno no se pueden superponer, pero sí pueden ser seguidos (uno termina 09:00 y el otro arranca 09:00).',
+                'nota' => 'No deja guardar si el docente ya da otra clase a esa hora, si ese curso ya tiene otra materia a esa hora (salvo prácticas), si se pasa de las horas cátedra o si la duración no es múltiplo de 40 minutos.',
             ],
             [
                 'id' => 'horario-pdf',
@@ -234,10 +219,10 @@ class GuiaAsistente
                 'ruta' => 'admin.horarios.index',
                 'claves' => ['pdf horario', 'descargar horario', 'imprimir horario', 'exportar horario', 'bajar horario'],
                 'pasos' => [
-                    'Elegí la carrera y el turno.',
-                    'Tocá Descargar PDF.',
+                    'En Horario de cursada, buscá un docente o elegí un curso.',
+                    'Tocá el botón PDF.',
                 ],
-                'nota' => 'El botón aparece cuando ese horario ya tiene al menos un módulo cargado.',
+                'nota' => 'El botón aparece cuando ese docente o curso tiene al menos una franja cargada.',
             ],
 
             // ---------- Cursada ----------
@@ -404,12 +389,39 @@ class GuiaAsistente
                 'titulo' => 'Registrar el pago a un docente',
                 'panel' => self::DIRECCION,
                 'ruta' => 'director.pagos-docentes.index',
-                'claves' => ['pago docente', 'pagar docente', 'pagar profesor', 'pago profesor', 'sueldo', 'sueldos', 'liquidacion', 'honorarios'],
+                'claves' => ['pago docente', 'pagar docente', 'pagar profesor', 'pago profesor', 'sueldo', 'sueldos', 'honorarios'],
                 'pasos' => [
                     'Tocá Registrar pago.',
-                    'Elegí el docente y cargá período abonado, fecha de pago y monto pagado.',
+                    'Elegí el docente, el período abonado y la fecha de pago: el monto se calcula solo con sus horas cátedra y no se puede cambiar.',
                     'Elegí método de pago y estado.',
                     'Tocá Guardar pago.',
+                ],
+            ],
+            [
+                'id' => 'liquidacion-horas',
+                'titulo' => 'Valor de la hora cátedra y liquidación de docentes',
+                'panel' => self::DIRECCION,
+                'ruta' => 'director.liquidacion-horas.index',
+                'claves' => ['liquidacion', 'hora catedra', 'horas catedra', 'valor hora', 'cuanto cobra', 'control de horas'],
+                'pasos' => [
+                    'Entrá a Liquidación de horas.',
+                    'Cargá el valor de la hora cátedra para Titular, Interino, Suplente y Provisional, desde el mes en que rige.',
+                    'Elegí el mes: cada docente cobra horas semanales × 4 × valor de la hora según su tipo.',
+                    'Tocá un docente para ver el detalle por materia, o Registrar pago para pagarle.',
+                ],
+            ],
+            [
+                'id' => 'inasistencias-docentes',
+                'titulo' => 'Cargar una inasistencia de un docente',
+                'panel' => self::SECRETARIA,
+                'ruta' => 'admin.inasistencias.index',
+                'claves' => ['inasistencia', 'inasistencias', 'licencia', 'licencias', 'falta docente', 'falto', 'ausencia', 'descuento', 'descontar', 'certificado'],
+                'pasos' => [
+                    'Entrá a Inasistencias docentes y tocá Registrar inasistencia.',
+                    'Buscá el docente y elegí Desde / Hasta (vacío = mismo día; puede ser una fecha futura).',
+                    'Elegí el tipo de licencia y si presentó la documentación (Presentada o Pendiente; las sin goce no llevan).',
+                    'Revisá las clases que pierde (salen del Horario, con sus horas cátedra) y tocá Guardar.',
+                    'Se descuentan las sin goce de sueldo y las con documentación pendiente; con el lápiz se actualiza la documentación después.',
                 ],
             ],
             [

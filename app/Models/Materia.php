@@ -25,11 +25,34 @@ class Materia extends Model
         'id_nombre_materia',
         'version_plan',
         'activa',
+        'horas_catedra',
+        'cupof',
+        'es_taller',
     ];
 
     protected $casts = [
         'activa' => 'boolean',
+        'horas_catedra' => 'integer',
+        'es_taller' => 'boolean',
     ];
+
+    // Una hora cátedra dura 40 minutos.
+    public const MINUTOS_HORA_CATEDRA = 40;
+
+    // Horas cátedra pasadas a reloj: 4 h cátedra = "2 h 40 min".
+    public function getHorasRelojAttribute(): ?string
+    {
+        if (! $this->horas_catedra) {
+            return null;
+        }
+
+        $minutos = $this->horas_catedra * self::MINUTOS_HORA_CATEDRA;
+
+        $horas = intdiv($minutos, 60);
+        $resto = $minutos % 60;
+
+        return trim(($horas ? "{$horas} h" : '') . ($resto ? " {$resto} min" : ''));
+    }
 
     public function carrera(): BelongsTo
     {

@@ -21,7 +21,7 @@ class ReporteIngresosController extends Controller
     {
         [$desde, $hasta] = $this->rango($request);
 
-        $todos = $this->consulta($request, $desde, $hasta)->orderByDesc('fecha_movimiento')->get();
+        $todos = $this->consulta($request, $desde, $hasta)->orderByDesc('id_movimiento')->get(); // lo último registrado primero
 
         $ingresos = $this->paginar($todos, (int) $request->query('page', 1))->withQueryString();
 
@@ -44,7 +44,7 @@ class ReporteIngresosController extends Controller
     {
         [$desde, $hasta] = $this->rango($request);
 
-        $ingresos = $this->consulta($request, $desde, $hasta)->orderBy('fecha_movimiento')->get();
+        $ingresos = $this->consulta($request, $desde, $hasta)->orderBy('fecha_movimiento')->orderBy('id_movimiento')->get();
 
         $pdf = Pdf::loadView('director.reportes.ingresos.pdf', [
             'desde' => $desde,
@@ -62,7 +62,7 @@ class ReporteIngresosController extends Controller
     {
         [$desde, $hasta] = $this->rango($request);
 
-        $ingresos = $this->consulta($request, $desde, $hasta)->orderBy('fecha_movimiento')->get();
+        $ingresos = $this->consulta($request, $desde, $hasta)->orderBy('fecha_movimiento')->orderBy('id_movimiento')->get();
 
         return Excel::download(
             new IngresosExport($ingresos),

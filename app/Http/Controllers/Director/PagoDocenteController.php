@@ -13,6 +13,8 @@ use App\Models\Profesor;
 use App\Models\TipoMovimiento;
 use App\Support\Auditor;
 use App\Support\FechaEsp;
+use App\Support\LiquidacionDocente;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -110,16 +112,27 @@ class PagoDocenteController extends Controller
             'id_profesor' => ['required', 'exists:profesor,id_profesor'],
             'periodo' => ['required', 'date_format:Y-m'],
             'fecha_pago' => ['required', 'date'],
-            'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'id_metodo_pago_docente' => ['required', 'exists:metodo_pago_docente,id_metodo_pago_docente'],
             'id_estado_pago_docente' => ['required', 'exists:estado_pago_docente,id_estado_pago_docente'],
             'observaciones' => ['nullable', 'string', 'max:255'],
-        ], [
-            'monto.max' => 'El monto no puede tener más de 7 dígitos.',
         ]);
 
+        // El monto no se escribe: sale de las horas cátedra designadas del docente
+        // en ese mes (horas semanales × 4 × valor de la hora según el tipo).
+        $liquidacion = LiquidacionDocente::calcular((int) $data['id_profesor'], Carbon::parse($data['periodo'] . '-01'));
+        if ($liquidacion['detalle']->isEmpty()) {
+            throw ValidationException::withMessages(['id_profesor' => 'Este docente no tiene horas cátedra designadas en ese mes: no hay monto para liquidar.']);
+        }
+        if ($liquidacion['tipos_sin_valor']->isNotEmpty()) {
+            throw ValidationException::withMessages(['id_profesor' => 'Falta cargar el valor de la hora cátedra para: ' . $liquidacion['tipos_sin_valor']->join(', ') . ' (en Liquidación de horas).']);
+        }
+
+        if ($liquidacion['total'] <= 0) {
+            throw ValidationException::withMessages(['id_profesor' => 'Las inasistencias injustificadas cubren todas sus horas del mes: no hay monto para pagar.']);
+        }
+
         $data['periodo'] .= '-01';
-        $data['monto'] = round((float) $data['monto'], 2);
+        $data['monto'] = $liquidacion['total'];
         $data['observaciones'] = ($data['observaciones'] ?? null) ?: null;
 
         $yaTienePago = PagoDocente::where('id_profesor', $data['id_profesor'])

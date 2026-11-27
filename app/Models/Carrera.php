@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Carrera extends Model
@@ -35,6 +36,17 @@ class Carrera extends Model
     public function materias(): HasMany
     {
         return $this->hasMany(Materia::class, 'id_carrera', 'id_carrera');
+    }
+
+    // Turnos en que se dicta la carrera (las mismas materias en cada turno).
+    public function turnos(): BelongsToMany
+    {
+        return $this->belongsToMany(TurnoCursada::class, 'carrera_turno', 'id_carrera', 'id_turno_cursada')->orderBy('turno_cursada.id_turno_cursada');
+    }
+
+    public function ofreceTurno(int|string|null $idTurno): bool
+    {
+        return $this->turnos()->where('turno_cursada.id_turno_cursada', $idTurno)->exists();
     }
 
     public function planes(): HasMany

@@ -28,6 +28,7 @@
                         <th>Año</th>
                         <th>Período</th>
                         <th>Régimen</th>
+                        <th>Hs. cátedra</th>
                         <th>Estado</th>
                         <th></th>
                     </tr>
@@ -42,6 +43,9 @@
                                 'id_anio_cursada' => $materia->id_anio_cursada,
                                 'id_periodo' => $materia->id_periodo,
                                 'id_regimen' => $materia->id_regimen,
+                                'horas_catedra' => $materia->horas_catedra,
+                                'cupof' => $materia->cupof,
+                                'es_taller' => $materia->es_taller,
                             ];
                         @endphp
                         <tr class="{{ $materia->activa ? '' : 'opacity-50' }}">
@@ -50,6 +54,16 @@
                             <td class="text-slate-500">{{ $materia->anioCursada->nombre_anio }}</td>
                             <td class="text-slate-500">{{ $materia->periodo->nombre_periodo }}</td>
                             <td class="text-slate-500">{{ $materia->regimen->nombre_regimen }}</td>
+                            <td class="whitespace-nowrap">
+                                @if ($materia->horas_catedra)
+                                    <span class="font-semibold text-[#0B3D91]">{{ $materia->horas_catedra }} h</span>
+                                    <span class="block text-xs text-slate-400">{{ $materia->horas_reloj }} reloj</span>
+                                @else
+                                    <span class="sg-badge sg-badge--amarillo sg-badge--sin-punto">Sin cargar</span>
+                                @endif
+                                @if ($materia->es_taller)<span class="sg-badge sg-badge--azul sg-badge--sin-punto mt-1">Práctica</span>@endif
+                                @if ($materia->cupof)<span class="block text-xs text-slate-400">CUPOF {{ $materia->cupof }}</span>@endif
+                            </td>
                             <td>
                                 <span class="sg-badge {{ $materia->activa ? 'sg-badge--verde' : 'sg-badge--rojo' }}">
                                     {{ $materia->activa ? 'Activa' : 'Dada de baja' }}
@@ -59,7 +73,7 @@
                                 <div class="flex items-center gap-3 text-xs font-semibold whitespace-nowrap">
                                     <button type="button" class="sg-btn sg-btn--suave sg-btn--chico" onclick='editarMateria(@json($edicionMateriaPayload))'>Editar</button>
                                     @if ($materia->activa)
-                                        <form method="POST" action="{{ route('admin.carreras.materias.baja', [$carrera, $materia]) }}" onsubmit="return confirm('¿Dar de baja esta materia?');">
+                                        <form method="POST" action="{{ route('admin.carreras.materias.baja', [$carrera, $materia]) }}" data-confirm="¿Dar de baja esta materia?">
                                             @csrf @method('PUT')
                                             <button class="sg-btn sg-btn--peligro sg-btn--chico">Dar de baja</button>
                                         </form>
@@ -73,7 +87,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7"><x-sg.vacio icono="book">Todavía no se cargaron materias.</x-sg.vacio></td></tr>
+                        <tr><td colspan="8"><x-sg.vacio icono="book">Todavía no se cargaron materias.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -125,6 +139,23 @@
                     @endforeach
                 </select>
             </div>
+            {{-- Horas cátedra (1 h cátedra = 40 min), CUPOF y práctica --}}
+            <div>
+                <label class="sg-label">HS. CÁTEDRA *</label>
+                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="30" name="horas_catedra" id="input-materia-horas" required placeholder="Ej: 4"
+                       oninput="mostrarHorasReloj()" class="sg-input w-full">
+                <p id="texto-horas-reloj" class="text-xs text-slate-400 mt-1">Semanales · 1 h cátedra = 40 min</p>
+            </div>
+            <div>
+                <label class="sg-label">CUPOF</label>
+                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="cupof" id="input-materia-cupof" placeholder="Opcional" class="sg-input w-full">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm cursor-pointer has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50">
+                    <input type="checkbox" name="es_taller" value="1" id="input-materia-taller" class="h-4 w-4 rounded">
+                    <span><strong>Es práctica</strong> <span class="text-slate-400">— las horas se pueden repartir entre varios docentes</span></span>
+                </label>
+            </div>
             <div class="sm:col-span-6 flex items-center gap-3">
                 <span id="editando-materia-aviso" class="hidden sg-badge sg-badge--amarillo mr-auto">Editando una materia existente — al guardar se actualizará.</span>
                 <button type="button" onclick="cancelarEdicionMateria()" class="sg-btn sg-btn--borde">Limpiar</button>
@@ -146,10 +177,24 @@
             document.getElementById('input-materia-anio').value = materia.id_anio_cursada;
             document.getElementById('input-materia-periodo').value = materia.id_periodo;
             document.getElementById('input-materia-regimen').value = materia.id_regimen;
+            document.getElementById('input-materia-horas').value = materia.horas_catedra ?? '';
+            document.getElementById('input-materia-cupof').value = materia.cupof ?? '';
+            document.getElementById('input-materia-taller').checked = !!materia.es_taller;
+            mostrarHorasReloj();
             document.getElementById('input-materia-submit').textContent = 'Guardar cambios';
             document.getElementById('titulo-form-materia').textContent = 'Editar materia';
             document.getElementById('editando-materia-aviso').classList.remove('hidden');
             document.getElementById('form-materia').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // "4 h cátedra = 2 h 40 min reloj" mientras se escribe.
+        function mostrarHorasReloj() {
+            const horas = parseInt(document.getElementById('input-materia-horas').value, 10);
+            const texto = document.getElementById('texto-horas-reloj');
+            if (!horas) { texto.textContent = 'Semanales · 1 h cátedra = 40 min'; return; }
+            const min = horas * 40;
+            const h = Math.floor(min / 60), r = min % 60;
+            texto.textContent = '= ' + [h ? h + ' h' : '', r ? r + ' min' : ''].filter(Boolean).join(' ') + ' reloj por semana';
         }
 
         function cancelarEdicionMateria() {

@@ -26,6 +26,10 @@
     transition: transform .2s ease, box-shadow .2s ease;
 }
 
+/* Se puede arrastrar: el dedo no hace scroll sobre el botón */
+.sg-guia-boton { touch-action: none; cursor: grab; }
+.sg-guia-boton--arrastrando { cursor: grabbing; transition: none !important; opacity: .9; }
+
 .sg-guia-boton:hover {
     transform: translateY(-3px);
     box-shadow: 0 18px 32px -10px rgba(11, 61, 145, .85);

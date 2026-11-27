@@ -34,7 +34,7 @@
                         </select>
                         <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.mesas.turnos.destroy', $t) }}" onsubmit="return confirm('¿Eliminar este turno?');">
+                    <form method="POST" action="{{ route('admin.mesas.turnos.destroy', $t) }}" data-confirm="¿Eliminar este turno?">
                         @csrf @method('DELETE')
                         <button type="submit" title="Eliminar turno" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
                     </form>
@@ -85,7 +85,7 @@
                                class="sg-input sg-input--chico min-w-0 flex-1">
                         <button type="submit" title="Guardar cambios" class="sg-btn sg-btn--suave sg-btn--chico shrink-0">Guardar</button>
                     </form>
-                    <form method="POST" action="{{ route('admin.mesas.llamados.destroy', $l) }}" onsubmit="return confirm('¿Eliminar este llamado?');">
+                    <form method="POST" action="{{ route('admin.mesas.llamados.destroy', $l) }}" data-confirm="¿Eliminar este llamado?">
                         @csrf @method('DELETE')
                         <button type="submit" title="Eliminar llamado" class="sg-btn sg-btn--peligro sg-btn--icono shrink-0"><x-sg.icono nombre="trash" class="!h-4 !w-4" /></button>
                     </form>

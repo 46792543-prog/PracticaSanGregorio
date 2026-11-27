@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Horario - {{ $carrera->nombre_carrera }} - {{ $turno->nombre_turno }}</title>
+    <title>{{ $titulo }}</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1e293b; }
         .header { display: table; width: 100%; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 14px; }
@@ -38,13 +38,12 @@
         </div>
     </div>
 
-    <h1>Horario de {{ $carrera->nombre_carrera }}</h1>
-    <p class="turno">Turno {{ $turno->nombre_turno }}</p>
+    <h1>{{ $titulo }}</h1>
+    <p class="turno">Año lectivo {{ $anioLectivo?->anio }}</p>
 
     <table class="horario">
         <thead>
             <tr>
-                <th class="modulo">Módulo</th>
                 <th class="hora">Horario</th>
                 @foreach ($dias as $dia)
                     <th class="dia">{{ $dia }}</th>
@@ -52,17 +51,19 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($modulos as $modulo)
+            @foreach ($rangos as $rango)
+                @php [$desde, $hasta] = explode('-', $rango); @endphp
                 <tr>
-                    <td class="modulo">{{ $modulo->modulo }}°</td>
-                    <td class="hora">{{ $modulo->hora_inicio->format('H:i') }} a {{ $modulo->hora_fin->format('H:i') }}</td>
+                    <td class="hora">{{ $desde }} a {{ $hasta }}</td>
                     @foreach ($dias as $dia)
-                        <td>{{ $modulo->celdasPorDia->get($dia)?->contenido }}</td>
+                        <td>
+                            @foreach ($franjas->where('dia', $dia)->where('desde', $desde)->where('hasta', $hasta) as $f)
+                                <strong>{{ $f['materia'] }}</strong><br>{{ $f['docente'] }}<br><span style="color:#64748b">{{ $f['carrera'] }} · {{ $f['anio_cursada'] }} · {{ $f['turno'] }}</span>@if (! $loop->last)<br><br>@endif
+                            @endforeach
+                        </td>
                     @endforeach
                 </tr>
-            @empty
-                <tr><td colspan="{{ count($dias) + 2 }}" style="text-align: center;">No hay módulos cargados para esta carrera y turno.</td></tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
 

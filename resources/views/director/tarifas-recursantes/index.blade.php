@@ -83,7 +83,7 @@
                                 <button type="button" onclick="document.getElementById('editar-tarifa-{{ $tarifa->id_tarifa_recursante }}').classList.toggle('hidden')"
                                         class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar precio"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                 <form method="POST" action="{{ route('director.tarifas-recursantes.destroy', $tarifa) }}"
-                                      onsubmit="return confirm('¿Eliminar el precio para {{ $tarifa->cantidad_materias }} materia(s)?');">
+                                      data-confirm="¿Eliminar el precio para {{ $tarifa->cantidad_materias }} materia(s)?">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar precio"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>

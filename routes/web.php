@@ -22,6 +22,7 @@ use App\Http\Controllers\CursadaController;
 use App\Http\Controllers\Director\AlertaController;
 use App\Http\Controllers\Director\AnioLectivoController as DirectorAnioLectivoController;
 use App\Http\Controllers\Director\AuditoriaController;
+use App\Http\Controllers\Director\LiquidacionHorasController;
 use App\Http\Controllers\Director\CajaController;
 use App\Http\Controllers\Director\PagoDocenteController;
 use App\Http\Controllers\Director\ConfiguracionController as DirectorConfiguracionController;
@@ -184,18 +185,37 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'staff'])->group(fun
     Route::post('/horarios/modulos', [HorarioCarreraController::class, 'storeModulo'])->name('horarios.modulos.store');
     Route::put('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'updateModulo'])->name('horarios.modulos.update');
     Route::delete('/horarios/modulos/{horarioModulo}', [HorarioCarreraController::class, 'destroyModulo'])->name('horarios.modulos.destroy');
-    Route::put('/horarios/modulos/{horarioModulo}/celdas', [HorarioCarreraController::class, 'storeCelda'])->name('horarios.celdas.store');
+    Route::post('/horarios/clases', [HorarioCarreraController::class, 'storeClase'])->name('horarios.clases.store');
+    Route::post('/horarios/franjas', [HorarioCarreraController::class, 'storeFranja'])->name('horarios.franjas.store');
+    Route::put('/horarios/franjas/{horario}', [HorarioCarreraController::class, 'updateFranja'])->name('horarios.franjas.update');
+    Route::delete('/horarios/clases/{horario}', [HorarioCarreraController::class, 'destroyClase'])->name('horarios.clases.destroy');
 
     Route::get('/cursada', [PeriodoCursadaController::class, 'index'])->name('cursada.index');
     Route::put('/cursada/{periodo}', [PeriodoCursadaController::class, 'toggle'])->name('cursada.toggle');
     Route::put('/cursada/{periodo}/preferencia-anio', [PeriodoCursadaController::class, 'guardarPreferenciaAnio'])->name('cursada.preferencia-anio');
 
     Route::get('/profesores', [ProfesorController::class, 'index'])->name('profesores.index');
+    // Designaciones: profesor + materia + horas cátedra + tipo + alta/baja.
+    // Inasistencias de docentes (Secretaría y Dirección); las injustificadas se descuentan del pago
+    Route::get('/inasistencias-docentes', [\App\Http\Controllers\Admin\InasistenciaDocenteController::class, 'index'])->name('inasistencias.index');
+    Route::post('/inasistencias-docentes', [\App\Http\Controllers\Admin\InasistenciaDocenteController::class, 'store'])->name('inasistencias.store');
+    Route::put('/inasistencias-docentes/{licencia}/documentacion', [\App\Http\Controllers\Admin\InasistenciaDocenteController::class, 'documentacion'])->name('inasistencias.documentacion');
+    Route::delete('/inasistencias-docentes/{licencia}', [\App\Http\Controllers\Admin\InasistenciaDocenteController::class, 'destroy'])->name('inasistencias.destroy');
+    Route::post('/inasistencias-docentes/tipos', [\App\Http\Controllers\Admin\InasistenciaDocenteController::class, 'storeTipo'])->name('inasistencias.tipos.store');
+
+    Route::get('/designaciones', [\App\Http\Controllers\Admin\DesignacionController::class, 'index'])->name('designaciones.index');
+    Route::post('/designaciones', [\App\Http\Controllers\Admin\DesignacionController::class, 'store'])->name('designaciones.store');
+    Route::put('/designaciones/{designacion}', [\App\Http\Controllers\Admin\DesignacionController::class, 'update'])->name('designaciones.update');
+    Route::put('/designaciones/{designacion}/finalizar', [\App\Http\Controllers\Admin\DesignacionController::class, 'finalizar'])->name('designaciones.finalizar');
+    Route::delete('/designaciones/{designacion}', [\App\Http\Controllers\Admin\DesignacionController::class, 'destroy'])->name('designaciones.destroy');
     Route::post('/profesores', [ProfesorController::class, 'store'])->name('profesores.store');
     Route::put('/profesores/{profesor}', [ProfesorController::class, 'update'])->name('profesores.update');
     Route::put('/profesores/{profesor}/baja', [ProfesorController::class, 'baja'])->name('profesores.baja');
     Route::put('/profesores/{profesor}/reactivar', [ProfesorController::class, 'reactivar'])->name('profesores.reactivar');
     Route::post('/profesores/especialidades', [ProfesorController::class, 'storeEspecialidad'])->name('profesores.especialidades.store');
+    Route::post('/profesores/titulos', [ProfesorController::class, 'storeTitulo'])->name('profesores.titulos.store');
+    Route::post('/profesores/provincias', [ProfesorController::class, 'storeProvincia'])->name('profesores.provincias.store');
+    Route::post('/profesores/localidades', [ProfesorController::class, 'storeLocalidad'])->name('profesores.localidades.store');
     Route::put('/profesores/especialidades/{especialidad}', [ProfesorController::class, 'updateEspecialidad'])->name('profesores.especialidades.update');
     Route::delete('/profesores/especialidades/{especialidad}', [ProfesorController::class, 'destroyEspecialidad'])->name('profesores.especialidades.destroy');
     Route::post('/profesores/asignaciones', [ProfesorController::class, 'storeAsignacion'])->name('profesores.asignaciones.store');
@@ -285,6 +305,12 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::post('/configuracion/cortes', [DirectorAnioLectivoController::class, 'store'])->name('configuracion.cortes.store');
     Route::put('/configuracion/cortes/{anio}/estado', [DirectorAnioLectivoController::class, 'actualizarEstado'])->name('configuracion.cortes.estado');
     Route::delete('/configuracion/cortes/{anio}', [DirectorAnioLectivoController::class, 'destroy'])->name('configuracion.cortes.destroy');
+
+    // Liquidación de horas cátedra (valor por tipo de designación y total por docente)
+    Route::get('/liquidacion-horas', [LiquidacionHorasController::class, 'index'])->name('liquidacion-horas.index');
+    Route::get('/liquidacion-horas/calcular', [LiquidacionHorasController::class, 'calcular'])->name('liquidacion-horas.calcular');
+    Route::post('/liquidacion-horas/valores', [LiquidacionHorasController::class, 'storeValor'])->name('liquidacion-horas.valores.store');
+    Route::delete('/liquidacion-horas/valores/{valor}', [LiquidacionHorasController::class, 'destroyValor'])->name('liquidacion-horas.valores.destroy');
 
     Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
     Route::post('/pagos-docentes', [PagoDocenteController::class, 'store'])->name('pagos-docentes.store');
