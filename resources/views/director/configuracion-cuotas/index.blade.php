@@ -79,7 +79,7 @@
 
                 <div class="mb-4">
                     <label class="sg-label">CONCEPTO</label>
-                    <input type="text" name="concepto" data-solo="letras" data-max-len="120" maxlength="120" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
+                    <input type="text" name="concepto" data-solo="letras" data-max-len="80" maxlength="80" id="input-concepto" placeholder="Cuota mensual" class="sg-input w-full sm:w-1/2">
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">
@@ -227,6 +227,7 @@
                         <th>Día de vencimiento</th>
                         <th>Interés por mora</th>
                         <th>Concepto</th>
+                        <th style="text-align:center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
@@ -243,13 +244,45 @@
                             <td class="text-slate-500">{{ $meses->firstWhere('id_mes', $configuracion->mes_desde)?->nombre_mes }} a {{ $meses->firstWhere('id_mes', $configuracion->mes_hasta)?->nombre_mes }}</td>
                             <td class="text-slate-500">Día {{ $configuracion->dia_vencimiento }}</td>
                             <td><span class="sg-badge sg-badge--amarillo sg-badge--sin-punto">{{ rtrim(rtrim($configuracion->porcentaje_interes_mora, '0'), '.') }}%</span></td>
-                            <td class="text-slate-500">{{ $configuracion->concepto ?: '—' }}</td>
+                            <td class="text-slate-500">
+                                @if ($configuracion->concepto)
+                                    {{-- Solo el ojito: al tocarlo se ve el concepto completo --}}
+                                    <div class="flex items-center">
+                                        <button type="button" data-ver-concepto="{{ $configuracion->concepto }}"
+                                                class="h-8 w-8 shrink-0 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Ver concepto"><x-sg.icono nombre="eye" class="h-4 w-4" /></button>
+                                    </div>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td><div class="flex justify-center gap-1">
+                                {{-- Lápiz: carga esta configuración en el formulario de arriba para modificarla --}}
+                                <button type="button" data-editar-config="{{ $configuracion->id_anio_lectivo }}-{{ $configuracion->id_carrera }}"
+                                        class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar configuración"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
+                                <form method="POST" action="{{ route('director.configuracion-cuotas.destroy', $configuracion) }}" class="inline"
+                                      data-confirm="¿Eliminar la configuración de {{ $configuracion->carrera?->nombre_carrera }} {{ $configuracion->anioLectivo->anio }}? Se borran sus aumentos y las cuotas impagas de ese año y carrera. Si alguna cuota ya se pagó, no se puede eliminar.">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar configuración"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
+                                </form>
+                            </div></td>
                         </tr>
                     @empty
-                        <tr><td colspan="7"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
+                        <tr><td colspan="8"><x-sg.vacio icono="settings">Todavía no se configuró ninguna cuota.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- Ventanita para leer el concepto completo --}}
+    <div id="modal-concepto" class="hidden fixed inset-0 z-[100] items-center justify-center bg-[#04153A]/50 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 class="font-display text-lg font-bold text-slate-800 mb-2">Concepto</h3>
+            <p id="modal-concepto-texto" class="text-sm text-slate-600 break-words rounded-2xl bg-slate-50 p-4"></p>
+            <div class="flex justify-end mt-4">
+                <button type="button" data-cerrar-concepto class="sg-btn sg-btn--borde">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -260,6 +293,7 @@
             'mes_hasta' => $c->mes_hasta,
             'dia_vencimiento' => $c->dia_vencimiento,
             'porcentaje_interes_mora' => (float) $c->porcentaje_interes_mora,
+            'concepto' => $c->concepto,
         ]]);
     @endphp
 
@@ -281,7 +315,28 @@
                 document.getElementById('input-mes-hasta').value = config.mes_hasta;
                 diaInput.value = config.dia_vencimiento;
                 interesInput.value = config.porcentaje_interes_mora;
+                document.getElementById('input-concepto').value = config.concepto ?? '';
             }
+
+            // Lápiz: elige ese año y carrera arriba, carga sus datos y sube al formulario.
+            document.querySelectorAll('[data-editar-config]').forEach(boton => boton.addEventListener('click', () => {
+                const [anio, carrera] = boton.dataset.editarConfig.split('-');
+                selectAnio.value = anio;
+                selectCarrera.value = carrera;
+                precargarConfiguracion();
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                montoInput.focus({ preventScroll: true });
+            }));
+
+            // Ojito: muestra el concepto completo.
+            const modalConcepto = document.getElementById('modal-concepto');
+            const cerrarConcepto = () => { modalConcepto.classList.add('hidden'); modalConcepto.classList.remove('flex'); };
+            document.querySelectorAll('[data-ver-concepto]').forEach(boton => boton.addEventListener('click', () => {
+                document.getElementById('modal-concepto-texto').textContent = boton.dataset.verConcepto;
+                modalConcepto.classList.remove('hidden');
+                modalConcepto.classList.add('flex');
+            }));
+            modalConcepto.addEventListener('click', e => { if (e.target === modalConcepto || e.target.closest('[data-cerrar-concepto]')) cerrarConcepto(); });
 
             // Antes de guardar: ventanita "¿Estás seguro?" con todos los datos que se van a guardar.
             const form = document.getElementById('form-configuracion-cuota');

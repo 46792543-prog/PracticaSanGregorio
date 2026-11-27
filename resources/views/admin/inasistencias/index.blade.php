@@ -60,10 +60,24 @@
                                 <p class="text-slate-700">{{ $licencia->tipo->nombre }}</p>
                                 <p class="text-xs text-slate-400">{{ $licencia->tipo->resumen }}</p>
                             </td>
-                            <td class="text-xs text-slate-500">
-                                @foreach ($licencia->clases->sortBy('fecha') as $clase)
-                                    <p><span class="capitalize">{{ $clase->fecha->translatedFormat('D d/m') }}</span> · {{ $clase->asignacion->materia->nombre }} · <strong>{{ $clase->horas_catedra }} h</strong></p>
-                                @endforeach
+                            <td class="whitespace-nowrap">
+                                {{-- Resumen corto; el ojito abre el detalle de cada clase --}}
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm text-slate-600">{{ $licencia->clases->count() }} {{ $licencia->clases->count() === 1 ? 'clase' : 'clases' }} · <strong>{{ $licencia->clases->sum('horas_catedra') }} h</strong></span>
+                                    @if ($licencia->clases->isNotEmpty())
+                                        <button type="button" onclick="inaVerClases('{{ $licencia->id_licencia }}', @js($licencia->profesor->apellido . ', ' . $licencia->profesor->nombre))"
+                                                class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Ver clases que pierde"><x-sg.icono nombre="eye" class="h-4 w-4" /></button>
+                                    @endif
+                                </div>
+                                <template id="clases-{{ $licencia->id_licencia }}">
+                                    @foreach ($licencia->clases->sortBy('fecha') as $clase)
+                                        <tr>
+                                            <td class="capitalize">{{ $clase->fecha->translatedFormat('l d/m/Y') }}</td>
+                                            <td>{{ $clase->asignacion->materia->nombre }}</td>
+                                            <td class="font-semibold text-right">{{ $clase->horas_catedra }} h</td>
+                                        </tr>
+                                    @endforeach
+                                </template>
                             </td>
                             <td>
                                 {{-- Sin goce: no lleva documentación --}}
@@ -114,6 +128,34 @@
             </table>
         </div>
     </div>
+
+    {{-- ===================== Modal: Clases que pierde (ojito) ===================== --}}
+    <div id="modal-clases" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[70] items-center justify-center p-4"
+         onclick="if (event.target === this || event.target.closest('[data-cerrar]')) { this.classList.add('hidden'); this.classList.remove('flex'); }">
+        <div class="sg-modal bg-white rounded-[28px] shadow-2xl w-full max-w-lg p-7 max-h-[92vh] overflow-y-auto">
+            <h2 class="font-display font-extrabold text-xl text-[#0B3D91]">Clases que pierde</h2>
+            <p id="modal-clases-docente" class="text-sm text-slate-500 mb-4"></p>
+            <table class="sg-tabla text-sm">
+                <thead><tr><th>Día</th><th>Materia</th><th style="text-align:right">Horas</th></tr></thead>
+                <tbody id="modal-clases-filas"></tbody>
+            </table>
+            <p id="modal-clases-total" class="mt-3 text-right text-sm font-bold text-slate-700"></p>
+            <div class="flex justify-end mt-4"><button type="button" data-cerrar class="sg-btn sg-btn--borde">Cerrar</button></div>
+        </div>
+    </div>
+    <script>
+        // Ojito: copia las clases de esa inasistencia a la ventanita y la abre.
+        function inaVerClases(id, docente) {
+            const filas = document.getElementById('modal-clases-filas');
+            filas.innerHTML = document.getElementById('clases-' + id).innerHTML;
+            const horas = [...filas.querySelectorAll('td:last-child')].reduce((t, td) => t + parseInt(td.textContent, 10), 0);
+            document.getElementById('modal-clases-docente').textContent = docente;
+            document.getElementById('modal-clases-total').textContent = 'Total: ' + filas.rows.length + (filas.rows.length === 1 ? ' clase' : ' clases') + ' · ' + horas + ' h cátedra';
+            const modal = document.getElementById('modal-clases');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    </script>
 
     {{-- ===================== Modal: Registrar inasistencia ===================== --}}
     <div id="modal-inasistencia" class="hidden fixed inset-0 bg-[#04153A]/50 backdrop-blur-sm z-[70] items-center justify-center p-4">

@@ -1,6 +1,7 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+{{-- Calendario (flatpickr 4.6.13) guardado en el proyecto: no depende de internet y no frena la carga (defer). --}}
+<link rel="stylesheet" href="{{ asset('vendor/flatpickr/flatpickr.min.css') }}">
+<script src="{{ asset('vendor/flatpickr/flatpickr.min.js') }}" defer></script>
+<script src="{{ asset('vendor/flatpickr/es.js') }}" defer></script>
 <script>
     // El selector de fecha nativo del navegador muestra el calendario en el idioma
     // configurado en el sistema operativo/navegador del usuario (a veces inglés,

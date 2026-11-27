@@ -49,7 +49,18 @@ class GeneradorCuotas
             ->when($idPersona, fn ($q) => $q->where('id_persona_alumno', $idPersona))
             ->get();
 
-        DB::transaction(function () use ($inscripciones, $anio, $configuracion, &$creadas) {
+        // Las cuotas que ya existen, en una sola consulta ("persona-mes"): así no se pregunta una por una.
+        $existentes = CuotaAlumno::where('id_anio_lectivo', $anio->id_anio_lectivo)
+            ->where('id_carrera', $configuracion->id_carrera)
+            ->when($idPersona, fn ($q) => $q->where('id_persona_alumno', $idPersona))
+            ->get(['id_persona_alumno', 'id_mes'])
+            ->mapWithKeys(fn ($c) => ["{$c->id_persona_alumno}-{$c->id_mes}" => true]);
+        $meses = range($configuracion->mes_desde, $configuracion->mes_hasta);
+
+        // A cada alumno solo le faltan los meses que no tiene; si no le falta ninguno, ni se lo mira.
+        $inscripciones = $inscripciones->filter(fn ($i) => collect($meses)->contains(fn ($m) => ! isset($existentes["{$i->id_persona_alumno}-{$m}"])));
+
+        DB::transaction(function () use ($inscripciones, $anio, $configuracion, $existentes, $meses, &$creadas) {
             foreach ($inscripciones as $inscripcion) {
                 $condicion = $inscripcion->condicion?->nombre_condicion;
 
@@ -65,19 +76,17 @@ class GeneradorCuotas
                     continue;
                 }
 
-                for ($mes = $configuracion->mes_desde; $mes <= $configuracion->mes_hasta; $mes++) {
-                    $cuota = CuotaAlumno::firstOrNew([
+                foreach ($meses as $mes) {
+                    if (isset($existentes["{$inscripcion->id_persona_alumno}-{$mes}"])) {
+                        continue; // ya la tiene: nunca se duplica
+                    }
+
+                    (new CuotaAlumno([
                         'id_persona_alumno' => $inscripcion->id_persona_alumno,
                         'id_anio_lectivo' => $anio->id_anio_lectivo,
                         'id_carrera' => $configuracion->id_carrera,
                         'id_mes' => $mes,
-                    ]);
-
-                    if ($cuota->exists) {
-                        continue;
-                    }
-
-                    $cuota->fill([
+                    ]))->fill([
                         'concepto' => $configuracion->concepto,
                         'fecha_vencimiento' => ConfiguracionCuota::fechaVencimiento($anio->anio, $mes, $configuracion->dia_vencimiento),
                         'monto' => $montoRecursante ?? $configuracion->montoACobrar($mes),

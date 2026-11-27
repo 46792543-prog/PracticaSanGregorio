@@ -277,12 +277,14 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     // activa en el año (no una por mes, a diferencia de la cuota).
     Route::get('/configuracion-matricula', [ConfiguracionMatriculaController::class, 'index'])->name('configuracion-matricula.index');
     Route::post('/configuracion-matricula', [ConfiguracionMatriculaController::class, 'store'])->name('configuracion-matricula.store');
+    Route::delete('/configuracion-matricula/{configuracion}', [ConfiguracionMatriculaController::class, 'destroy'])->name('configuracion-matricula.destroy');
 
     // Configuración económica de cuotas (monto/vencimiento/interés por
     // mora): acceden Director y Secretario Administrativo, igual que al
     // resto del panel de dirección. El Secretario (sin más) no entra.
     Route::get('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'index'])->name('configuracion-cuotas.index');
     Route::post('/configuracion-cuotas', [ConfiguracionCuotaController::class, 'store'])->name('configuracion-cuotas.store');
+    Route::delete('/configuracion-cuotas/{configuracion}', [ConfiguracionCuotaController::class, 'destroy'])->name('configuracion-cuotas.destroy');
     // Cuotas de Recursantes: precio por cantidad de materias, por año y carrera.
     Route::get('/tarifas-recursantes', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'index'])->name('tarifas-recursantes.index');
     Route::post('/tarifas-recursantes', [\App\Http\Controllers\Director\TarifaRecursanteController::class, 'store'])->name('tarifas-recursantes.store');
@@ -320,6 +322,8 @@ Route::prefix('director')->name('director.')->middleware(['auth', 'director'])->
     Route::get('/liquidacion-horas', [LiquidacionHorasController::class, 'index'])->name('liquidacion-horas.index');
     Route::get('/liquidacion-horas/calcular', [LiquidacionHorasController::class, 'calcular'])->name('liquidacion-horas.calcular');
     Route::post('/liquidacion-horas/valores', [LiquidacionHorasController::class, 'storeValor'])->name('liquidacion-horas.valores.store');
+    Route::put('/liquidacion-horas/tope', [LiquidacionHorasController::class, 'updateTope'])->name('liquidacion-horas.tope.update');
+    Route::put('/liquidacion-horas/valores/{valor}', [LiquidacionHorasController::class, 'updateValor'])->name('liquidacion-horas.valores.update');
     Route::delete('/liquidacion-horas/valores/{valor}', [LiquidacionHorasController::class, 'destroyValor'])->name('liquidacion-horas.valores.destroy');
 
     Route::get('/pagos-docentes', [PagoDocenteController::class, 'index'])->name('pagos-docentes.index');
