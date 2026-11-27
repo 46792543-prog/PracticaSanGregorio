@@ -32,7 +32,7 @@
             </div>
             <div>
                 <label class="sg-label">DURACIÓN (AÑOS) *</label>
-                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" name="duracion_anos" required value="{{ old('duracion_anos', $carrera->duracion_anos) }}" class="sg-input w-full">
+                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="7" name="duracion_anos" required value="{{ old('duracion_anos', $carrera->duracion_anos) }}" class="sg-input w-full">
             </div>
             <div>
                 <label class="sg-label">VIGENTE DESDE (AÑO) *</label>
@@ -152,7 +152,7 @@
                                     @csrf @method('PUT')
                                     <div><label class="sg-label">Nombre</label><input type="text" name="nombre" maxlength="40" required value="{{ $p->nombre }}" class="sg-input w-full"></div>
                                     <div><label class="sg-label">Resolución</label><input type="text" name="resolucion_ministerial" maxlength="25" value="{{ $p->resolucion_ministerial }}" class="sg-input w-full"></div>
-                                    <div><label class="sg-label">Duración</label><input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" name="duracion_anos" required value="{{ $p->duracion_anos }}" class="sg-input w-full"></div>
+                                    <div><label class="sg-label">Duración</label><input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="7" name="duracion_anos" required value="{{ $p->duracion_anos }}" class="sg-input w-full"></div>
                                     <div><label class="sg-label">Desde</label><input {!! $campoAnio !!} name="anio_desde" required value="{{ $p->anio_desde }}"></div>
                                     <div><label class="sg-label">Inscrip. hasta</label><input {!! $campoAnio !!} name="anio_cierre_inscripcion" value="{{ $p->anio_cierre_inscripcion }}"></div>
                                     <div><label class="sg-label">Caduca en</label><input {!! $campoAnio !!} name="anio_caducidad" value="{{ $p->anio_caducidad }}"></div>

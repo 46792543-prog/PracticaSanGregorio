@@ -140,21 +140,24 @@
                 </select>
             </div>
             {{-- Horas cátedra (1 h cátedra = 40 min), CUPOF y práctica --}}
-            <div>
-                <label class="sg-label">HS. CÁTEDRA *</label>
-                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="30" name="horas_catedra" id="input-materia-horas" required placeholder="Ej: 4"
-                       oninput="mostrarHorasReloj()" class="sg-input w-full">
-                <p id="texto-horas-reloj" class="text-xs text-slate-400 mt-1">Semanales · 1 h cátedra = 40 min</p>
-            </div>
-            <div>
-                <label class="sg-label">CUPOF *</label>
-                <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="cupof" id="input-materia-cupof" required placeholder="Ej: 2" class="sg-input w-full">
-            </div>
-            <div class="sm:col-span-2">
-                <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm cursor-pointer has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50">
-                    <input type="checkbox" name="es_taller" value="1" id="input-materia-taller" class="h-4 w-4 rounded">
-                    <span><strong>Es práctica</strong> <span class="text-slate-400">— las horas se pueden repartir entre varios docentes</span></span>
-                </label>
+            <div class="sm:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+                <div class="flex flex-col">
+                    <label class="sg-label">HS. CÁTEDRA *</label>
+                    <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="30" name="horas_catedra" id="input-materia-horas" required placeholder="Ej: 4"
+                           oninput="mostrarHorasReloj()" class="sg-input w-full h-12">
+                    <p id="texto-horas-reloj" class="text-xs text-slate-400 mt-1">Semanales · 1 h cátedra = 40 min</p>
+                </div>
+                <div class="flex flex-col">
+                    <label class="sg-label">CUPOF *</label>
+                    <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="8" maxlength="8" name="cupof" id="input-materia-cupof" required placeholder="Ej: 2" class="sg-input w-full h-12">
+                </div>
+                <div class="flex flex-col">
+                    <label class="sg-label invisible" aria-hidden="true">.</label>
+                    <label class="flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs leading-snug cursor-pointer has-[:checked]:border-[#0B3D91] has-[:checked]:bg-blue-50">
+                        <input type="checkbox" name="es_taller" value="1" id="input-materia-taller" class="h-4 w-4 rounded shrink-0">
+                        <span><strong>Es práctica</strong> <span class="text-slate-400">— las horas se pueden repartir entre varios docentes</span></span>
+                    </label>
+                </div>
             </div>
             <div class="sm:col-span-6 flex items-center gap-3">
                 <span id="editando-materia-aviso" class="hidden sg-badge sg-badge--amarillo mr-auto">Editando una materia existente — al guardar se actualizará.</span>

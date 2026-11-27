@@ -55,8 +55,8 @@ class CarreraController extends Controller
         $data = $request->validate([
             'nombre_carrera' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/', 'unique:carrera,nombre_carrera'],
             'familia_profesional' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$/'],
-            'resolucion_ministerial' => ['nullable', 'digits_between:1,4'],
-            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
+            'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:7'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
             'turnos' => ['required', 'array', 'min:1'],
             'turnos.*' => ['exists:turno_cursada,id_turno_cursada'],
@@ -94,7 +94,7 @@ class CarreraController extends Controller
             'nombre_carrera' => ['required', 'string', 'max:50', 'unique:carrera,nombre_carrera,' . $carrera->id_carrera . ',id_carrera'],
             'familia_profesional' => ['nullable', 'string', 'max:100'],
             'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
-            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:7'],
             'id_estado_carrera' => ['required', 'exists:estado_carrera,id_estado_carrera'],
             'turnos' => ['required', 'array', 'min:1'],
             'turnos.*' => ['exists:turno_cursada,id_turno_cursada'],
@@ -507,7 +507,7 @@ class CarreraController extends Controller
             'nombre' => ['required', 'string', 'max:40',
                 Rule::unique('plan_estudio', 'nombre')->where('id_carrera', $carrera->id_carrera)->ignore($plan?->id_plan_estudio, 'id_plan_estudio')],
             'resolucion_ministerial' => ['nullable', 'string', 'max:25'],
-            'duracion_anos' => ['required', 'integer', 'min:1', 'max:10'],
+            'duracion_anos' => ['required', 'integer', 'min:1', 'max:7'],
             'anio_desde' => ['required', 'integer', 'between:2000,2100'],
             // Inscripciones hasta: un año POSTERIOR al de inicio (no el mismo).
             'anio_cierre_inscripcion' => ['nullable', 'integer', 'gt:anio_desde', 'max:2100'],

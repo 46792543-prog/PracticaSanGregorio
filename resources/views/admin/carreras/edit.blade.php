@@ -37,7 +37,8 @@
             </div>
             <div>
                 <label class="sg-label">Duración de la Carrera *</label>
-                <input type="number" name="duracion_anos" min="1" max="10" value="{{ old('duracion_anos', $carrera->duracion_anos) }}" required
+                <input type="number" name="duracion_anos" min="1" max="7" value="{{ old('duracion_anos', $carrera->duracion_anos) }}" required
+                       oninput="if (this.value !== '' && +this.value > 7) this.value = 7;"
                        class="sg-input w-full">
             </div>
             <div>

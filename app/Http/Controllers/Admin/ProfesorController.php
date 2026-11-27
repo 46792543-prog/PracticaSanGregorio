@@ -65,7 +65,7 @@ class ProfesorController extends Controller
 
         $profesoresPaginados = Profesor::with('persona.localidadDomicilio', 'especialidades', 'titulos')
             ->join('persona', 'persona.id_persona', '=', 'profesor.id_persona')
-            ->orderBy('persona.apellido')
+            ->orderByDesc('profesor.id_profesor')
             ->select('profesor.*')
             ->paginate(15, ['*'], 'pagina_profesores')
             ->withQueryString();
