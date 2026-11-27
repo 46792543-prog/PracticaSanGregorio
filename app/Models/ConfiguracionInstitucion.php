@@ -25,6 +25,7 @@ class ConfiguracionInstitucion extends Model
         'landing_egresados_cantidad',
         'fecha_ultima_modificacion',
         'id_secretario_modifica',
+        'tope_valor_hora_catedra',
     ];
 
     protected $casts = [

@@ -13,7 +13,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="{{ $icono }}" />
         </svg>
     </span>
-    <span @class(['truncate flex-1', 'font-semibold' => $activo])>{{ $texto }}</span>
+    <span @class(['flex-1 leading-tight', 'font-semibold' => $activo])>{{ $texto }}</span>
     @if (! empty($badge))
         <span class="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-[#FFC107] text-[#082A66] text-[11px] font-extrabold px-1.5 shadow-sm shadow-amber-500/40">
             {{ $badge }}

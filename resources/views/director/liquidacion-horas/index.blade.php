@@ -45,6 +45,17 @@
                 </table>
             </div>
 
+            {{-- Tope: valor máximo que se puede cargar por hora cátedra --}}
+            <form method="POST" action="{{ route('director.liquidacion-horas.tope.update') }}" class="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-sm"
+                  data-confirm="¿Cambiar el valor máximo por hora cátedra?" data-confirm-tipo="guardar">
+                @csrf
+                @method('PUT')
+                <span class="text-slate-500">Valor máximo por hora cátedra:</span>
+                <span class="text-slate-400">$</span>
+                <input data-miles data-max-valor="1000000" name="tope_valor_hora_catedra" value="{{ $tope }}" required class="sg-input !w-32 !py-1.5">
+                <button type="submit" class="sg-btn sg-btn--azul !py-1.5 !text-xs"><x-sg.icono nombre="check" class="h-4 w-4" /> Guardar valor máximo</button>
+            </form>
+
             <form method="POST" action="{{ route('director.liquidacion-horas.valores.store') }}" id="form-valor-hora" class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                 @csrf
                 <div>
@@ -68,7 +79,7 @@
                     <label class="sg-label">VALOR DE LA HORA CÁTEDRA *</label>
                     <div class="flex items-center gap-1">
                         <span class="text-slate-400 text-sm">$</span>
-                        <input type="number" step="0.01" min="1" max="1000000" data-max-digitos="7" data-max-valor="1000000" name="monto" id="valor-monto" value="{{ old('monto') }}" required placeholder="Ej: 1000" class="sg-input w-full">
+                        <input data-miles data-max-valor="{{ $tope }}" name="monto" id="valor-monto" value="{{ old('monto') }}" required placeholder="Ej: 1.000 (máx. {{ number_format($tope, 0, ',', '.') }})" class="sg-input w-full">
                     </div>
                 </div>
                 <div>
@@ -90,7 +101,7 @@
                     <summary class="cursor-pointer text-sm font-semibold text-[#0B3D91]">Ver historial de valores ({{ $historial->count() }})</summary>
                     <div class="overflow-x-auto mt-3">
                         <table class="sg-tabla">
-                            <thead><tr><th>Carrera</th><th>Tipo</th><th>Rige desde</th><th>Valor</th><th style="text-align:center">Eliminar</th></tr></thead>
+                            <thead><tr><th>Carrera</th><th>Tipo</th><th>Rige desde</th><th>Valor</th><th style="text-align:center">Acciones</th></tr></thead>
                             <tbody class="sg-filas">
                                 @foreach ($historial as $valor)
                                     <tr>
@@ -98,7 +109,10 @@
                                         <td class="font-semibold text-slate-700">{{ $valor->tipo }}</td>
                                         <td class="text-slate-500 capitalize">{{ $valor->vigente_desde->translatedFormat('F Y') }}</td>
                                         <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($valor->monto, 2, ',', '.') }}</td>
-                                        <td><div class="flex justify-center">
+                                        <td><div class="flex justify-center gap-1">
+                                            {{-- Lápiz: muestra/oculta la fila para editar este valor --}}
+                                            <button type="button" onclick="document.getElementById('editar-valor-{{ $valor->getKey() }}').classList.toggle('hidden')"
+                                                    class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar valor"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
                                             <form method="POST" action="{{ route('director.liquidacion-horas.valores.destroy', $valor) }}"
                                                   data-confirm="¿Eliminar el valor de {{ $valor->tipo }} en {{ $valor->carrera->nombre_carrera }} desde {{ $valor->vigente_desde->translatedFormat('F Y') }}?">
                                                 @csrf
@@ -106,6 +120,28 @@
                                                 <button type="submit" class="h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar valor"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
                                             </form>
                                         </div></td>
+                                    </tr>
+                                    {{-- Fila de edición (oculta hasta tocar el lápiz) --}}
+                                    <tr id="editar-valor-{{ $valor->getKey() }}" class="hidden bg-slate-50">
+                                        <td colspan="5">
+                                            <form method="POST" action="{{ route('director.liquidacion-horas.valores.update', $valor) }}" class="flex flex-wrap items-end gap-3"
+                                                  data-confirm="¿Guardar el nuevo valor de {{ $valor->tipo }} en {{ $valor->carrera->nombre_carrera }}?" data-confirm-tipo="guardar">
+                                                @csrf
+                                                @method('PUT')
+                                                <div>
+                                                    <label class="sg-label">RIGE DESDE</label>
+                                                    <input type="month" name="vigente_desde" value="{{ $valor->vigente_desde->format('Y-m') }}" required class="sg-input">
+                                                </div>
+                                                <div>
+                                                    <label class="sg-label">VALOR DE LA HORA</label>
+                                                    <div class="flex items-center gap-1">
+                                                        <span class="text-slate-400 text-sm">$</span>
+                                                        <input data-miles data-max-valor="{{ $tope }}" name="monto" value="{{ (float) $valor->monto }}" required class="sg-input">
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="sg-btn sg-btn--azul"><x-sg.icono nombre="check" /> Guardar</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -122,7 +158,7 @@
             document.getElementById('valor-carrera').value = idCarrera;
             document.getElementById('valor-tipo').value = tipo;
             const campo = document.getElementById('valor-monto');
-            campo.value = monto ?? '';
+            sgMiles(campo, monto ?? ''); // con el punto de miles
             campo.focus();
             document.getElementById('form-valor-hora').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }

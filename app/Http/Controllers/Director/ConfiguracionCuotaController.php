@@ -53,7 +53,7 @@ class ConfiguracionCuotaController extends Controller
             'mes_hasta' => ['required', 'integer', 'between:1,12', 'gte:mes_desde'],
             'dia_vencimiento' => ['required', 'integer', 'min:1', 'max:31'],
             'porcentaje_interes_mora' => ['required', 'numeric', 'min:0', 'max:100'],
-            'concepto' => ['nullable', 'string', 'max:120', 'regex:/^[\pL\s\'-]+$/u'],
+            'concepto' => ['nullable', 'string', 'max:80', 'regex:/^[\pL\s\'-]+$/u'],
         ], [
             'monto_mensual.required' => 'Ingresá el monto de la cuota mensual.',
             'monto_mensual.numeric' => 'El monto tiene que ser un número.',
@@ -62,6 +62,7 @@ class ConfiguracionCuotaController extends Controller
             'mes_hasta.gte' => 'El mes hasta tiene que ser igual o posterior al mes desde.',
             'porcentaje_interes_mora.max' => 'El interés por mora no puede superar el 100%.',
             'concepto.regex' => 'El concepto solo puede tener letras.',
+            'concepto.max' => 'El concepto puede tener como máximo 80 letras.',
         ]);
 
         $this->validarContraAumentos($data);
@@ -93,6 +94,30 @@ class ConfiguracionCuotaController extends Controller
         }
 
         return redirect()->route('director.configuracion-cuotas.index')->with('status', $mensaje);
+    }
+
+    // Elimina una configuración (con sus aumentos) y las cuotas impagas que generó.
+    // No se puede si algún alumno ya pagó una cuota de ese año y carrera.
+    public function destroy(ConfiguracionCuota $configuracion): RedirectResponse
+    {
+        $cuotas = CuotaAlumno::where('id_anio_lectivo', $configuracion->id_anio_lectivo)
+            ->where('id_carrera', $configuracion->id_carrera);
+
+        if ((clone $cuotas)->where('pagado', true)->exists()) {
+            return back()->withErrors(['configuracion' => 'No se puede eliminar: hay cuotas de ese año y carrera que ya se pagaron.']);
+        }
+
+        $nombre = $configuracion->carrera?->nombre_carrera . ' ' . $configuracion->anioLectivo?->anio;
+
+        $borradas = DB::transaction(function () use ($cuotas, $configuracion) {
+            $borradas = $cuotas->delete();   // solo impagas (ya se verificó arriba)
+            $configuracion->delete();         // los aumentos se borran solos (cascada)
+
+            return $borradas;
+        });
+
+        return redirect()->route('director.configuracion-cuotas.index')
+            ->with('status', "Se eliminó la configuración de {$nombre} y {$borradas} cuota(s) impaga(s).");
     }
 
     // Carga un aumento: desde ese mes en adelante la cuota vale el monto nuevo.

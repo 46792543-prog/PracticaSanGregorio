@@ -45,16 +45,21 @@ class ConfiguracionMatriculaController extends Controller
             'monto' => ['required', 'numeric', 'min:0.01', 'max:9999999.99'],
             'mes_habilitacion' => ['required', 'integer', 'min:1', 'max:12'],
             'dia_limite' => ['required', 'integer', 'min:1', 'max:28'],
-            'concepto' => ['nullable', 'string', 'max:20', 'regex:/^[\pL\s\'-]+$/u'],
+            'concepto' => ['nullable', 'string', 'max:50', 'regex:/^[\pL\s\'-]+$/u'],
         ], [
             'monto.required' => 'Ingresá el monto de la matrícula.',
             'monto.numeric' => 'El monto tiene que ser un número.',
             'monto.min' => 'El monto tiene que ser mayor a $0.',
             'monto.max' => 'El monto no puede tener más de 7 dígitos.',
+            'dia_limite.required' => 'Ingresá el día límite de pago.',
+            'dia_limite.integer' => 'El día límite tiene que ser un número entero.',
+            'dia_limite.min' => 'El día límite tiene que ser entre 1 y 28.',
+            'dia_limite.max' => 'El día límite tiene que ser entre 1 y 28.',
             'concepto.regex' => 'El concepto solo puede tener letras.',
+            'concepto.max' => 'El concepto puede tener como máximo 50 letras.',
         ]);
 
-        $idCarrera = $data['id_carrera'] ?: null;
+        $idCarrera = ($data['id_carrera'] ?? null) ?: null;
 
         $configuracion = ConfiguracionMatricula::updateOrCreate(
             ['id_anio_lectivo' => $data['id_anio_lectivo'], 'id_carrera' => $idCarrera],
@@ -77,6 +82,36 @@ class ConfiguracionMatriculaController extends Controller
             : ' No se generaron matrículas nuevas: ya estaban todas generadas.';
 
         return redirect()->route('director.configuracion-matricula.index')->with('status', $mensaje);
+    }
+
+    // Elimina una configuración y las matrículas impagas que le corresponden.
+    // No se puede si algún alumno ya pagó la matrícula de ese año y carrera(s).
+    public function destroy(ConfiguracionMatricula $configuracion): RedirectResponse
+    {
+        $matriculas = MatriculaAlumno::where('id_anio_lectivo', $configuracion->id_anio_lectivo)
+            ->when(
+                $configuracion->id_carrera,
+                fn ($q) => $q->where('id_carrera', $configuracion->id_carrera),
+                // La general abarca las carreras que no tienen configuración propia ese año.
+                fn ($q) => $q->whereNotIn('id_carrera', ConfiguracionMatricula::where('id_anio_lectivo', $configuracion->id_anio_lectivo)->whereNotNull('id_carrera')->pluck('id_carrera'))
+            );
+
+        if ((clone $matriculas)->where('pagado', true)->exists()) {
+            return back()->withErrors(['configuracion' => 'No se puede eliminar: hay alumnos que ya pagaron esa matrícula.']);
+        }
+
+        $alcance = $configuracion->carrera?->nombre_carrera ?? 'todas las carreras';
+        $anio = $configuracion->anioLectivo?->anio;
+
+        $borradas = DB::transaction(function () use ($matriculas, $configuracion) {
+            $borradas = $matriculas->delete(); // solo impagas (ya se verificó arriba)
+            $configuracion->delete();
+
+            return $borradas;
+        });
+
+        return redirect()->route('director.configuracion-matricula.index')
+            ->with('status', "Se eliminó la configuración de matrícula de {$alcance} {$anio} y {$borradas} matrícula(s) impaga(s).");
     }
 
     /**

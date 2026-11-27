@@ -26,7 +26,7 @@
                     </div>
                     <div>
                         <label class="sg-label">CARRERA *</label>
-                        <select name="id_carrera" id="select-carrera-config-matricula" required class="sg-input w-full">
+                        <select name="id_carrera" id="select-carrera-config-matricula" class="sg-input w-full">
                             <option value="" @selected(old('id_carrera') === null)>Aplica a todas las carreras</option>
                             @foreach ($carreras as $carrera)
                                 <option value="{{ $carrera->id_carrera }}" @selected((int) $carrera->id_carrera === (int) old('id_carrera'))>{{ $carrera->nombre_carrera }}</option>
@@ -37,7 +37,7 @@
                         <label class="sg-label">MONTO DE LA MATRÍCULA *</label>
                         <div class="flex items-center gap-1">
                             <span class="text-slate-400 text-sm">$</span>
-                            <input type="number" step="0.01" min="0.01" max="9999999.99" data-max-digitos="7" name="monto" id="input-monto-matricula" required class="sg-input w-full">
+                            <input data-miles data-max-valor="9999999.99" name="monto" id="input-monto-matricula" required placeholder="Ej: 50.000" class="sg-input w-full">
                         </div>
                     </div>
                 </div>
@@ -53,13 +53,13 @@
                     </div>
                     <div>
                         <label class="sg-label">DÍA LÍMITE DE PAGO (1-28) *</label>
-                        <input type="number" name="dia_limite" id="input-dia-limite" min="1" max="28" value="10" required class="sg-input w-full">
+                        <input type="text" inputmode="numeric" data-solo="numeros" data-max-len="2" data-max-valor="28" name="dia_limite" id="input-dia-limite" value="10" required class="sg-input w-full">
                     </div>
                 </div>
 
                 <div class="mb-4">
                     <label class="sg-label">CONCEPTO</label>
-                    <input type="text" name="concepto" data-solo="letras" data-max-len="20" maxlength="20" placeholder="Matrícula" class="sg-input w-full sm:w-1/2">
+                    <input type="text" name="concepto" data-solo="letras" data-max-len="50" maxlength="50" placeholder="Matrícula" class="sg-input w-full sm:w-1/2">
                 </div>
 
                 <p class="sg-aviso sg-aviso--info text-xs mb-4">
@@ -90,6 +90,7 @@
                         <th>Habilitada desde</th>
                         <th>Día límite</th>
                         <th>Concepto</th>
+                        <th style="text-align:center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="sg-filas">
@@ -100,13 +101,43 @@
                             <td class="font-display font-bold text-[#0B3D91]">$ {{ number_format($configuracion->monto, 0, ',', '.') }}</td>
                             <td class="text-slate-500">{{ $meses->firstWhere('id_mes', $configuracion->mes_habilitacion)?->nombre_mes }}</td>
                             <td class="text-slate-500">Día {{ $configuracion->dia_limite }}</td>
-                            <td class="text-slate-500">{{ $configuracion->concepto ?: '—' }}</td>
+                            <td class="text-slate-500">
+                                @if ($configuracion->concepto)
+                                    {{-- Solo el ojito: al tocarlo se ve el concepto completo --}}
+                                    <button type="button" data-ver-concepto="{{ $configuracion->concepto }}"
+                                            class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Ver concepto"><x-sg.icono nombre="eye" class="h-4 w-4" /></button>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td><div class="flex justify-center gap-1">
+                                {{-- Lápiz: carga esta configuración en el formulario de arriba para modificarla --}}
+                                <button type="button" data-editar-config="{{ $configuracion->id_anio_lectivo }}" data-editar-carrera="{{ $configuracion->id_carrera }}"
+                                        class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-[#0B3D91] transition-colors" title="Editar configuración"><x-sg.icono nombre="pencil" class="h-4 w-4" /></button>
+                                <form method="POST" action="{{ route('director.configuracion-matricula.destroy', $configuracion) }}" class="inline"
+                                      data-confirm="¿Eliminar la configuración de matrícula de {{ $configuracion->carrera?->nombre_carrera ?? 'todas las carreras' }} {{ $configuracion->anioLectivo->anio }}? Se borran las matrículas impagas que le corresponden. Si algún alumno ya la pagó, no se puede eliminar.">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="h-8 w-8 inline-grid place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Eliminar configuración"><x-sg.icono nombre="trash" class="h-4 w-4" /></button>
+                                </form>
+                            </div></td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><x-sg.vacio icono="settings">Todavía no se configuró ninguna matrícula.</x-sg.vacio></td></tr>
+                        <tr><td colspan="7"><x-sg.vacio icono="settings">Todavía no se configuró ninguna matrícula.</x-sg.vacio></td></tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- Ventanita para leer el concepto completo --}}
+    <div id="modal-concepto" class="hidden fixed inset-0 z-[100] items-center justify-center bg-[#04153A]/50 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 class="font-display text-lg font-bold text-slate-800 mb-2">Concepto</h3>
+            <p id="modal-concepto-texto" class="text-sm text-slate-600 break-words rounded-2xl bg-slate-50 p-4"></p>
+            <div class="flex justify-end mt-4">
+                <button type="button" data-cerrar-concepto class="sg-btn sg-btn--borde">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -135,11 +166,34 @@
                 const clave = selectAnio.value + '-' + (selectCarrera.value || 'todas');
                 const config = configuraciones[clave];
                 if (! config) return;
-                montoInput.value = config.monto;
+                sgMiles(montoInput, config.monto);
                 mesInput.value = config.mes_habilitacion;
                 diaInput.value = config.dia_limite;
                 conceptoInput.value = config.concepto || '';
             }
+
+            // Lápiz: elige ese año y carrera arriba, carga sus datos y sube al formulario.
+            const form = document.getElementById('form-configuracion-matricula');
+            document.querySelectorAll('[data-editar-config]').forEach(boton => boton.addEventListener('click', () => {
+                selectAnio.value = boton.dataset.editarConfig;
+                selectCarrera.value = boton.dataset.editarCarrera; // vacío = todas las carreras
+                precargarConfiguracion();
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                montoInput.focus({ preventScroll: true });
+            }));
+
+            // Día límite: al salir del campo, si quedó en 0 pasa a 1 (el tope de 28 se aplica al escribir).
+            diaInput.addEventListener('blur', () => { if (diaInput.value !== '' && parseInt(diaInput.value, 10) < 1) diaInput.value = '1'; });
+
+            // Ojito: muestra el concepto completo.
+            const modalConcepto = document.getElementById('modal-concepto');
+            const cerrarConcepto = () => { modalConcepto.classList.add('hidden'); modalConcepto.classList.remove('flex'); };
+            document.querySelectorAll('[data-ver-concepto]').forEach(boton => boton.addEventListener('click', () => {
+                document.getElementById('modal-concepto-texto').textContent = boton.dataset.verConcepto;
+                modalConcepto.classList.remove('hidden');
+                modalConcepto.classList.add('flex');
+            }));
+            modalConcepto.addEventListener('click', e => { if (e.target === modalConcepto || e.target.closest('[data-cerrar-concepto]')) cerrarConcepto(); });
 
             selectAnio.addEventListener('change', precargarConfiguracion);
             selectCarrera.addEventListener('change', precargarConfiguracion);
