@@ -404,6 +404,45 @@
     color: #047857;
 }
 
+/* ---------- Goyo "escribiendo..." ---------- */
+.sg-guia-msj--pensando {
+    display: inline-flex;
+    gap: .25rem;
+    padding: .7rem .85rem;
+}
+.sg-guia-msj--pensando span {
+    width: .4rem;
+    height: .4rem;
+    border-radius: 50%;
+    background: var(--sg-suave);
+    animation: sg-guia-punto 1s infinite ease-in-out;
+}
+.sg-guia-msj--pensando span:nth-child(2) { animation-delay: .15s; }
+.sg-guia-msj--pensando span:nth-child(3) { animation-delay: .3s; }
+@keyframes sg-guia-punto {
+    0%, 80%, 100% { opacity: .3; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ---------- Respuesta explicada (preguntas frecuentes) ---------- */
+.sg-guia-tarjeta--respuesta {
+    border-left: 3px solid var(--sg-azul);
+}
+.sg-guia-tarjeta__respuesta {
+    margin: .35rem 0 0;
+    color: var(--sg-texto);
+}
+
+/* ---------- ¿Te sirvió? ---------- */
+.sg-guia-sirvio {
+    align-items: center;
+}
+.sg-guia-sirvio__texto {
+    font-size: .75rem;
+    color: var(--sg-suave);
+    margin-right: .15rem;
+}
+
 /* ---------- Celular ---------- */
 @media (max-width: 640px) {
     .sg-guia-boton {
@@ -440,6 +479,10 @@
     .sg-guia-boton,
     .sg-guia-boton__texto {
         transition: none;
+    }
+
+    .sg-guia-msj--pensando span {
+        animation: none;
     }
 }
 

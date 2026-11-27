@@ -9,8 +9,22 @@
         + 'se sistema sobre su sus te tengo tiene un una uno unos unas va voy y ya').split(' ');
 
     // Formas de decir "crear": cuentan poco, porque casi todas las guías cargan algo.
-    var CREAR = ('agrega agregar agrego armar armo carga cargar cargo cargue crear creo generar genero '
+    var CREAR = ('agrega agregar agrego anota anotar anoto armar armo carga cargar cargo cargue crear creo generar genero '
         + 'hacer ingresar ingreso nueva nuevas nuevo nuevos poner registrar registro sumar').split(' ');
+
+    // Sinónimos: cómo lo dice la gente -> palabras que usan las guías (se suman a la búsqueda).
+    var SINONIMOS = {
+        profe: 'profesor docente', profesora: 'profesor docente', maestro: 'profesor docente', docente: 'profesor', profesor: 'docente',
+        sueldo: 'pago docente liquidacion', salario: 'pago docente liquidacion', honorario: 'pago docente', cobra: 'pago liquidacion',
+        plata: 'pago caja', dinero: 'pago caja', efectivo: 'caja', gasto: 'egreso caja', compra: 'egreso caja', compre: 'egreso caja',
+        falta: 'inasistencia', falto: 'inasistencia', ausente: 'inasistencia', ausencia: 'inasistencia', licencia: 'inasistencia',
+        mail: 'correo', email: 'correo', mensaje: 'correo', avisar: 'correo', notificar: 'correo',
+        deuda: 'cuota vencida', debe: 'cuota vencida', deudor: 'cuota vencida', moroso: 'cuota vencida', atrasado: 'cuota vencida', adeuda: 'cuota vencida',
+        estudiante: 'alumno', alumna: 'alumno', chico: 'alumno', clase: 'horario franja', franja: 'horario', grilla: 'horario',
+        examen: 'mesa', final: 'mesa', rendir: 'mesa', nota: 'acta', calificacion: 'acta', precio: 'monto valor', valor: 'monto',
+        mensualidad: 'cuota', arancel: 'cuota', inscripcion: 'matricula inscribir', recursa: 'recursante', designar: 'designacion',
+        cargo: 'designacion', categoria: 'egreso', turno: 'horario', manana: 'turno', tarde: 'turno', noche: 'turno',
+    };
 
     var PESO_FUERTE = 4;
     var PESO_CREAR = 1;
@@ -30,6 +44,17 @@
             if (lista.indexOf(palabra) === -1) lista.push(palabra);
             return lista;
         }, []);
+    }
+
+    // Sinónimos de lo que pidió el usuario ("sueldo" también busca "pago docente"). Pesan la mitad.
+    function sinonimosDe(lista) {
+        var extra = [];
+        lista.forEach(function (palabra) {
+            (SINONIMOS[palabra] || '').split(' ').forEach(function (s) {
+                if (s && lista.indexOf(s) === -1 && extra.indexOf(s) === -1) extra.push(s);
+            });
+        });
+        return extra;
     }
 
     function distancia(a, b) {
@@ -75,10 +100,15 @@
         });
     }
 
-    function puntuar(entrada, pedido) {
+    function puntuar(entrada, pedido, extra) {
+        extra = extra || [];
+        var peso = function (palabra) { return palabra === 'crear' ? PESO_CREAR : PESO_FUERTE; };
         var puntaje = pedido.reduce(function (total, palabra) {
-            return total + mejorParecido(palabra, entrada.todas) * (palabra === 'crear' ? PESO_CREAR : PESO_FUERTE);
+            return total + mejorParecido(palabra, entrada.todas) * peso(palabra);
+        }, 0) + extra.reduce(function (total, palabra) {
+            return total + mejorParecido(palabra, entrada.todas) * peso(palabra) * 0.5;
         }, 0);
+        pedido = pedido.concat(extra); // las frases clave pueden completarse con sinónimos
 
         // Premio si el pedido contiene una frase clave entera ("horario docente").
         var premio = entrada.frases.reduce(function (mejor, frase) {
@@ -95,8 +125,9 @@
     /* Devuelve { guia } si hay un claro ganador, { opciones } si hay varias candidatas, o {} si no encontró nada. */
     function buscar(texto, indice) {
         var pedido = palabras(texto);
+        var extra = sinonimosDe(pedido);
         var resultados = indice
-            .map(function (entrada) { return { guia: entrada.guia, puntaje: puntuar(entrada, pedido) }; })
+            .map(function (entrada) { return { guia: entrada.guia, puntaje: puntuar(entrada, pedido, extra) }; })
             .filter(function (resultado) { return resultado.puntaje >= PUNTAJE_MINIMO; })
             .sort(function (a, b) { return b.puntaje - a.puntaje; });
 
@@ -180,7 +211,8 @@
     function mostrarOpciones(lista) {
         var contenedor = crear('div', 'sg-guia-opciones');
         lista.forEach(function (guia) { contenedor.appendChild(opcionGuia(guia)); });
-        contenedor.appendChild(opcion('Ver todas las guías', mostrarTodas, 'sg-guia-opcion--suave'));
+        contenedor.appendChild(opcion('❓ Preguntas frecuentes', mostrarFrecuentes, 'sg-guia-opcion--suave'));
+        contenedor.appendChild(opcion('📚 Ver todas las guías', mostrarTodas, 'sg-guia-opcion--suave'));
         agregar(contenedor);
     }
 
@@ -194,9 +226,58 @@
         return deEstaPantalla.concat(destacadas).slice(0, 5);
     }
 
+    var CLAVE_RECIENTES = 'sg-goyo-recientes';
+    function recientes() {
+        try { return JSON.parse(localStorage.getItem(CLAVE_RECIENTES)) || []; } catch (e) { return []; }
+    }
+    function recordar(texto) {
+        var lista = recientes().filter(function (t) { return normalizar(t) !== normalizar(texto); });
+        lista.unshift(texto);
+        try { localStorage.setItem(CLAVE_RECIENTES, JSON.stringify(lista.slice(0, 4))); } catch (e) { /* sin guardar */ }
+    }
+
     function saludar() {
-        decir('¡Hola! Soy Goyo. ¿Qué querés hacer?');
+        var hora = new Date().getHours();
+        var hola = hora < 12 ? '¡Buen día!' : (hora < 20 ? '¡Buenas tardes!' : '¡Buenas noches!');
+        decir(hola + ' Soy Goyo 👋 Preguntame lo que necesites con tus palabras: "cómo cargo una falta", "cuánto cobra un profe", "alumno que debe"...');
         mostrarOpciones(sugerencias());
+
+        var lista = recientes();
+        if (lista.length) {
+            agregar(crear('p', 'sg-guia-grupo', 'Buscaste hace poco'));
+            var chips = crear('div', 'sg-guia-opciones');
+            lista.forEach(function (texto) {
+                chips.appendChild(opcion('🕘 ' + texto, function () { responder(texto); }, 'sg-guia-opcion--suave'));
+            });
+            agregar(chips);
+        }
+    }
+
+    // Respuestas a las preguntas frecuentes (guías con "respuesta" en vez de pasos).
+    function mostrarFrecuentes() {
+        decir('Estas son las preguntas que más me hacen:');
+        mostrarOpciones(guias.filter(function (guia) { return guia.respuesta; }));
+    }
+
+    // "Escribiendo...": Goyo se toma un instante antes de contestar.
+    function pensar(luego) {
+        var burbuja = decir('');
+        burbuja.classList.add('sg-guia-msj--pensando');
+        burbuja.innerHTML = '<span></span><span></span><span></span>';
+        setTimeout(function () { burbuja.remove(); luego(); }, 450);
+    }
+
+    // ¿Te sirvió? Si no, ofrece otras opciones.
+    function preguntarSiSirvio() {
+        var fila = crear('div', 'sg-guia-opciones sg-guia-sirvio');
+        fila.appendChild(crear('span', 'sg-guia-sirvio__texto', '¿Te sirvió?'));
+        fila.appendChild(opcion('👍 Sí', function () { fila.remove(); decir('¡Genial! Si necesitás algo más, acá estoy.'); }, 'sg-guia-opcion--suave'));
+        fila.appendChild(opcion('👎 No', function () {
+            fila.remove();
+            decir('Perdón 😅 Probá contármelo con otras palabras, o mirá estas opciones:');
+            mostrarOpciones(sugerencias());
+        }, 'sg-guia-opcion--suave'));
+        agregar(fila);
     }
 
     function mostrarGuia(guia) {
@@ -206,9 +287,14 @@
         tarjeta.appendChild(crear('h3', '', guia.titulo));
         tarjeta.appendChild(crear('p', 'sg-guia-tarjeta__panel', 'Panel de ' + guia.panel));
 
-        var pasos = crear('ol');
-        guia.pasos.forEach(function (paso) { pasos.appendChild(crear('li', '', paso)); });
-        tarjeta.appendChild(pasos);
+        if (guia.respuesta) {
+            tarjeta.classList.add('sg-guia-tarjeta--respuesta');
+            tarjeta.appendChild(crear('p', 'sg-guia-tarjeta__respuesta', guia.respuesta));
+        } else {
+            var pasos = crear('ol');
+            guia.pasos.forEach(function (paso) { pasos.appendChild(crear('li', '', paso)); });
+            tarjeta.appendChild(pasos);
+        }
 
         if (guia.nota) tarjeta.appendChild(crear('p', 'sg-guia-tarjeta__nota', guia.nota));
 
@@ -221,6 +307,7 @@
         }
 
         agregar(tarjeta);
+        preguntarSiSirvio();
 
         var seguir = crear('div', 'sg-guia-opciones');
         seguir.appendChild(opcion('Buscar otra cosa', function () {
@@ -253,17 +340,20 @@
 
     function responder(texto) {
         agregar(crear('div', 'sg-guia-msj sg-guia-msj--usuario', texto));
-
         var resultado = buscar(texto, indice);
-        if (resultado.guia) {
-            mostrarGuia(resultado.guia);
-        } else if (resultado.opciones) {
-            decir('Encontré estas opciones, ¿cuál es?');
-            mostrarOpciones(resultado.opciones);
-        } else {
-            decir('No encontré una guía para eso. Probá con otras palabras, como "alumno", "mesa" o "horario", o elegí una de acá:');
-            mostrarOpciones(sugerencias());
-        }
+        if (resultado.guia || resultado.opciones) recordar(texto);
+
+        pensar(function () {
+            if (resultado.guia) {
+                mostrarGuia(resultado.guia);
+            } else if (resultado.opciones) {
+                decir('Encontré varias cosas parecidas, ¿cuál de estas es?');
+                mostrarOpciones(resultado.opciones);
+            } else {
+                decir('Mmm, no encontré nada para eso 🤔 Probá con otras palabras (por ejemplo "alumno", "cuota", "horario", "falta de un profe") o elegí una de acá:');
+                mostrarOpciones(sugerencias());
+            }
+        });
     }
 
     function abrir(conFoco) {
